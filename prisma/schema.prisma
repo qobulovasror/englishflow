@@ -1,0 +1,87 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  words     Word[]
+  userWords UserWord[]
+  tests     Test[]
+
+  @@map("users")
+}
+
+model Word {
+  id          String   @id @default(uuid())
+  word        String
+  translation String
+  example     String?
+  createdAt   DateTime @default(now())
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  userWords     UserWord[]
+  testQuestions TestQuestion[]
+
+  @@map("words")
+}
+
+enum WordStatus {
+  NEW
+  LEARNING
+  LEARNED
+}
+
+model UserWord {
+  id              String     @id @default(uuid())
+  status          WordStatus @default(NEW)
+  repetitionCount Int        @default(0)
+  lastReviewedAt  DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  wordId String
+  word   Word   @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, wordId])
+  @@map("user_words")
+}
+
+model Test {
+  id        String   @id @default(uuid())
+  score     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  questions TestQuestion[]
+
+  @@map("tests")
+}
+
+model TestQuestion {
+  id             String @id @default(uuid())
+  selectedAnswer String
+  correctAnswer  String
+
+  testId String
+  test   Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  wordId String
+  word   Word   @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@map("test_questions")
+}
