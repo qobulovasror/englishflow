@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { testService } from '@/services/test.service'
+import { extractErrorMessage } from '@/services/api'
 import type { TestQuestion, TestResult, TestAnswer } from '@/types'
 
 export const useTestStore = defineStore('test', () => {
@@ -16,8 +17,8 @@ export const useTestStore = defineStore('test', () => {
     try {
       const response = await testService.startTest()
       questions.value = response.questions
-    } catch (e: any) {
-      error.value = e.response?.data?.message || 'Failed to start test'
+    } catch (e) {
+      error.value = extractErrorMessage(e, 'Failed to start test')
       throw e
     } finally {
       loading.value = false
@@ -30,8 +31,8 @@ export const useTestStore = defineStore('test', () => {
     try {
       result.value = await testService.submitTest({ answers })
       questions.value = []
-    } catch (e: any) {
-      error.value = e.response?.data?.message || 'Failed to submit test'
+    } catch (e) {
+      error.value = extractErrorMessage(e, 'Failed to submit test')
       throw e
     } finally {
       loading.value = false

@@ -1,6 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubmitTestDto } from './dto/submit-test.dto';
+import {
+  StartTestResponseDto,
+  SubmitTestResponseDto,
+} from './dto/test-response.dto';
 
 @Injectable()
 export class TestsService {
@@ -8,7 +13,7 @@ export class TestsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async startTest(userId: string) {
+  async startTest(userId: string): Promise<StartTestResponseDto> {
     const words = await this.prisma.word.findMany({
       where: { createdById: userId },
       take: this.TEST_QUESTION_COUNT * 2,
@@ -20,7 +25,7 @@ export class TestsService {
       );
     }
 
-    const shuffled = words.sort(() => Math.random() - 0.5);
+    const shuffled = [...words].sort(() => Math.random() - 0.5);
     const testWords = shuffled.slice(0, this.TEST_QUESTION_COUNT);
 
     const questions = testWords.map((word) => {
@@ -30,7 +35,9 @@ export class TestsService {
         .slice(0, 3)
         .map((w) => w.translation);
 
-      const options = [word.translation, ...wrongAnswers].sort(() => Math.random() - 0.5);
+      const options = [word.translation, ...wrongAnswers].sort(
+        () => Math.random() - 0.5,
+      );
 
       return {
         wordId: word.id,
@@ -40,10 +47,17 @@ export class TestsService {
       };
     });
 
-    return { questions };
+    return plainToInstance(
+      StartTestResponseDto,
+      { questions },
+      { excludeExtraneousValues: true },
+    );
   }
 
-  async submitTest(dto: SubmitTestDto, userId: string) {
+  async submitTest(
+    dto: SubmitTestDto,
+    userId: string,
+  ): Promise<SubmitTestResponseDto> {
     let score = 0;
     const questionsData = [];
 
@@ -75,12 +89,16 @@ export class TestsService {
       include: { questions: true },
     });
 
-    return {
-      testId: test.id,
-      score,
-      total: dto.answers.length,
-      percentage: Math.round((score / dto.answers.length) * 100),
-      questions: test.questions,
-    };
+    return plainToInstance(
+      SubmitTestResponseDto,
+      {
+        testId: test.id,
+        score,
+        total: dto.answers.length,
+        percentage: Math.round((score / dto.answers.length) * 100),
+        questions: test.questions,
+      },
+      { excludeExtraneousValues: true },
+    );
   }
 }

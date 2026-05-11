@@ -1,9 +1,14 @@
 import api from './api'
-import type { Word, CreateWordPayload } from '@/types'
+import type { Word, CreateWordPayload, PaginatedResponse } from '@/types'
+
+export interface ListWordsParams {
+  page?: number
+  limit?: number
+}
 
 export const wordsService = {
-  async getAll(): Promise<Word[]> {
-    const { data } = await api.get<Word[]>('/words')
+  async list(params: ListWordsParams = {}): Promise<PaginatedResponse<Word>> {
+    const { data } = await api.get<PaginatedResponse<Word>>('/words', { params })
     return data
   },
 

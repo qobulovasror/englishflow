@@ -13,7 +13,12 @@ const authStore = useAuthStore()
       </div>
       <div class="flex items-center gap-4">
         <ThemeToggle />
-        <span class="text-sm text-gray-600 dark:text-gray-300">{{ authStore.user?.email }}</span>
+        <router-link
+          to="/profile"
+          class="text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+        >
+          {{ authStore.user?.email }}
+        </router-link>
         <button
           @click="authStore.logout()"
           class="text-sm text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"

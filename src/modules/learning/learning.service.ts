@@ -1,7 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { WordStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ReviewWordDto } from './dto/review-word.dto';
+import {
+  DailyWordResponseDto,
+  ReviewResultDto,
+} from './dto/daily-word-response.dto';
 
 @Injectable()
 export class LearningService {
@@ -9,7 +14,7 @@ export class LearningService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getDailyWords(userId: string) {
+  async getDailyWords(userId: string): Promise<DailyWordResponseDto[]> {
     const words = await this.prisma.userWord.findMany({
       where: {
         userId,
@@ -23,18 +28,24 @@ export class LearningService {
       ],
     });
 
-    return words.map((uw) => ({
-      id: uw.id,
-      wordId: uw.word.id,
-      word: uw.word.word,
-      translation: uw.word.translation,
-      example: uw.word.example,
-      status: uw.status,
-      repetitionCount: uw.repetitionCount,
-    }));
+    return words.map((uw) =>
+      plainToInstance(
+        DailyWordResponseDto,
+        {
+          id: uw.id,
+          wordId: uw.word.id,
+          word: uw.word.word,
+          translation: uw.word.translation,
+          example: uw.word.example,
+          status: uw.status,
+          repetitionCount: uw.repetitionCount,
+        },
+        { excludeExtraneousValues: true },
+      ),
+    );
   }
 
-  async reviewWord(dto: ReviewWordDto, userId: string) {
+  async reviewWord(dto: ReviewWordDto, userId: string): Promise<ReviewResultDto> {
     const userWord = await this.prisma.userWord.findFirst({
       where: { id: dto.userWordId, userId },
     });
@@ -64,11 +75,15 @@ export class LearningService {
       include: { word: true },
     });
 
-    return {
-      id: updated.id,
-      word: updated.word.word,
-      status: updated.status,
-      repetitionCount: updated.repetitionCount,
-    };
+    return plainToInstance(
+      ReviewResultDto,
+      {
+        id: updated.id,
+        word: updated.word.word,
+        status: updated.status,
+        repetitionCount: updated.repetitionCount,
+      },
+      { excludeExtraneousValues: true },
+    );
   }
 }

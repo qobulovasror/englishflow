@@ -1,12 +1,17 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWordDto } from './dto/create-word.dto';
+import { WordResponseDto } from './dto/word-response.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
+import { paginate } from '../../common/utils/pagination.helper';
 
 @Injectable()
 export class WordsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateWordDto, userId: string) {
+  async create(dto: CreateWordDto, userId: string): Promise<WordResponseDto> {
     const word = await this.prisma.word.create({
       data: {
         word: dto.word,
@@ -23,17 +28,32 @@ export class WordsService {
       },
     });
 
-    return word;
+    return this.toDto(word);
   }
 
-  async findAllByUser(userId: string) {
-    return this.prisma.word.findMany({
-      where: { createdById: userId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAllByUser(
+    userId: string,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<WordResponseDto>> {
+    const where = { createdById: userId };
+    const [words, total] = await this.prisma.$transaction([
+      this.prisma.word.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: query.skip,
+        take: query.take,
+      }),
+      this.prisma.word.count({ where }),
+    ]);
+
+    return paginate(
+      words.map((w) => this.toDto(w)),
+      total,
+      query,
+    );
   }
 
-  async remove(id: string, userId: string) {
+  async remove(id: string, userId: string): Promise<{ message: string }> {
     const word = await this.prisma.word.findUnique({ where: { id } });
 
     if (!word) {
@@ -54,6 +74,12 @@ export class WordsService {
       where: { createdById: userId },
       take: count,
       orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  private toDto(word: unknown): WordResponseDto {
+    return plainToInstance(WordResponseDto, word, {
+      excludeExtraneousValues: true,
     });
   }
 }

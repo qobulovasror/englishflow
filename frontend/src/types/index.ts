@@ -1,11 +1,22 @@
 export interface User {
   id: string
   email: string
+  createdAt?: string
+}
+
+export interface UpdateProfilePayload {
+  email?: string
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string
+  newPassword: string
 }
 
 export interface AuthResponse {
   user: User
   accessToken: string
+  refreshToken: string
 }
 
 export interface Word {
@@ -20,6 +31,14 @@ export interface CreateWordPayload {
   word: string
   translation: string
   example?: string
+}
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  limit: number
+  hasMore: boolean
 }
 
 export type WordStatus = 'NEW' | 'LEARNING' | 'LEARNED'

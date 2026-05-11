@@ -12,13 +12,34 @@ model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
+  // Tracks the moment of the last password change; any JWT issued before this
+  // is considered invalid by `JwtStrategy.validate`.
+  passwordChangedAt DateTime @default(now())
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  words     Word[]
-  userWords UserWord[]
-  tests     Test[]
+  words         Word[]
+  userWords     UserWord[]
+  tests         Test[]
+  refreshTokens RefreshToken[]
 
   @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  // SHA-256 of the opaque token string. We never persist the plaintext.
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
 }
 
 model Word {
@@ -27,6 +48,7 @@ model Word {
   translation String
   example     String?
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   createdById String
   createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
@@ -34,6 +56,7 @@ model Word {
   userWords     UserWord[]
   testQuestions TestQuestion[]
 
+  @@index([createdById])
   @@map("words")
 }
 
@@ -48,6 +71,8 @@ model UserWord {
   status          WordStatus @default(NEW)
   repetitionCount Int        @default(0)
   lastReviewedAt  DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -56,6 +81,8 @@ model UserWord {
   word   Word   @relation(fields: [wordId], references: [id], onDelete: Cascade)
 
   @@unique([userId, wordId])
+  @@index([wordId])
+  @@index([status])
   @@map("user_words")
 }
 
@@ -63,12 +90,14 @@ model Test {
   id        String   @id @default(uuid())
   score     Int      @default(0)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   questions TestQuestion[]
 
+  @@index([userId])
   @@map("tests")
 }
 
@@ -83,5 +112,7 @@ model TestQuestion {
   wordId String
   word   Word   @relation(fields: [wordId], references: [id], onDelete: Cascade)
 
+  @@index([testId])
+  @@index([wordId])
   @@map("test_questions")
 }
