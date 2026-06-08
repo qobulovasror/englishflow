@@ -15,15 +15,26 @@ export class LearningService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getDailyWords(userId: string): Promise<DailyWordResponseDto[]> {
+    // Words reviewed within the last 24h are excluded — otherwise the same
+    // 10 words would come back over and over inside a single session, with
+    // no sense of "today's batch is done". A proper spaced-repetition
+    // algorithm (SM-2/FSRS) needs an explicit `nextReviewAt` column on
+    // UserWord; that's a future migration. This is the cheapest correctness
+    // win without a schema change.
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const words = await this.prisma.userWord.findMany({
       where: {
         userId,
         status: { in: [WordStatus.NEW, WordStatus.LEARNING] },
+        OR: [
+          { lastReviewedAt: null },
+          { lastReviewedAt: { lt: oneDayAgo } },
+        ],
       },
       include: { word: true },
       take: this.DAILY_WORD_LIMIT,
       orderBy: [
-        { lastReviewedAt: 'asc' },
+        { lastReviewedAt: { sort: 'asc', nulls: 'first' } },
         { repetitionCount: 'asc' },
       ],
     });

@@ -77,30 +77,63 @@ describe('UsersService', () => {
   });
 
   describe('update', () => {
-    it('updates only fields that are defined on the DTO', async () => {
+    const CURRENT = 'CurrentPass123!';
+
+    async function userWithPassword(plain: string): Promise<User> {
+      return buildUser({ password: await bcrypt.hash(plain, 10) });
+    }
+
+    it('returns the current user unchanged when no email is provided', async () => {
+      const user = buildUser();
+      prisma.user.findUnique.mockResolvedValue(user);
+
+      const result = await service.update('u1', { currentPassword: 'whatever' });
+
+      expect(result).toBe(user);
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects email change when current password is incorrect', async () => {
+      prisma.user.findUnique.mockResolvedValue(await userWithPassword(CURRENT));
+
+      await expect(
+        service.update('u1', { email: 'new@x.y', currentPassword: 'wrong' }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('updates email and bumps passwordChangedAt + revokes refresh tokens', async () => {
+      prisma.user.findUnique.mockResolvedValue(await userWithPassword(CURRENT));
       prisma.user.update.mockResolvedValue(buildUser({ email: 'new@x.y' }));
 
-      await service.update('u1', { email: 'new@x.y' });
+      await service.update('u1', { email: 'new@x.y', currentPassword: CURRENT });
 
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: 'u1' },
-        data: { email: 'new@x.y' },
+      const updateCall = prisma.user.update.mock.calls[0][0];
+      expect(updateCall.where).toEqual({ id: 'u1' });
+      expect(updateCall.data.email).toBe('new@x.y');
+      expect(updateCall.data.passwordChangedAt).toBeInstanceOf(Date);
+      expect(prisma.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'u1' },
       });
     });
 
-    it('emits an empty data update when the DTO is empty', async () => {
-      prisma.user.update.mockResolvedValue(buildUser());
+    it('is a no-op when new email equals current email', async () => {
+      const user = await userWithPassword(CURRENT);
+      prisma.user.findUnique.mockResolvedValue(user);
 
-      await service.update('u1', {});
-
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: 'u1' },
-        data: {},
+      const result = await service.update('u1', {
+        email: user.email,
+        currentPassword: CURRENT,
       });
+
+      expect(result).toBe(user);
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
     it('converts Prisma P2002 to ConflictException', async () => {
-      prisma.user.update.mockRejectedValue(
+      prisma.user.findUnique.mockResolvedValue(await userWithPassword(CURRENT));
+      prisma.$transaction.mockRejectedValue(
         new Prisma.PrismaClientKnownRequestError('dup', {
           code: 'P2002',
           clientVersion: 'x',
@@ -108,18 +141,21 @@ describe('UsersService', () => {
       );
 
       await expect(
-        service.update('u1', { email: 'taken@x.y' }),
+        service.update('u1', { email: 'taken@x.y', currentPassword: CURRENT }),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
     it('rethrows non-P2002 Prisma errors', async () => {
+      prisma.user.findUnique.mockResolvedValue(await userWithPassword(CURRENT));
       const err = new Prisma.PrismaClientKnownRequestError('boom', {
         code: 'P9999',
         clientVersion: 'x',
       });
-      prisma.user.update.mockRejectedValue(err);
+      prisma.$transaction.mockRejectedValue(err);
 
-      await expect(service.update('u1', { email: 'x@y.z' })).rejects.toBe(err);
+      await expect(
+        service.update('u1', { email: 'x@y.z', currentPassword: CURRENT }),
+      ).rejects.toBe(err);
     });
   });
 

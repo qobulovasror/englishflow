@@ -20,11 +20,9 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -32,6 +30,9 @@ var/
 wheels/
 share/python-wheels/
 *.egg-info/
+# Note: bare `lib/` (Python wheels build dir) was here but it accidentally
+# masked `mobile/lib/` — removed. Bare `test/` lower down (which masked the
+# backend e2e tests) was removed for the same reason.
 .installed.cfg
 *.egg
 MANIFEST
@@ -463,11 +464,5 @@ pyrightconfig.json
 # gitignore template for Vue.js projects
 #
 # Recommended template: Node.gitignore
-
-# TODO: where does this rule come from?
-docs/_book
-
-# TODO: where does this rule come from?
-test/
 
 # End of https://www.toptal.com/developers/gitignore/api/vue,flutter,node,flask,python

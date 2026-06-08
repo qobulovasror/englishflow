@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -11,7 +11,6 @@ import {
   StartTestResponseDto,
   SubmitTestResponseDto,
 } from './dto/test-response.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ApiSuccessResponse } from '../../common/swagger/api-response.decorator';
 import { ApiErrorResponseDto } from '../../common/swagger/api-error-response.dto';
@@ -19,7 +18,6 @@ import { ApiErrorResponseDto } from '../../common/swagger/api-error-response.dto
 @ApiTags('Tests')
 @ApiBearerAuth('JWT')
 @Controller('tests')
-@UseGuards(JwtAuthGuard)
 export class TestsController {
   constructor(private readonly testsService: TestsService) {}
 

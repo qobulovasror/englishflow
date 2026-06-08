@@ -12,7 +12,9 @@ const { user, loading } = storeToRefs(authStore)
 
 // ── Profile details ─────────────────────────────────────────────────────────
 const emailDraft = ref('')
+const emailCurrentPassword = ref('')
 const emailError = ref<string | null>(null)
+const emailPasswordError = ref<string | null>(null)
 const emailServerError = ref<string | null>(null)
 const emailSuccess = ref<string | null>(null)
 
@@ -47,6 +49,7 @@ onMounted(async () => {
 
 async function handleEmailSubmit() {
   emailError.value = null
+  emailPasswordError.value = null
   emailServerError.value = null
   emailSuccess.value = null
 
@@ -60,10 +63,18 @@ async function handleEmailSubmit() {
     return
   }
   if (value === user.value?.email) return
+  if (!emailCurrentPassword.value) {
+    emailPasswordError.value = 'Enter your current password to change your email'
+    return
+  }
 
   try {
-    await authStore.updateProfile({ email: value })
+    await authStore.updateProfile({
+      email: value,
+      currentPassword: emailCurrentPassword.value,
+    })
     emailSuccess.value = 'Email updated successfully'
+    emailCurrentPassword.value = ''
   } catch (e) {
     emailServerError.value = extractErrorMessage(e, 'Failed to update profile')
   }
@@ -71,7 +82,9 @@ async function handleEmailSubmit() {
 
 function handleEmailReset() {
   emailDraft.value = user.value?.email ?? ''
+  emailCurrentPassword.value = ''
   emailError.value = null
+  emailPasswordError.value = null
   emailServerError.value = null
   emailSuccess.value = null
 }
@@ -117,8 +130,12 @@ function validatePassword(): boolean {
   if (!pwForm.newPassword) {
     pwFieldErrors.newPassword = 'New password is required'
     ok = false
-  } else if (pwForm.newPassword.length < 6) {
-    pwFieldErrors.newPassword = 'Password must be at least 6 characters'
+  } else if (pwForm.newPassword.length < 8) {
+    pwFieldErrors.newPassword = 'Password must be at least 8 characters'
+    ok = false
+  } else if (!/^(?=.*[A-Za-z])(?=.*\d).+$/.test(pwForm.newPassword)) {
+    pwFieldErrors.newPassword =
+      'Password must contain at least one letter and one digit'
     ok = false
   } else if (pwForm.newPassword === pwForm.currentPassword) {
     pwFieldErrors.newPassword = 'New password must differ from the current one'
@@ -191,6 +208,16 @@ async function handlePasswordSubmit() {
             required
           />
 
+          <AppInput
+            v-if="isEmailDirty"
+            v-model="emailCurrentPassword"
+            label="Current password"
+            type="password"
+            placeholder="Confirm with your current password"
+            :error="emailPasswordError ?? ''"
+            required
+          />
+
           <p v-if="emailServerError" class="text-sm text-red-500">
             {{ emailServerError }}
           </p>
@@ -237,7 +264,7 @@ async function handlePasswordSubmit() {
             v-model="pwForm.newPassword"
             label="New password"
             type="password"
-            placeholder="At least 6 characters"
+            placeholder="At least 8 chars with a letter and a digit"
             :error="pwFieldErrors.newPassword"
             required
           />

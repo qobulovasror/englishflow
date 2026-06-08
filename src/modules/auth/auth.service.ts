@@ -12,7 +12,13 @@ import { RefreshTokensService } from './refresh-tokens.service';
 
 @Injectable()
 export class AuthService {
-  private static readonly BCRYPT_ROUNDS = 10;
+  private static readonly BCRYPT_ROUNDS = 12;
+  // Bcrypt hash of an unguessable random string; used to keep the timing of a
+  // missing-user login indistinguishable from a wrong-password login. The
+  // computed value is thrown away — its only purpose is to consume the same
+  // ~CPU as a real `bcrypt.compare` would.
+  private static readonly DUMMY_HASH =
+    '$2b$12$abcdefghijklmnopqrstuv0123456789ABCDEFGHIJKLMNOPQRSTUVWX';
 
   constructor(
     private readonly usersService: UsersService,
@@ -37,12 +43,15 @@ export class AuthService {
 
   async login(dto: LoginDto): Promise<AuthResponseDto> {
     const user = await this.usersService.findByEmail(dto.email);
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
-    if (!isPasswordValid) {
+    // Run bcrypt even when the user doesn't exist, against a fixed dummy hash.
+    // Otherwise the missing-user branch returns ~instantly while the
+    // wrong-password branch takes ~hundreds of ms — a remote timing channel
+    // that reveals which emails are registered.
+    const hashToCompare = user?.password ?? AuthService.DUMMY_HASH;
+    const isPasswordValid = await bcrypt.compare(dto.password, hashToCompare);
+
+    if (!user || !isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 

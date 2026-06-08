@@ -239,6 +239,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liveness probe — does the API process respond? */
+        get: operations["HealthController_live"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readiness probe — API + database reachable */
+        get: operations["HealthController_ready"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -285,7 +319,7 @@ export interface components {
              */
             email: string;
             /**
-             * @description Plain text password, hashed server-side with bcrypt
+             * @description Plain text password, hashed server-side with bcrypt. Must contain at least one letter and one digit.
              * @example StrongPass123!
              */
             password: string;
@@ -336,6 +370,11 @@ export interface components {
              * @example new-email@example.com
              */
             email?: string;
+            /**
+             * @description The current password — required when changing email to prevent account takeover via stolen access tokens. Ignored when no email change is requested.
+             * @example CurrentPass123!
+             */
+            currentPassword: string;
         };
         ChangePasswordDto: {
             /**
@@ -344,7 +383,7 @@ export interface components {
              */
             currentPassword: string;
             /**
-             * @description The new password to set
+             * @description The new password. Must contain at least one letter and one digit.
              * @example NewStrongerPass456!
              */
             newPassword: string;
@@ -432,8 +471,6 @@ export interface components {
              *     ]
              */
             options: string[];
-            /** @example kutilmagan yoqimli kashfiyot */
-            correctAnswer: string;
         };
         StartTestResponseDto: {
             questions: components["schemas"]["TestQuestionDto"][];
@@ -1085,6 +1122,40 @@ export interface operations {
                         timestamp: string;
                     };
                 };
+            };
+        };
+    };
+    HealthController_live: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    HealthController_ready: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

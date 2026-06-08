@@ -8,7 +8,6 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -20,7 +19,6 @@ import {
 import { WordsService } from './words.service';
 import { CreateWordDto } from './dto/create-word.dto';
 import { WordResponseDto } from './dto/word-response.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   ApiPaginatedResponse,
@@ -33,7 +31,6 @@ import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 @ApiTags('Words')
 @ApiBearerAuth('JWT')
 @Controller('words')
-@UseGuards(JwtAuthGuard)
 export class WordsController {
   constructor(private readonly wordsService: WordsService) {}
 

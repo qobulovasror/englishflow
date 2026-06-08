@@ -12,20 +12,19 @@ export class WordsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateWordDto, userId: string): Promise<WordResponseDto> {
-    const word = await this.prisma.word.create({
-      data: {
-        word: dto.word,
-        translation: dto.translation,
-        example: dto.example,
-        createdById: userId,
-      },
-    });
-
-    await this.prisma.userWord.create({
-      data: {
-        userId,
-        wordId: word.id,
-      },
+    // Both rows must land or neither — otherwise a failed userWord insert
+    // leaves an orphan Word that isn't part of any learning list.
+    const [word] = await this.prisma.$transaction(async (tx) => {
+      const w = await tx.word.create({
+        data: {
+          word: dto.word,
+          translation: dto.translation,
+          example: dto.example,
+          createdById: userId,
+        },
+      });
+      await tx.userWord.create({ data: { userId, wordId: w.id } });
+      return [w];
     });
 
     return this.toDto(word);

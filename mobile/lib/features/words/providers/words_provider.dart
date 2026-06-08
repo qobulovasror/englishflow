@@ -1,0 +1,59 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:englishflow/features/words/models/words_state.dart';
+import 'package:englishflow/features/words/services/words_service.dart';
+
+final wordsProvider = StateNotifierProvider<WordsNotifier, WordsState>((ref) {
+  return WordsNotifier(ref.watch(wordsServiceProvider));
+});
+
+class WordsNotifier extends StateNotifier<WordsState> {
+  final WordsService _wordsService;
+
+  WordsNotifier(this._wordsService) : super(const WordsState());
+
+  Future<void> loadWords() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final words = await _wordsService.getWords();
+      state = state.copyWith(words: words, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  Future<bool> addWord({
+    required String word,
+    required String translation,
+    String? example,
+  }) async {
+    state = state.copyWith(isAdding: true, clearError: true);
+    try {
+      final newWord = await _wordsService.addWord(
+        word: word,
+        translation: translation,
+        example: example,
+      );
+      state = state.copyWith(
+        words: [newWord, ...state.words],
+        isAdding: false,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(isAdding: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> deleteWord(String id) async {
+    try {
+      await _wordsService.deleteWord(id);
+      state = state.copyWith(
+        words: state.words.where((w) => w.id != id).toList(),
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return false;
+    }
+  }
+}

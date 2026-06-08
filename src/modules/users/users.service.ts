@@ -14,7 +14,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class UsersService {
-  private static readonly BCRYPT_ROUNDS = 10;
+  private static readonly BCRYPT_ROUNDS = 12;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -44,11 +44,34 @@ export class UsersService {
   }
 
   async update(id: string, dto: UpdateUserDto) {
+    // Nothing to change — return the current row unmodified rather than
+    // doing a no-op UPDATE.
+    if (dto.email === undefined) {
+      return this.findByIdOrThrow(id);
+    }
+
+    const user = await this.findByIdOrThrow(id);
+    const isPasswordValid = await bcrypt.compare(dto.currentPassword, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    if (dto.email === user.email) {
+      return user;
+    }
+
     try {
-      return await this.prisma.user.update({
-        where: { id },
-        data: { ...(dto.email !== undefined && { email: dto.email }) },
-      });
+      // Email change is a security-sensitive event (account recovery uses email).
+      // Bump `passwordChangedAt` and revoke refresh tokens so old sessions can't
+      // continue under the new identity.
+      const [updated] = await this.prisma.$transaction([
+        this.prisma.user.update({
+          where: { id },
+          data: { email: dto.email, passwordChangedAt: new Date() },
+        }),
+        this.prisma.refreshToken.deleteMany({ where: { userId: id } }),
+      ]);
+      return updated;
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&

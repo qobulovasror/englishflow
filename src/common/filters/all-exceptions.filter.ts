@@ -21,6 +21,7 @@ export interface ErrorResponseBody {
   errors?: unknown;
   path: string;
   timestamp: string;
+  requestId?: string;
 }
 
 @Catch()
@@ -44,13 +45,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const isProduction =
       this.configService.get<AppConfig>('app')?.nodeEnv === 'production';
 
+    const requestId =
+      typeof request.id === 'string' && request.id.length > 0
+        ? request.id
+        : undefined;
+
     if (statusCode >= 500) {
       this.logger.error(
-        `${request.method} ${path} -> ${statusCode} ${message}`,
+        `[${requestId ?? '-'}] ${request.method} ${path} -> ${statusCode} ${message}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
     } else {
-      this.logger.warn(`${request.method} ${path} -> ${statusCode} ${message}`);
+      this.logger.warn(
+        `[${requestId ?? '-'}] ${request.method} ${path} -> ${statusCode} ${message}`,
+      );
     }
 
     const body: ErrorResponseBody = {
@@ -61,6 +69,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       ...(errors ? { errors } : {}),
       path,
       timestamp: new Date().toISOString(),
+      ...(requestId ? { requestId } : {}),
     };
 
     httpAdapter.reply(response, body, statusCode);

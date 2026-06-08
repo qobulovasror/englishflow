@@ -6,7 +6,6 @@ import {
   HttpStatus,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -19,7 +18,6 @@ import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UserResponseDto } from './dto/user-response.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   ApiSuccessPrimitiveResponse,
@@ -30,7 +28,6 @@ import { ApiErrorResponseDto } from '../../common/swagger/api-error-response.dto
 @ApiTags('Users')
 @ApiBearerAuth('JWT')
 @Controller('users')
-@UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

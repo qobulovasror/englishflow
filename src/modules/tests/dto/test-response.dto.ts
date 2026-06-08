@@ -13,10 +13,6 @@ export class TestQuestionDto {
   @ApiProperty({ type: [String], example: ['kutilmagan yoqimli kashfiyot', 'jadval', 'iqtisodiy', 'lazzat'] })
   @Expose()
   options: string[];
-
-  @ApiProperty({ example: 'kutilmagan yoqimli kashfiyot' })
-  @Expose()
-  correctAnswer: string;
 }
 
 export class StartTestResponseDto {

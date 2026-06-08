@@ -6,6 +6,8 @@ export interface User {
 
 export interface UpdateProfilePayload {
   email?: string
+  // Required by the backend whenever `email` is being changed.
+  currentPassword: string
 }
 
 export interface ChangePasswordPayload {
@@ -69,7 +71,6 @@ export interface TestQuestion {
   wordId: string
   word: string
   options: string[]
-  correctAnswer: string
 }
 
 export interface TestStartResponse {

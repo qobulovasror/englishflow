@@ -68,7 +68,10 @@ describe('LearningService', () => {
 
       expect(prisma.userWord.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { userId: 'u1', status: { in: ['NEW', 'LEARNING'] } },
+          where: expect.objectContaining({
+            userId: 'u1',
+            status: { in: ['NEW', 'LEARNING'] },
+          }),
           take: 10,
         }),
       );

@@ -944,6 +944,36 @@
           }
         ]
       }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_live",
+        "summary": "Liveness probe — does the API process respond?",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "summary": "Readiness probe — API + database reachable",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
     }
   },
   "info": {
@@ -1028,8 +1058,9 @@
           "password": {
             "type": "string",
             "example": "StrongPass123!",
-            "minLength": 6,
-            "description": "Plain text password, hashed server-side with bcrypt"
+            "minLength": 8,
+            "maxLength": 72,
+            "description": "Plain text password, hashed server-side with bcrypt. Must contain at least one letter and one digit."
           }
         },
         "required": [
@@ -1120,8 +1151,16 @@
             "type": "string",
             "example": "new-email@example.com",
             "description": "New email address. Must be unique."
+          },
+          "currentPassword": {
+            "type": "string",
+            "example": "CurrentPass123!",
+            "description": "The current password — required when changing email to prevent account takeover via stolen access tokens. Ignored when no email change is requested."
           }
-        }
+        },
+        "required": [
+          "currentPassword"
+        ]
       },
       "ChangePasswordDto": {
         "type": "object",
@@ -1134,8 +1173,9 @@
           "newPassword": {
             "type": "string",
             "example": "NewStrongerPass456!",
-            "minLength": 6,
-            "description": "The new password to set"
+            "minLength": 8,
+            "maxLength": 72,
+            "description": "The new password. Must contain at least one letter and one digit."
           }
         },
         "required": [
@@ -1320,17 +1360,12 @@
             "items": {
               "type": "string"
             }
-          },
-          "correctAnswer": {
-            "type": "string",
-            "example": "kutilmagan yoqimli kashfiyot"
           }
         },
         "required": [
           "wordId",
           "word",
-          "options",
-          "correctAnswer"
+          "options"
         ]
       },
       "StartTestResponseDto": {

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -63,11 +64,14 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _from, next) => {
-  const token = localStorage.getItem('token')
+  // Read from the Pinia store — the access token lives in store state, not
+  // localStorage. `tryRestore()` runs before the router is mounted, so by
+  // the time this guard fires the store reflects the real session.
+  const { isAuthenticated } = useAuthStore()
 
-  if (to.meta.requiresAuth && !token) {
+  if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
-  } else if (to.meta.guest && token) {
+  } else if (to.meta.guest && isAuthenticated) {
     next('/dashboard')
   } else {
     next()

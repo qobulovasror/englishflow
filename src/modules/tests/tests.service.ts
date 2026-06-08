@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.service';
+import { shuffle } from '../../common/utils/shuffle';
 import { SubmitTestDto } from './dto/submit-test.dto';
 import {
   StartTestResponseDto,
@@ -25,25 +26,23 @@ export class TestsService {
       );
     }
 
-    const shuffled = [...words].sort(() => Math.random() - 0.5);
-    const testWords = shuffled.slice(0, this.TEST_QUESTION_COUNT);
+    const testWords = shuffle(words).slice(0, this.TEST_QUESTION_COUNT);
 
     const questions = testWords.map((word) => {
       const otherWords = words.filter((w) => w.id !== word.id);
-      const wrongAnswers = otherWords
-        .sort(() => Math.random() - 0.5)
+      const wrongAnswers = shuffle(otherWords)
         .slice(0, 3)
         .map((w) => w.translation);
 
-      const options = [word.translation, ...wrongAnswers].sort(
-        () => Math.random() - 0.5,
-      );
+      const options = shuffle([word.translation, ...wrongAnswers]);
 
+      // NOTE: `correctAnswer` is deliberately NOT included here. Returning it
+      // would let the client read the answer key from DevTools. The server is
+      // the only source of truth for grading — see `submitTest` below.
       return {
         wordId: word.id,
         word: word.word,
         options,
-        correctAnswer: word.translation,
       };
     });
 
@@ -58,15 +57,25 @@ export class TestsService {
     dto: SubmitTestDto,
     userId: string,
   ): Promise<SubmitTestResponseDto> {
+    // Single bulk query (was N+1 in the loop) AND scope it to words owned by
+    // this user — otherwise a caller could submit another user's wordId and
+    // have it graded against that user's vocabulary.
+    const wordIds = dto.answers.map((a) => a.wordId);
+    const words = await this.prisma.word.findMany({
+      where: { id: { in: wordIds }, createdById: userId },
+    });
+    const byId = new Map(words.map((w) => [w.id, w]));
+
     let score = 0;
-    const questionsData = [];
+    const questionsData: Array<{
+      wordId: string;
+      selectedAnswer: string;
+      correctAnswer: string;
+    }> = [];
 
     for (const answer of dto.answers) {
-      const word = await this.prisma.word.findUnique({
-        where: { id: answer.wordId },
-      });
-
-      if (!word) continue;
+      const word = byId.get(answer.wordId);
+      if (!word) continue; // unknown or not owned — skipped silently
 
       const isCorrect = answer.selectedAnswer === word.translation;
       if (isCorrect) score++;

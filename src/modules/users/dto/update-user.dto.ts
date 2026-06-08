@@ -1,5 +1,5 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class UpdateUserDto {
   @ApiPropertyOptional({
@@ -9,4 +9,13 @@ export class UpdateUserDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @ApiProperty({
+    example: 'CurrentPass123!',
+    description:
+      'The current password — required when changing email to prevent account ' +
+      'takeover via stolen access tokens. Ignored when no email change is requested.',
+  })
+  @IsString()
+  currentPassword: string;
 }

@@ -3,6 +3,7 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from 'axios'
+import router from '@/router'
 
 export interface ApiSuccessEnvelope<T> {
   success: true
@@ -96,6 +97,14 @@ async function performRefresh(): Promise<string | null> {
   }
 }
 
+function redirectToLogin() {
+  if (router.currentRoute.value.path !== '/login') {
+    // Use Vue Router so we stay inside the SPA — a full `window.location`
+    // reload would discard Pinia state and re-bootstrap the whole app.
+    router.push('/login')
+  }
+}
+
 async function handle401(error: AxiosError<ApiErrorEnvelope>): Promise<unknown> {
   const status = error.response?.status
   const original = error.config as RetriableRequest | undefined
@@ -111,9 +120,7 @@ async function handle401(error: AxiosError<ApiErrorEnvelope>): Promise<unknown> 
   ) {
     if (status === 401) {
       clearSession()
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login'
-      }
+      redirectToLogin()
     }
     return Promise.reject(error)
   }
@@ -128,9 +135,7 @@ async function handle401(error: AxiosError<ApiErrorEnvelope>): Promise<unknown> 
   const newToken = await refreshInFlight
 
   if (!newToken) {
-    if (!window.location.pathname.startsWith('/login')) {
-      window.location.href = '/login'
-    }
+    redirectToLogin()
     return Promise.reject(error)
   }
 

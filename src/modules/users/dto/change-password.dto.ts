@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, MinLength } from 'class-validator';
+import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_PATTERN,
+} from '../../auth/dto/register.dto';
 
 export class ChangePasswordDto {
   @ApiProperty({
@@ -11,10 +16,16 @@ export class ChangePasswordDto {
 
   @ApiProperty({
     example: 'NewStrongerPass456!',
-    minLength: 6,
-    description: 'The new password to set',
+    minLength: PASSWORD_MIN_LENGTH,
+    maxLength: PASSWORD_MAX_LENGTH,
+    description:
+      'The new password. Must contain at least one letter and one digit.',
   })
   @IsString()
-  @MinLength(6)
+  @MinLength(PASSWORD_MIN_LENGTH)
+  @MaxLength(PASSWORD_MAX_LENGTH)
+  @Matches(PASSWORD_PATTERN, {
+    message: 'newPassword must contain at least one letter and one digit',
+  })
   newPassword: string;
 }

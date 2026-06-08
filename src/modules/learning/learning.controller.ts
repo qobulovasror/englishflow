@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -11,7 +11,6 @@ import {
   DailyWordResponseDto,
   ReviewResultDto,
 } from './dto/daily-word-response.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ApiSuccessResponse } from '../../common/swagger/api-response.decorator';
 import { ApiErrorResponseDto } from '../../common/swagger/api-error-response.dto';
@@ -19,7 +18,6 @@ import { ApiErrorResponseDto } from '../../common/swagger/api-error-response.dto
 @ApiTags('Learning')
 @ApiBearerAuth('JWT')
 @Controller('learning')
-@UseGuards(JwtAuthGuard)
 export class LearningController {
   constructor(private readonly learningService: LearningService) {}
 

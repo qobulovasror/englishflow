@@ -15,7 +15,7 @@ export class LoggingInterceptor implements NestInterceptor {
     const httpCtx = context.switchToHttp();
     const request = httpCtx.getRequest();
     const response = httpCtx.getResponse();
-    const { method, originalUrl } = request;
+    const { method, originalUrl, id } = request;
     const start = Date.now();
 
     return next.handle().pipe(
@@ -23,7 +23,7 @@ export class LoggingInterceptor implements NestInterceptor {
         next: () => {
           const elapsed = Date.now() - start;
           this.logger.log(
-            `${method} ${originalUrl} ${response.statusCode} +${elapsed}ms`,
+            `[${id ?? '-'}] ${method} ${originalUrl} ${response.statusCode} +${elapsed}ms`,
           );
         },
       }),

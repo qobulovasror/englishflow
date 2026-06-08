@@ -28,12 +28,16 @@ import {
   ApiSuccessResponse,
 } from '../../common/swagger/api-response.decorator';
 import { ApiErrorResponseDto } from '../../common/swagger/api-error-response.dto';
+import { Public } from '../../common/decorators/public.decorator';
 
 const AUTH_THROTTLE = { default: { ttl: 60_000, limit: 10 } };
 
 @ApiTags('Auth')
 @Controller('auth')
 @Throttle(AUTH_THROTTLE)
+// The whole auth controller is unauthenticated — register/login mint the
+// first token, refresh/logout authenticate via the refresh token only.
+@Public()
 export class AuthController {
   constructor(
     private readonly authService: AuthService,

@@ -21,8 +21,13 @@ async function handleSubmit() {
     return
   }
 
-  if (password.value.length < 6) {
-    validationError.value = 'Password must be at least 6 characters'
+  if (password.value.length < 8) {
+    validationError.value = 'Password must be at least 8 characters'
+    return
+  }
+  if (!/^(?=.*[A-Za-z])(?=.*\d).+$/.test(password.value)) {
+    validationError.value =
+      'Password must contain at least one letter and one digit'
     return
   }
 
