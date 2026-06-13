@@ -9,7 +9,13 @@ class ApiEndpoints {
 
   // Users
   static const String me = '/users/me';
+  static const String onboarding = '/users/me/onboarding';
   static const String changePassword = '/users/me/password';
+
+  // Decks
+  static const String decks = '/decks';
+  static String deckById(String id) => '/decks/$id';
+  static String deckEnroll(String id) => '/decks/$id/enroll';
 
   // Words
   static const String words = '/words';

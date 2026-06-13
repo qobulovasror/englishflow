@@ -31,6 +31,11 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
       appBar: AppBar(
         title: Text('My Words', style: AppTextStyles.heading2),
         actions: [
+          IconButton(
+            onPressed: () => context.push('/library'),
+            icon: const Icon(Icons.library_books_outlined),
+            tooltip: 'Browse decks',
+          ),
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(

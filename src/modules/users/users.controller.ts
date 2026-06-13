@@ -17,6 +17,7 @@ import { plainToInstance } from 'class-transformer';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { OnboardingDto } from './dto/onboarding.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
@@ -63,6 +64,31 @@ export class UsersController {
     @Body() dto: UpdateUserDto,
   ): Promise<UserResponseDto> {
     const user = await this.usersService.update(current.id, dto);
+    return plainToInstance(UserResponseDto, user, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Patch('me/onboarding')
+  @ApiOperation({
+    summary: 'Complete or skip onboarding',
+    description:
+      'Records the chosen level, enrolls the user in the selected decks, ' +
+      'and marks the account as onboarded. Send an empty deckIds array to skip.',
+  })
+  @ApiSuccessResponse(UserResponseDto, {
+    description: 'Returns the onboarded user',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'One of the deckIds does not exist',
+    type: ApiErrorResponseDto,
+  })
+  async onboarding(
+    @CurrentUser() current: { id: string },
+    @Body() dto: OnboardingDto,
+  ): Promise<UserResponseDto> {
+    const user = await this.usersService.completeOnboarding(current.id, dto);
     return plainToInstance(UserResponseDto, user, {
       excludeExtraneousValues: true,
     });

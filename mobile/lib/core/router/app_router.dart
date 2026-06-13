@@ -13,6 +13,8 @@ import 'package:englishflow/features/test/screens/quiz_screen.dart';
 import 'package:englishflow/features/test/screens/quiz_result_screen.dart';
 import 'package:englishflow/features/progress/screens/progress_screen.dart';
 import 'package:englishflow/features/users/screens/profile_screen.dart';
+import 'package:englishflow/features/onboarding/screens/onboarding_screen.dart';
+import 'package:englishflow/features/decks/screens/library_screen.dart';
 import 'package:englishflow/shared/widgets/main_scaffold.dart';
 import 'package:englishflow/features/auth/screens/splash_screen.dart';
 
@@ -30,6 +32,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
       final isSplash = state.matchedLocation == '/splash';
+      final isOnboarding = state.matchedLocation == '/onboarding';
 
       if (isSplash) return null;
 
@@ -38,6 +41,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (isAuthenticated && isAuthRoute) {
+        return '/home';
+      }
+
+      // Force unfinished onboarding once the user is authenticated.
+      final needsOnboarding =
+          isAuthenticated && (authState.user?.needsOnboarding ?? false);
+      if (needsOnboarding && !isOnboarding) {
+        return '/onboarding';
+      }
+      if (!needsOnboarding && isOnboarding) {
         return '/home';
       }
 
@@ -55,6 +68,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
@@ -123,6 +140,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/add-word',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const AddWordScreen(),
+      ),
+      GoRoute(
+        path: '/library',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const LibraryScreen(),
       ),
     ],
   );

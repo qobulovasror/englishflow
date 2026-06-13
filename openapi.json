@@ -379,6 +379,72 @@
         ]
       }
     },
+    "/users/me/onboarding": {
+      "patch": {
+        "operationId": "UsersController_onboarding",
+        "summary": "Complete or skip onboarding",
+        "description": "Records the chosen level, enrolls the user in the selected decks, and marks the account as onboarded. Send an empty deckIds array to skip.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the onboarded user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/UserResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "One of the deckIds does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
     "/users/me/password": {
       "post": {
         "operationId": "UsersController_changePassword",
@@ -444,6 +510,310 @@
         },
         "tags": [
           "Users"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/decks": {
+      "get": {
+        "operationId": "DecksController_findAll",
+        "summary": "Browse system and public decks (paginated)",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "1-based page number",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (capped at 100)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "description": "Filter by CEFR level",
+            "schema": {
+              "enum": [
+                "A1",
+                "A2",
+                "B1",
+                "B2",
+                "C1",
+                "C2"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive title search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "total",
+                        "page",
+                        "limit",
+                        "hasMore"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/DeckResponseDto"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "example": 137
+                        },
+                        "page": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "example": 20
+                        },
+                        "hasMore": {
+                          "type": "boolean",
+                          "example": true
+                        }
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Decks"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/decks/mine": {
+      "get": {
+        "operationId": "DecksController_findMine",
+        "summary": "Decks the current user has joined or created",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DeckResponseDto"
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Decks"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/decks/{id}": {
+      "get": {
+        "operationId": "DecksController_findOne",
+        "summary": "Deck detail with its words",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/DeckDetailResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Decks"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/decks/{id}/enroll": {
+      "post": {
+        "operationId": "DecksController_enroll",
+        "summary": "Join a deck — adds its words to your learning list",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/EnrollResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Decks"
         ],
         "security": [
           {
@@ -1006,6 +1376,25 @@
             "example": "student@example.com",
             "format": "email"
           },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1",
+              "C2"
+            ],
+            "example": "A2",
+            "nullable": true
+          },
+          "onboardedAt": {
+            "type": "object",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Null until the user completes or skips onboarding"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string",
@@ -1162,6 +1551,37 @@
           "currentPassword"
         ]
       },
+      "OnboardingDto": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1",
+              "C2"
+            ],
+            "description": "Self-reported level"
+          },
+          "deckIds": {
+            "description": "Decks to enroll in. May be empty when the user skips.",
+            "example": [
+              "11111111-1111-1111-1111-111111111111"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "deckIds"
+        ]
+      },
       "ChangePasswordDto": {
         "type": "object",
         "properties": {
@@ -1181,6 +1601,60 @@
         "required": [
           "currentPassword",
           "newPassword"
+        ]
+      },
+      "DeckResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "Travel Essentials"
+          },
+          "description": {
+            "type": "object",
+            "example": "Words you need for getting around abroad."
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1",
+              "C2"
+            ],
+            "example": "A2"
+          },
+          "isSystem": {
+            "type": "boolean",
+            "description": "True for curated decks shipped with the app"
+          },
+          "wordCount": {
+            "type": "number",
+            "example": 40,
+            "description": "Number of words in the deck"
+          },
+          "isEnrolled": {
+            "type": "boolean",
+            "description": "Whether the current user has joined this deck"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "isSystem",
+          "wordCount",
+          "isEnrolled",
+          "createdAt"
         ]
       },
       "WordResponseDto": {
@@ -1217,6 +1691,85 @@
           "translation",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "DeckDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "Travel Essentials"
+          },
+          "description": {
+            "type": "object",
+            "example": "Words you need for getting around abroad."
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1",
+              "C2"
+            ],
+            "example": "A2"
+          },
+          "isSystem": {
+            "type": "boolean",
+            "description": "True for curated decks shipped with the app"
+          },
+          "wordCount": {
+            "type": "number",
+            "example": 40,
+            "description": "Number of words in the deck"
+          },
+          "isEnrolled": {
+            "type": "boolean",
+            "description": "Whether the current user has joined this deck"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "words": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WordResponseDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "isSystem",
+          "wordCount",
+          "isEnrolled",
+          "createdAt",
+          "words"
+        ]
+      },
+      "EnrollResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Enrolled in \"Travel Essentials\""
+          },
+          "enrolledCount": {
+            "type": "number",
+            "example": 40,
+            "description": "Words now in your learning list"
+          }
+        },
+        "required": [
+          "message",
+          "enrolledCount"
         ]
       },
       "CreateWordDto": {
@@ -1371,6 +1924,11 @@
       "StartTestResponseDto": {
         "type": "object",
         "properties": {
+          "testId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Pass this back to POST /tests/submit when finished"
+          },
           "questions": {
             "type": "array",
             "items": {
@@ -1379,6 +1937,7 @@
           }
         },
         "required": [
+          "testId",
           "questions"
         ]
       },
@@ -1394,7 +1953,9 @@
             "format": "uuid"
           },
           "selectedAnswer": {
-            "type": "string"
+            "type": "object",
+            "nullable": true,
+            "description": "Null if the question was left unanswered"
           },
           "correctAnswer": {
             "type": "string"
@@ -1462,6 +2023,12 @@
       "SubmitTestDto": {
         "type": "object",
         "properties": {
+          "testId": {
+            "type": "string",
+            "example": "a1b2c3d4-5e6f-7890-abcd-ef0123456789",
+            "format": "uuid",
+            "description": "The id returned by POST /tests/start"
+          },
           "answers": {
             "type": "array",
             "items": {
@@ -1470,6 +2037,7 @@
           }
         },
         "required": [
+          "testId",
           "answers"
         ]
       },

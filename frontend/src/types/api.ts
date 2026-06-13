@@ -99,6 +99,26 @@ export interface paths {
         patch: operations["UsersController_updateMe"];
         trace?: never;
     };
+    "/users/me/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Complete or skip onboarding
+         * @description Records the chosen level, enrolls the user in the selected decks, and marks the account as onboarded. Send an empty deckIds array to skip.
+         */
+        patch: operations["UsersController_onboarding"];
+        trace?: never;
+    };
     "/users/me/password": {
         parameters: {
             query?: never;
@@ -113,6 +133,74 @@ export interface paths {
          * @description Requires the current password for verification. The current JWT remains valid after a password change.
          */
         post: operations["UsersController_changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Browse system and public decks (paginated) */
+        get: operations["DecksController_findAll"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decks/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Decks the current user has joined or created */
+        get: operations["DecksController_findMine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Deck detail with its words */
+        get: operations["DecksController_findOne"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decks/{id}/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Join a deck — adds its words to your learning list */
+        post: operations["DecksController_enroll"];
         delete?: never;
         options?: never;
         head?: never;
@@ -289,6 +377,16 @@ export interface components {
              */
             email: string;
             /**
+             * @example A2
+             * @enum {string|null}
+             */
+            level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2" | null;
+            /**
+             * Format: date-time
+             * @description Null until the user completes or skips onboarding
+             */
+            onboardedAt?: Record<string, never> | null;
+            /**
              * Format: date-time
              * @example 2026-05-11T12:00:00.000Z
              */
@@ -376,6 +474,20 @@ export interface components {
              */
             currentPassword: string;
         };
+        OnboardingDto: {
+            /**
+             * @description Self-reported level
+             * @enum {string}
+             */
+            level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+            /**
+             * @description Decks to enroll in. May be empty when the user skips.
+             * @example [
+             *       "11111111-1111-1111-1111-111111111111"
+             *     ]
+             */
+            deckIds: string[];
+        };
         ChangePasswordDto: {
             /**
              * @description The user's current password
@@ -387,6 +499,30 @@ export interface components {
              * @example NewStrongerPass456!
              */
             newPassword: string;
+        };
+        DeckResponseDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Travel Essentials */
+            title: string;
+            /** @example Words you need for getting around abroad. */
+            description?: Record<string, never>;
+            /**
+             * @example A2
+             * @enum {string}
+             */
+            level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+            /** @description True for curated decks shipped with the app */
+            isSystem: boolean;
+            /**
+             * @description Number of words in the deck
+             * @example 40
+             */
+            wordCount: number;
+            /** @description Whether the current user has joined this deck */
+            isEnrolled: boolean;
+            /** Format: date-time */
+            createdAt: string;
         };
         WordResponseDto: {
             /** Format: uuid */
@@ -401,6 +537,40 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        DeckDetailResponseDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Travel Essentials */
+            title: string;
+            /** @example Words you need for getting around abroad. */
+            description?: Record<string, never>;
+            /**
+             * @example A2
+             * @enum {string}
+             */
+            level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+            /** @description True for curated decks shipped with the app */
+            isSystem: boolean;
+            /**
+             * @description Number of words in the deck
+             * @example 40
+             */
+            wordCount: number;
+            /** @description Whether the current user has joined this deck */
+            isEnrolled: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            words: components["schemas"]["WordResponseDto"][];
+        };
+        EnrollResponseDto: {
+            /** @example Enrolled in "Travel Essentials" */
+            message: string;
+            /**
+             * @description Words now in your learning list
+             * @example 40
+             */
+            enrolledCount: number;
         };
         CreateWordDto: {
             /** @example serendipity */
@@ -473,6 +643,11 @@ export interface components {
             options: string[];
         };
         StartTestResponseDto: {
+            /**
+             * Format: uuid
+             * @description Pass this back to POST /tests/submit when finished
+             */
+            testId: string;
             questions: components["schemas"]["TestQuestionDto"][];
         };
         TestQuestionResultDto: {
@@ -480,7 +655,8 @@ export interface components {
             id: string;
             /** Format: uuid */
             wordId: string;
-            selectedAnswer: string;
+            /** @description Null if the question was left unanswered */
+            selectedAnswer: Record<string, never> | null;
             correctAnswer: string;
         };
         SubmitTestResponseDto: {
@@ -504,6 +680,12 @@ export interface components {
             selectedAnswer: string;
         };
         SubmitTestDto: {
+            /**
+             * Format: uuid
+             * @description The id returned by POST /tests/start
+             * @example a1b2c3d4-5e6f-7890-abcd-ef0123456789
+             */
+            testId: string;
             answers: components["schemas"]["TestAnswerDto"][];
         };
         VocabularyStatsDto: {
@@ -800,6 +982,45 @@ export interface operations {
             };
         };
     };
+    UsersController_onboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnboardingDto"];
+            };
+        };
+        responses: {
+            /** @description Returns the onboarded user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["UserResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description One of the deckIds does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
     UsersController_changePassword: {
         parameters: {
             query?: never;
@@ -844,6 +1065,147 @@ export interface operations {
             };
             /** @description Current password is incorrect */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    DecksController_findAll: {
+        parameters: {
+            query?: {
+                /** @description 1-based page number */
+                page?: number;
+                /** @description Items per page (capped at 100) */
+                limit?: number;
+                /** @description Filter by CEFR level */
+                level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+                /** @description Case-insensitive title search */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: {
+                            items: components["schemas"]["DeckResponseDto"][];
+                            /** @example 137 */
+                            total: number;
+                            /** @example 1 */
+                            page: number;
+                            /** @example 20 */
+                            limit: number;
+                            /** @example true */
+                            hasMore: boolean;
+                        };
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    DecksController_findMine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["DeckResponseDto"][];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    DecksController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["DeckDetailResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    DecksController_enroll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["EnrollResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Deck not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

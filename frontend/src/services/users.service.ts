@@ -1,9 +1,19 @@
 import api from './api'
-import type { ChangePasswordPayload, UpdateProfilePayload, User } from '@/types'
+import type {
+  ChangePasswordPayload,
+  OnboardingPayload,
+  UpdateProfilePayload,
+  User,
+} from '@/types'
 
 export const usersService = {
   async getMe(): Promise<User> {
     const { data } = await api.get<User>('/users/me')
+    return data
+  },
+
+  async completeOnboarding(payload: OnboardingPayload): Promise<User> {
+    const { data } = await api.patch<User>('/users/me/onboarding', payload)
     return data
   },
 

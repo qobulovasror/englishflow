@@ -15,6 +15,11 @@ model User {
   // Tracks the moment of the last password change; any JWT issued before this
   // is considered invalid by `JwtStrategy.validate`.
   passwordChangedAt DateTime @default(now())
+  // Self-reported CEFR level chosen during onboarding; drives deck suggestions.
+  level             CefrLevel?
+  // Null until the user finishes (or skips) onboarding. Clients use this to
+  // decide whether to show the onboarding flow.
+  onboardedAt       DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
