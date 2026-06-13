@@ -2,6 +2,7 @@ export interface AppConfig {
   nodeEnv: 'development' | 'production' | 'test';
   port: number;
   corsOrigin: string;
+  trustProxy: number;
 }
 
 export interface JwtConfig {
@@ -25,6 +26,7 @@ export default (): Configuration => ({
     nodeEnv: (process.env.NODE_ENV ?? 'development') as AppConfig['nodeEnv'],
     port: parseInt(process.env.PORT ?? '3000', 10),
     corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+    trustProxy: parseInt(process.env.TRUST_PROXY ?? '0', 10),
   },
   jwt: {
     secret: process.env.JWT_SECRET!,
