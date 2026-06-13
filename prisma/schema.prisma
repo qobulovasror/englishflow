@@ -22,6 +22,8 @@ model User {
   userWords     UserWord[]
   tests         Test[]
   refreshTokens RefreshToken[]
+  decks         Deck[]           @relation("UserDecks")
+  enrollments   DeckEnrollment[]
 
   @@map("users")
 }
@@ -50,13 +52,21 @@ model Word {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  // Null for words that belong to a curated/system deck (no individual owner).
+  // User-created words still set this.
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  // Words sourced from a deck reference it here. Personal words created via
+  // POST /words have a null deckId until Phase C introduces a personal deck.
+  deckId String?
+  deck   Deck?   @relation(fields: [deckId], references: [id], onDelete: Cascade)
 
   userWords     UserWord[]
   testQuestions TestQuestion[]
 
   @@index([createdById])
+  @@index([deckId])
   @@map("words")
 }
 
@@ -64,6 +74,56 @@ enum WordStatus {
   NEW
   LEARNING
   LEARNED
+}
+
+enum CefrLevel {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+model Deck {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  level       CefrLevel?
+  // Curated content shipped with the app (createdById is null). User-built
+  // decks set createdById and default to private.
+  isSystem    Boolean    @default(false)
+  isPublic    Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  createdById String?
+  createdBy   User?      @relation("UserDecks", fields: [createdById], references: [id], onDelete: Cascade)
+
+  words       Word[]
+  enrollments DeckEnrollment[]
+
+  @@index([isSystem])
+  @@index([level])
+  @@index([createdById])
+  @@map("decks")
+}
+
+// Tracks which decks a user has joined. Distinct from UserWord, which holds the
+// per-word learning progress; enrollment is for organisation and re-sync.
+model DeckEnrollment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deckId String
+  deck   Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deckId])
+  @@index([deckId])
+  @@map("deck_enrollments")
 }
 
 model UserWord {

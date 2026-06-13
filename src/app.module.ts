@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { WordsModule } from './modules/words/words.module';
 import { LearningModule } from './modules/learning/learning.module';
+import { DecksModule } from './modules/decks/decks.module';
 import { TestsModule } from './modules/tests/tests.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { HealthModule } from './modules/health/health.module';
@@ -51,6 +52,7 @@ import { envValidationSchema } from './config/env.validation';
     UsersModule,
     WordsModule,
     LearningModule,
+    DecksModule,
     TestsModule,
     ProgressModule,
     HealthModule,

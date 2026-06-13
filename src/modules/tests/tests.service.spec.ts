@@ -4,18 +4,24 @@ import { TestsService } from './tests.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
 type MockedPrisma = {
-  word: { findMany: jest.Mock };
+  userWord: { findMany: jest.Mock };
   test: { create: jest.Mock; findFirst: jest.Mock; update: jest.Mock };
   testQuestion: { update: jest.Mock };
   $transaction: jest.Mock;
 };
 
-function makeWords(n: number) {
+// startTest now reads UserWord rows; each carries the nested `word`.
+function makeUserWords(n: number) {
   return Array.from({ length: n }, (_, i) => ({
-    id: `w${i}`,
-    word: `word${i}`,
-    translation: `translation${i}`,
-    example: null,
+    id: `uw${i}`,
+    userId: 'u1',
+    wordId: `w${i}`,
+    word: {
+      id: `w${i}`,
+      word: `word${i}`,
+      translation: `translation${i}`,
+      example: null,
+    },
   }));
 }
 
@@ -25,7 +31,7 @@ describe('TestsService', () => {
 
   beforeEach(async () => {
     prisma = {
-      word: { findMany: jest.fn() },
+      userWord: { findMany: jest.fn() },
       test: { create: jest.fn(), findFirst: jest.fn(), update: jest.fn() },
       testQuestion: { update: jest.fn() },
       // The service passes an array of update promises; just resolve them all.
@@ -39,7 +45,7 @@ describe('TestsService', () => {
 
   describe('startTest', () => {
     it('rejects when the user has fewer than 5 words', async () => {
-      prisma.word.findMany.mockResolvedValue(makeWords(4));
+      prisma.userWord.findMany.mockResolvedValue(makeUserWords(4));
 
       await expect(service.startTest('u1')).rejects.toBeInstanceOf(
         BadRequestException,
@@ -48,7 +54,7 @@ describe('TestsService', () => {
     });
 
     it('persists the challenge (with correctAnswer) and never leaks it to the client', async () => {
-      prisma.word.findMany.mockResolvedValue(makeWords(6));
+      prisma.userWord.findMany.mockResolvedValue(makeUserWords(6));
       prisma.test.create.mockResolvedValue({ id: 't1' });
 
       const result = await service.startTest('u1');

@@ -19,10 +19,15 @@ export class TestsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async startTest(userId: string): Promise<StartTestResponseDto> {
-    const words = await this.prisma.word.findMany({
-      where: { createdById: userId },
+    // Draw from the user's learning list (UserWord), not words they authored —
+    // so words added by enrolling in a deck are testable too. We pull a wider
+    // pool than we need so the wrong-answer distractors have variety.
+    const userWords = await this.prisma.userWord.findMany({
+      where: { userId },
       take: this.TEST_QUESTION_COUNT * 2,
+      include: { word: true },
     });
+    const words = userWords.map((uw) => uw.word);
 
     if (words.length < this.TEST_QUESTION_COUNT) {
       throw new BadRequestException(
