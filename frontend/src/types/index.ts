@@ -74,6 +74,7 @@ export interface TestQuestion {
 }
 
 export interface TestStartResponse {
+  testId: string
   questions: TestQuestion[]
 }
 
@@ -83,6 +84,7 @@ export interface TestAnswer {
 }
 
 export interface TestSubmitPayload {
+  testId: string
   answers: TestAnswer[]
 }
 

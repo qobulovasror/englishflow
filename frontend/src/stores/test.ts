@@ -6,6 +6,7 @@ import type { TestQuestion, TestResult, TestAnswer } from '@/types'
 
 export const useTestStore = defineStore('test', () => {
   const questions = ref<TestQuestion[]>([])
+  const testId = ref<string | null>(null)
   const result = ref<TestResult | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -16,6 +17,7 @@ export const useTestStore = defineStore('test', () => {
     result.value = null
     try {
       const response = await testService.startTest()
+      testId.value = response.testId
       questions.value = response.questions
     } catch (e) {
       error.value = extractErrorMessage(e, 'Failed to start test')
@@ -26,11 +28,15 @@ export const useTestStore = defineStore('test', () => {
   }
 
   async function submitTest(answers: TestAnswer[]) {
+    if (!testId.value) {
+      throw new Error('No active test to submit')
+    }
     loading.value = true
     error.value = null
     try {
-      result.value = await testService.submitTest({ answers })
+      result.value = await testService.submitTest({ testId: testId.value, answers })
       questions.value = []
+      testId.value = null
     } catch (e) {
       error.value = extractErrorMessage(e, 'Failed to submit test')
       throw e
@@ -41,9 +47,10 @@ export const useTestStore = defineStore('test', () => {
 
   function reset() {
     questions.value = []
+    testId.value = null
     result.value = null
     error.value = null
   }
 
-  return { questions, result, loading, error, startTest, submitTest, reset }
+  return { questions, testId, result, loading, error, startTest, submitTest, reset }
 })

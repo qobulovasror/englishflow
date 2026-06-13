@@ -89,6 +89,10 @@ model UserWord {
 model Test {
   id        String   @id @default(uuid())
   score     Int      @default(0)
+  // Null while the quiz is in progress. `submitTest` sets it once and refuses
+  // to grade a test that already has it — a test can be submitted exactly once,
+  // so a client can't replay or fabricate scores.
+  submittedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -102,8 +106,11 @@ model Test {
 }
 
 model TestQuestion {
-  id             String @id @default(uuid())
-  selectedAnswer String
+  id             String  @id @default(uuid())
+  // Null until the test is submitted. The server writes `correctAnswer` at
+  // start time (the answer key the client never sees); `selectedAnswer` is
+  // filled in only when the user submits their choice.
+  selectedAnswer String?
   correctAnswer  String
 
   testId String

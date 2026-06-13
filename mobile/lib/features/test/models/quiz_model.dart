@@ -1,5 +1,15 @@
 import 'package:equatable/equatable.dart';
 
+/// Result of starting a quiz: the server-issued test id plus its questions.
+/// The id must be sent back on submit so the server grades against the exact
+/// challenge it persisted.
+class QuizStart {
+  final String testId;
+  final List<QuizQuestion> questions;
+
+  const QuizStart({required this.testId, required this.questions});
+}
+
 class QuizQuestion extends Equatable {
   final String wordId;
   final String word;
