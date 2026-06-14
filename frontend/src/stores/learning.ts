@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { learningService } from '@/services/learning.service'
 import { extractErrorMessage } from '@/services/api'
-import type { DailyWord, ReviewResponse } from '@/types'
+import type { DailyWord, Rating, ReviewResponse } from '@/types'
 
 export const useLearningStore = defineStore('learning', () => {
   const dailyWords = ref<DailyWord[]>([])
@@ -21,9 +21,9 @@ export const useLearningStore = defineStore('learning', () => {
     }
   }
 
-  async function submitReview(userWordId: string, correct: boolean): Promise<ReviewResponse> {
+  async function submitReview(userWordId: string, rating: Rating): Promise<ReviewResponse> {
     try {
-      const result = await learningService.submitReview({ userWordId, correct })
+      const result = await learningService.submitReview({ userWordId, rating })
       dailyWords.value = dailyWords.value.filter((w) => w.id !== userWordId)
       return result
     } catch (e) {

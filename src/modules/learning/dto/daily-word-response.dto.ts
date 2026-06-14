@@ -48,4 +48,15 @@ export class ReviewResultDto {
   @ApiProperty({ example: 3 })
   @Expose()
   repetitionCount: number;
+
+  @ApiProperty({ example: 6, description: 'Days until the next scheduled review' })
+  @Expose()
+  interval: number;
+
+  @ApiProperty({
+    format: 'date-time',
+    description: 'When this word is next due for review',
+  })
+  @Expose()
+  nextReviewAt: Date;
 }

@@ -132,12 +132,24 @@ model DeckEnrollment {
 }
 
 model UserWord {
-  id              String     @id @default(uuid())
-  status          WordStatus @default(NEW)
-  repetitionCount Int        @default(0)
+  id     String     @id @default(uuid())
+  status WordStatus @default(NEW)
+
+  // --- SM-2 spaced-repetition state ---
+  // repetitionCount = SM-2 `n`: consecutive successful reviews. Resets to 0 on a
+  // failed (AGAIN) review. easeFactor starts at 2.5 and is clamped to >= 1.3.
+  // interval is the current scheduling gap in whole days; nextReviewAt is when
+  // the card is next due (null = brand new, due immediately). lapses counts how
+  // many times the card was failed after graduating to a >=1 day interval.
+  repetitionCount Int       @default(0)
+  easeFactor      Float     @default(2.5)
+  interval        Int       @default(0)
+  nextReviewAt    DateTime?
+  lapses          Int       @default(0)
   lastReviewedAt  DateTime?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -148,6 +160,7 @@ model UserWord {
   @@unique([userId, wordId])
   @@index([wordId])
   @@index([status])
+  @@index([userId, nextReviewAt])
   @@map("user_words")
 }
 

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:englishflow/core/theme/app_colors.dart';
 import 'package:englishflow/core/theme/app_text_styles.dart';
 import 'package:englishflow/features/learning/providers/learning_provider.dart';
+import 'package:englishflow/features/learning/services/learning_service.dart';
 import 'package:englishflow/shared/widgets/loading_widget.dart';
 import 'package:englishflow/shared/widgets/error_widget.dart';
 
@@ -48,9 +49,9 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     }
   }
 
-  void _markWord(bool known) {
+  void _markWord(ReviewRating rating) {
     _flipController.reset();
-    ref.read(learningProvider.notifier).markWord(known);
+    ref.read(learningProvider.notifier).markWord(rating);
   }
 
   @override
@@ -170,20 +171,34 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             Row(
               children: [
                 Expanded(
-                  child: _AnswerButton(
-                    text: "I don't know",
-                    icon: Icons.close,
+                  child: _RatingButton(
+                    label: 'Again',
                     color: AppColors.error,
-                    onTap: () => _markWord(false),
+                    onTap: () => _markWord(ReviewRating.again),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: _AnswerButton(
-                    text: 'I know',
-                    icon: Icons.check,
+                  child: _RatingButton(
+                    label: 'Hard',
+                    color: AppColors.orange,
+                    onTap: () => _markWord(ReviewRating.hard),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _RatingButton(
+                    label: 'Good',
                     color: AppColors.success,
-                    onTap: () => _markWord(true),
+                    onTap: () => _markWord(ReviewRating.good),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _RatingButton(
+                    label: 'Easy',
+                    color: AppColors.secondary,
+                    onTap: () => _markWord(ReviewRating.easy),
                   ),
                 ),
               ],
@@ -337,15 +352,13 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   }
 }
 
-class _AnswerButton extends StatelessWidget {
-  final String text;
-  final IconData icon;
+class _RatingButton extends StatelessWidget {
+  final String label;
   final Color color;
   final VoidCallback onTap;
 
-  const _AnswerButton({
-    required this.text,
-    required this.icon,
+  const _RatingButton({
+    required this.label,
     required this.color,
     required this.onTap,
   });
@@ -361,16 +374,11 @@ class _AnswerButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color, width: 2),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(width: 8),
-            Text(
-              text,
-              style: AppTextStyles.bodyBold.copyWith(color: color),
-            ),
-          ],
+        child: Center(
+          child: Text(
+            label,
+            style: AppTextStyles.bodyBold.copyWith(color: color),
+          ),
         ),
       ),
     );

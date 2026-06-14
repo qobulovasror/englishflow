@@ -85,9 +85,11 @@ export interface DailyWord {
   repetitionCount: number
 }
 
+export type Rating = 'AGAIN' | 'HARD' | 'GOOD' | 'EASY'
+
 export interface ReviewPayload {
   userWordId: string
-  correct: boolean
+  rating: Rating
 }
 
 export interface ReviewResponse {
@@ -95,6 +97,8 @@ export interface ReviewResponse {
   word: string
   status: WordStatus
   repetitionCount: number
+  interval: number
+  nextReviewAt: string
 }
 
 export interface TestQuestion {

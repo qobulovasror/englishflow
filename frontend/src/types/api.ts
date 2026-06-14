@@ -613,6 +613,16 @@ export interface components {
             status: "NEW" | "LEARNING" | "LEARNED";
             /** @example 3 */
             repetitionCount: number;
+            /**
+             * @description Days until the next scheduled review
+             * @example 6
+             */
+            interval: number;
+            /**
+             * Format: date-time
+             * @description When this word is next due for review
+             */
+            nextReviewAt: string;
         };
         ReviewWordDto: {
             /**
@@ -622,10 +632,11 @@ export interface components {
              */
             userWordId: string;
             /**
-             * @description Whether the user answered correctly
-             * @example true
+             * @description Recall quality. AGAIN = failed (re-learn), HARD/GOOD/EASY = successful recall feeding the SM-2 schedule.
+             * @example GOOD
+             * @enum {string}
              */
-            correct: boolean;
+            rating: "AGAIN" | "HARD" | "GOOD" | "EASY";
         };
         TestQuestionDto: {
             /** Format: uuid */

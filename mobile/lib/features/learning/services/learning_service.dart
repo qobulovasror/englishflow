@@ -5,6 +5,18 @@ import 'package:englishflow/core/network/dio_client.dart';
 import 'package:englishflow/core/network/api_exception.dart';
 import 'package:englishflow/features/learning/models/daily_word_model.dart';
 
+/// SM-2 recall grade sent with each review. AGAIN = failed (re-learn), the rest
+/// are successful recalls of increasing confidence. The wire value is the
+/// uppercase name expected by the backend's Rating enum.
+enum ReviewRating {
+  again,
+  hard,
+  good,
+  easy;
+
+  String get wireValue => name.toUpperCase();
+}
+
 final learningServiceProvider = Provider<LearningService>((ref) {
   return LearningService(ref.watch(dioProvider));
 });
@@ -28,14 +40,14 @@ class LearningService {
 
   Future<void> reviewWord({
     required String userWordId,
-    required bool correct,
+    required ReviewRating rating,
   }) async {
     try {
       await _dio.post(
         ApiEndpoints.review,
         data: {
           'userWordId': userWordId,
-          'correct': correct,
+          'rating': rating.wireValue,
         },
       );
     } on DioException catch (e) {

@@ -1862,13 +1862,25 @@
           "repetitionCount": {
             "type": "number",
             "example": 3
+          },
+          "interval": {
+            "type": "number",
+            "example": 6,
+            "description": "Days until the next scheduled review"
+          },
+          "nextReviewAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "When this word is next due for review"
           }
         },
         "required": [
           "id",
           "word",
           "status",
-          "repetitionCount"
+          "repetitionCount",
+          "interval",
+          "nextReviewAt"
         ]
       },
       "ReviewWordDto": {
@@ -1880,15 +1892,21 @@
             "format": "uuid",
             "description": "ID of the UserWord (not the Word itself)"
           },
-          "correct": {
-            "type": "boolean",
-            "example": true,
-            "description": "Whether the user answered correctly"
+          "rating": {
+            "type": "string",
+            "enum": [
+              "AGAIN",
+              "HARD",
+              "GOOD",
+              "EASY"
+            ],
+            "example": "GOOD",
+            "description": "Recall quality. AGAIN = failed (re-learn), HARD/GOOD/EASY = successful recall feeding the SM-2 schedule."
           }
         },
         "required": [
           "userWordId",
-          "correct"
+          "rating"
         ]
       },
       "TestQuestionDto": {
