@@ -64,7 +64,7 @@ export class DecksService {
     );
 
     return paginate(
-      decks.map((d) => this.toDto(d, enrolledIds.has(d.id))),
+      decks.map((d) => this.toDto(d, enrolledIds.has(d.id), userId)),
       total,
       query,
     );
@@ -87,7 +87,7 @@ export class DecksService {
       decks.map((d) => d.id),
     );
 
-    return decks.map((d) => this.toDto(d, enrolledIds.has(d.id)));
+    return decks.map((d) => this.toDto(d, enrolledIds.has(d.id), userId));
   }
 
   async findOne(id: string, userId: string): Promise<DeckDetailResponseDto> {
@@ -108,7 +108,7 @@ export class DecksService {
     return plainToInstance(
       DeckDetailResponseDto,
       {
-        ...this.plainDeck(deck, isEnrolled),
+        ...this.plainDeck(deck, isEnrolled, userId),
         words: deck.words.map((w) =>
           plainToInstance(WordResponseDto, w, {
             excludeExtraneousValues: true,
@@ -171,7 +171,7 @@ export class DecksService {
 
     // A freshly created deck has no words and the owner hasn't "enrolled" — it's
     // theirs to edit, not a learning list they joined.
-    return this.toDto({ ...deck, _count: { words: 0 } }, false);
+    return this.toDto({ ...deck, _count: { words: 0 } }, false, userId);
   }
 
   async update(
@@ -193,7 +193,7 @@ export class DecksService {
     });
 
     const isEnrolled = await this.isEnrolled(userId, id);
-    return this.toDto(deck, isEnrolled);
+    return this.toDto(deck, isEnrolled, userId);
   }
 
   async remove(id: string, userId: string): Promise<{ message: string }> {
@@ -275,7 +275,9 @@ export class DecksService {
       },
     });
 
-    return this.toDto({ ...deck, _count: { words: 0 } }, false);
+    // No current user in admin scope, and a system deck has no individual owner
+    // (createdById is null), so isOwner resolves to false for everyone.
+    return this.toDto({ ...deck, _count: { words: 0 } }, false, '');
   }
 
   /** Adds words to ANY deck, bypassing the owner check. */
@@ -366,6 +368,7 @@ export class DecksService {
   private plainDeck(
     deck: { _count?: { words: number } } & Record<string, unknown>,
     isEnrolled: boolean,
+    userId: string,
   ) {
     return {
       id: deck.id,
@@ -373,6 +376,10 @@ export class DecksService {
       description: deck.description,
       level: deck.level,
       isSystem: deck.isSystem,
+      // System decks are curated content with no individual owner, so they're
+      // never "public" in the user-sharing sense; keep isPublic real otherwise.
+      isPublic: deck.isSystem ? false : Boolean(deck.isPublic),
+      isOwner: deck.createdById === userId,
       wordCount: deck._count?.words ?? 0,
       isEnrolled,
       createdAt: deck.createdAt,
@@ -382,9 +389,12 @@ export class DecksService {
   private toDto(
     deck: { _count?: { words: number } } & Record<string, unknown>,
     isEnrolled: boolean,
+    userId: string,
   ): DeckResponseDto {
-    return plainToInstance(DeckResponseDto, this.plainDeck(deck, isEnrolled), {
-      excludeExtraneousValues: true,
-    });
+    return plainToInstance(
+      DeckResponseDto,
+      this.plainDeck(deck, isEnrolled, userId),
+      { excludeExtraneousValues: true },
+    );
   }
 }

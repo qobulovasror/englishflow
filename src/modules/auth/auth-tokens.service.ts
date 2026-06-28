@@ -56,23 +56,29 @@ export class AuthTokensService {
     const tokenHash = this.hash(token);
 
     return this.prisma.$transaction(async (tx) => {
-      const existing = await tx.authToken.findUnique({ where: { tokenHash } });
+      // Claim the token with a single atomic conditional write: the row is only
+      // stamped when it's still unused and unexpired. Doing the check-and-mark in
+      // one statement closes a TOCTOU race where two concurrent requests could
+      // both read an unused token and both pass.
+      const now = new Date();
+      const { count } = await tx.authToken.updateMany({
+        where: { tokenHash, type, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      });
 
-      if (
-        !existing ||
-        existing.type !== type ||
-        existing.usedAt !== null ||
-        existing.expiresAt <= new Date()
-      ) {
+      // Same opaque error for every failure mode (missing, wrong-type, used, or
+      // expired) so a caller can't probe token validity.
+      if (count !== 1) {
         throw new BadRequestException('Invalid or expired token');
       }
 
-      await tx.authToken.update({
-        where: { id: existing.id },
-        data: { usedAt: new Date() },
+      // The conditional write succeeded, so the row exists and is now ours.
+      const row = await tx.authToken.findUnique({
+        where: { tokenHash },
+        select: { userId: true },
       });
 
-      return existing.userId;
+      return row!.userId;
     });
   }
 

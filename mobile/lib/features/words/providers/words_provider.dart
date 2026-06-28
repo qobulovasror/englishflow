@@ -43,8 +43,13 @@ class WordsNotifier extends StateNotifier<WordsState> {
         translation: translation,
         example: example,
       );
+      // A brand-new word is NEW, so it only belongs in the current view when
+      // no filter is active or the filter is exactly 'NEW'. Otherwise leave the
+      // list untouched; the next reload will surface it.
+      final filter = state.statusFilter;
+      final belongsInView = filter == null || filter == 'NEW';
       state = state.copyWith(
-        words: [newWord, ...state.words],
+        words: belongsInView ? [newWord, ...state.words] : state.words,
         isAdding: false,
       );
       return true;

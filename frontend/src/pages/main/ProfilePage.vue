@@ -73,6 +73,7 @@ const emailError = ref<string | null>(null)
 const emailPasswordError = ref<string | null>(null)
 const emailServerError = ref<string | null>(null)
 const emailSuccess = ref<string | null>(null)
+const emailSubmitting = ref(false)
 
 const memberSince = computed(() => {
   if (!user.value?.createdAt) return null
@@ -124,6 +125,7 @@ async function handleEmailSubmit() {
     return
   }
 
+  emailSubmitting.value = true
   try {
     await authStore.updateProfile({
       email: value,
@@ -133,6 +135,8 @@ async function handleEmailSubmit() {
     emailCurrentPassword.value = ''
   } catch (e) {
     emailServerError.value = extractErrorMessage(e, 'Failed to update profile')
+  } finally {
+    emailSubmitting.value = false
   }
 }
 
@@ -368,8 +372,8 @@ async function handlePasswordSubmit() {
           <div class="flex items-center gap-3">
             <AppButton
               type="submit"
-              :loading="loading"
-              :disabled="!isEmailDirty || loading"
+              :loading="emailSubmitting"
+              :disabled="!isEmailDirty || emailSubmitting"
             >
               Save changes
             </AppButton>
@@ -377,7 +381,7 @@ async function handlePasswordSubmit() {
               v-if="isEmailDirty"
               type="button"
               variant="secondary"
-              :disabled="loading"
+              :disabled="emailSubmitting"
               @click="handleEmailReset"
             >
               Cancel

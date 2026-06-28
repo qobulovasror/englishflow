@@ -6,6 +6,7 @@ import 'package:englishflow/core/theme/app_text_styles.dart';
 import 'package:englishflow/core/utils/validators.dart';
 import 'package:englishflow/core/utils/snackbar_utils.dart';
 import 'package:englishflow/features/decks/models/deck_model.dart';
+import 'package:englishflow/features/decks/models/my_decks_state.dart';
 import 'package:englishflow/features/decks/providers/my_decks_provider.dart';
 import 'package:englishflow/features/words/models/word_model.dart';
 import 'package:englishflow/shared/widgets/app_button.dart';
@@ -33,7 +34,7 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
     );
   }
 
-  bool get _canEdit => !widget.deck.isSystem;
+  bool get _canEdit => widget.deck.isOwner;
 
   Future<void> _openAddWord() async {
     final added = await showModalBottomSheet<bool>(
@@ -106,7 +107,7 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
     );
   }
 
-  Widget _buildBody(state, DeckModel deck) {
+  Widget _buildBody(MyDecksState state, DeckModel deck) {
     if (state.isLoadingDeck && state.currentDeck?.id != deck.id) {
       return const LoadingWidget(message: 'Loading deck...');
     }

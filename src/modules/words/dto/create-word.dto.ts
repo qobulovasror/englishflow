@@ -4,16 +4,19 @@ import { IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 export class CreateWordDto {
   @ApiProperty({ example: 'serendipity' })
   @IsString()
+  @MaxLength(200)
   word: string;
 
   @ApiProperty({ example: 'kutilmagan yoqimli kashfiyot' })
   @IsString()
+  @MaxLength(200)
   translation: string;
 
   @ApiPropertyOptional({
     example: 'Finding that book was pure serendipity.',
   })
   @IsString()
+  @MaxLength(1000)
   @IsOptional()
   example?: string;
 

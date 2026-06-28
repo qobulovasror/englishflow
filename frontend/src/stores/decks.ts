@@ -69,6 +69,9 @@ export const useDecksStore = defineStore('decks', () => {
   async function fetchDeck(id: string) {
     detailLoading.value = true
     detailError.value = null
+    // Clear the previously-viewed deck so the page shows a loading state
+    // instead of flashing the old deck's title/words.
+    currentDeck.value = null
     try {
       currentDeck.value = await decksService.getDeck(id)
       return currentDeck.value

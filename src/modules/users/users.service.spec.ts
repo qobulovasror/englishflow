@@ -21,6 +21,9 @@ type MockedPrisma = {
   refreshToken: {
     deleteMany: jest.Mock;
   };
+  deck: {
+    findMany: jest.Mock;
+  };
   $transaction: jest.Mock;
 };
 
@@ -56,6 +59,9 @@ describe('UsersService', () => {
       refreshToken: {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
+      deck: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
       $transaction: jest.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
     };
     decks = { enroll: jest.fn().mockResolvedValue({}) };
@@ -89,6 +95,7 @@ describe('UsersService', () => {
   describe('completeOnboarding', () => {
     it('enrolls in each deck, sets level, and stamps onboardedAt', async () => {
       prisma.user.findUnique.mockResolvedValue(buildUser());
+      prisma.deck.findMany.mockResolvedValue([{ id: 'd1' }, { id: 'd2' }]);
       prisma.user.update.mockImplementation(async ({ data }) =>
         buildUser({ ...data }),
       );
@@ -106,6 +113,19 @@ describe('UsersService', () => {
       expect(result.onboardedAt).toBeInstanceOf(Date);
     });
 
+    it('rejects an invalid deckId before enrolling or stamping onboardedAt', async () => {
+      prisma.user.findUnique.mockResolvedValue(buildUser());
+      // Only d1 is visible; d2 is missing/invisible.
+      prisma.deck.findMany.mockResolvedValue([{ id: 'd1' }]);
+
+      await expect(
+        service.completeOnboarding('u1', { deckIds: ['d1', 'd2'] }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(decks.enroll).not.toHaveBeenCalled();
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
     it('skips enrollment when no decks are chosen', async () => {
       prisma.user.findUnique.mockResolvedValue(buildUser());
       prisma.user.update.mockImplementation(async ({ data }) =>
@@ -115,6 +135,7 @@ describe('UsersService', () => {
       await service.completeOnboarding('u1', {});
 
       expect(decks.enroll).not.toHaveBeenCalled();
+      expect(prisma.deck.findMany).not.toHaveBeenCalled();
       expect(prisma.user.update.mock.calls[0][0].data.onboardedAt).toBeInstanceOf(
         Date,
       );

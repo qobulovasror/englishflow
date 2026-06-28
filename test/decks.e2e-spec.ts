@@ -70,6 +70,8 @@ describe('Decks (e2e)', () => {
         isSystem: false,
         wordCount: 0,
         isEnrolled: false,
+        isOwner: true,
+        isPublic: false,
       });
       const deckId = created.body.data.id;
 
@@ -113,6 +115,8 @@ describe('Decks (e2e)', () => {
       expect(patched.body.data).toMatchObject({
         title: 'Renamed Deck',
         wordCount: 1,
+        isOwner: true,
+        isPublic: true,
       });
 
       // Delete
@@ -135,6 +139,20 @@ describe('Decks (e2e)', () => {
         .post(`/decks/${created.body.data.id}/words`)
         .set('Authorization', `Bearer ${token}`)
         .send({ words: [] })
+        .expect(400);
+    });
+
+    it('rejects an over-limit word string (400)', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/decks')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ title: 'Caps test' })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .post(`/decks/${created.body.data.id}/words`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ words: [{ word: 'a'.repeat(201), translation: 'olma' }] })
         .expect(400);
     });
   });

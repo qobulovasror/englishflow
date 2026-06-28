@@ -88,7 +88,14 @@ describe('DecksService', () => {
       const result = await service.findAll('u1', { page: 1, limit: 20 } as never);
 
       expect(result.total).toBe(2);
-      expect(result.items[0]).toMatchObject({ id: 'd1', wordCount: 3, isEnrolled: true });
+      // System decks: never "owned", isPublic forced false.
+      expect(result.items[0]).toMatchObject({
+        id: 'd1',
+        wordCount: 3,
+        isEnrolled: true,
+        isOwner: false,
+        isPublic: false,
+      });
       expect(result.items[1]).toMatchObject({ id: 'd2', isEnrolled: false });
     });
   });
@@ -154,7 +161,7 @@ describe('DecksService', () => {
   describe('create', () => {
     it('creates a user deck with isSystem=false and empty wordCount', async () => {
       prisma.deck.create.mockResolvedValue(
-        makeDeck({ id: 'd9', isSystem: false, createdById: 'u1' }),
+        makeDeck({ id: 'd9', isSystem: false, isPublic: true, createdById: 'u1' }),
       );
 
       const result = await service.create(
@@ -171,7 +178,14 @@ describe('DecksService', () => {
           }),
         }),
       );
-      expect(result).toMatchObject({ id: 'd9', wordCount: 0, isEnrolled: false });
+      // The creator owns the deck; isPublic reflects what was set.
+      expect(result).toMatchObject({
+        id: 'd9',
+        wordCount: 0,
+        isEnrolled: false,
+        isOwner: true,
+        isPublic: true,
+      });
     });
   });
 
@@ -314,7 +328,14 @@ describe('DecksService', () => {
           }),
         }),
       );
-      expect(result).toMatchObject({ id: 'sys1', wordCount: 0, isEnrolled: false });
+      // A curated system deck has no owner and isn't user-public.
+      expect(result).toMatchObject({
+        id: 'sys1',
+        wordCount: 0,
+        isEnrolled: false,
+        isOwner: false,
+        isPublic: false,
+      });
     });
   });
 

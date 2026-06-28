@@ -785,6 +785,10 @@ export interface components {
             level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
             /** @description True for curated decks shipped with the app */
             isSystem: boolean;
+            /** @description Whether the deck is shared publicly. Always false for system decks. */
+            isPublic: boolean;
+            /** @description Whether the current user created (and can edit) this deck */
+            isOwner: boolean;
             /**
              * @description Number of words in the deck
              * @example 40
@@ -841,6 +845,10 @@ export interface components {
             level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
             /** @description True for curated decks shipped with the app */
             isSystem: boolean;
+            /** @description Whether the deck is shared publicly. Always false for system decks. */
+            isPublic: boolean;
+            /** @description Whether the current user created (and can edit) this deck */
+            isOwner: boolean;
             /**
              * @description Number of words in the deck
              * @example 40

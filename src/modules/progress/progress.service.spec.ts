@@ -87,6 +87,19 @@ describe('ProgressService', () => {
     expect(arg.where.createdAt.gte).toBeInstanceOf(Date);
   });
 
+  it('bounds the streak review scan to the last ~year', async () => {
+    await service.getUserProgress('u1');
+
+    const arg = prisma.review.findMany.mock.calls[0][0];
+    expect(arg.where.userId).toBe('u1');
+    const gte = arg.where.createdAt.gte as Date;
+    expect(gte).toBeInstanceOf(Date);
+    // Roughly 366 days back (allow a day of slack for the UTC truncation).
+    const daysBack = (Date.now() - gte.getTime()) / (24 * 60 * 60 * 1000);
+    expect(daysBack).toBeGreaterThan(364);
+    expect(daysBack).toBeLessThan(368);
+  });
+
   describe('getDeckProgress', () => {
     it('counts the user statuses per deck and computes the percentage', async () => {
       prisma.deck.findMany.mockResolvedValue([

@@ -809,6 +809,24 @@ export function buildPrismaStub() {
         clientVersion: 'test',
       });
     }),
+    // Backs the atomic single-use consume(): only stamps a row matching
+    // tokenHash + type that is still unused and unexpired.
+    updateMany: jest.fn(async ({ where, data }: any) => {
+      const now = where.expiresAt?.gt ?? new Date();
+      let count = 0;
+      for (const t of authTokens.values()) {
+        if (
+          (where.tokenHash === undefined || t.tokenHash === where.tokenHash) &&
+          (where.type === undefined || t.type === where.type) &&
+          (where.usedAt !== null || t.usedAt === null) &&
+          (where.expiresAt?.gt === undefined || t.expiresAt > now)
+        ) {
+          authTokens.set(t.tokenHash, { ...t, ...data });
+          count += 1;
+        }
+      }
+      return { count };
+    }),
   };
 
   const stub: Record<string, unknown> = {

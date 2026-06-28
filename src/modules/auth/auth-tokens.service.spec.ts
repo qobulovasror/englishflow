@@ -33,14 +33,23 @@ function buildPrismaMock() {
       return row;
     }),
     findUnique: jest.fn(async ({ where }: any) => rows.get(where.tokenHash) ?? null),
-    update: jest.fn(async ({ where, data }: any) => {
+    // Mirrors the atomic conditional write in consume(): only stamps a row that
+    // is the right type, still unused, and unexpired; returns the affected count.
+    updateMany: jest.fn(async ({ where, data }: any) => {
+      const now = where.expiresAt?.gt ?? new Date();
+      let count = 0;
       for (const row of rows.values()) {
-        if (row.id === where.id) {
+        if (
+          row.tokenHash === where.tokenHash &&
+          row.type === where.type &&
+          row.usedAt === null &&
+          row.expiresAt > now
+        ) {
           Object.assign(row, data);
-          return row;
+          count += 1;
         }
       }
-      throw new Error('not found');
+      return { count };
     }),
   };
 

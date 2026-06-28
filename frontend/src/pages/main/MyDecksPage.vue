@@ -182,7 +182,7 @@ onMounted(() => {
             </span>
           </div>
 
-          <div v-if="!deck.isSystem" class="flex flex-wrap items-center gap-2">
+          <div v-if="deck.isOwner" class="flex flex-wrap items-center gap-2">
             <router-link :to="`/my-decks/${deck.id}`">
               <AppButton size="sm">Manage words</AppButton>
             </router-link>

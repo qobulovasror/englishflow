@@ -106,10 +106,10 @@ class _MyDecksScreenState extends ConsumerState<MyDecksScreen> {
           return _DeckCard(
             deck: deck,
             onTap: () => context.push('/deck-detail', extra: deck),
-            onEdit: deck.isSystem
-                ? null
-                : () => context.push('/deck-form', extra: deck),
-            onDelete: deck.isSystem ? null : () => _confirmDelete(deck),
+            onEdit: deck.isOwner
+                ? () => context.push('/deck-form', extra: deck)
+                : null,
+            onDelete: deck.isOwner ? () => _confirmDelete(deck) : null,
           );
         },
       ),
@@ -157,7 +157,7 @@ class _DeckCard extends StatelessWidget {
           ),
         ),
         onTap: onTap,
-        trailing: deck.isSystem
+        trailing: !deck.isOwner
             ? const Icon(Icons.lock_outline, color: AppColors.textHint)
             : PopupMenuButton<String>(
                 onSelected: (value) {

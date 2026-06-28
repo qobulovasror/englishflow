@@ -28,6 +28,12 @@ export class ProgressService {
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
     );
     const todayUtcString = now.toISOString().slice(0, 10);
+    // Streaks only need recent activity (current streak + up to a 1-year
+    // longest), so bound the scan to the last 366 days instead of every review
+    // the user has ever logged.
+    const streakWindowStart = new Date(
+      startOfTodayUtc.getTime() - 366 * MS_PER_DAY,
+    );
 
     const [
       totalWords,
@@ -69,7 +75,7 @@ export class ProgressService {
         where: { userId, createdAt: { gte: startOfTodayUtc } },
       }),
       this.prisma.review.findMany({
-        where: { userId },
+        where: { userId, createdAt: { gte: streakWindowStart } },
         select: { createdAt: true },
       }),
     ]);

@@ -23,6 +23,10 @@ export interface Deck {
   description?: string | null
   level?: CefrLevel | null
   isSystem: boolean
+  // Whether the deck is shared publicly. Always false for system decks.
+  isPublic: boolean
+  // Whether the current user created (and can edit) this deck.
+  isOwner: boolean
   wordCount: number
   isEnrolled: boolean
   createdAt: string

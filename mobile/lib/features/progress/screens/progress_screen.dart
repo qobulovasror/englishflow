@@ -160,7 +160,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                   child: _StatCard(
                     icon: Icons.gps_fixed,
                     title: 'Avg Score',
-                    value: '${stats.averageScore.toInt()}%',
+                    value: stats.averageScore.toStringAsFixed(1),
                     color: AppColors.primary,
                   ),
                 ),

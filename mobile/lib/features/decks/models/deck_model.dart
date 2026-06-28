@@ -8,6 +8,7 @@ class DeckModel extends Equatable {
   final String? level;
   final bool isSystem;
   final bool isPublic;
+  final bool isOwner;
   final int wordCount;
   final bool isEnrolled;
 
@@ -21,6 +22,7 @@ class DeckModel extends Equatable {
     this.level,
     this.isSystem = false,
     this.isPublic = false,
+    this.isOwner = false,
     this.wordCount = 0,
     this.isEnrolled = false,
     this.words = const [],
@@ -35,6 +37,7 @@ class DeckModel extends Equatable {
       level: json['level']?.toString(),
       isSystem: json['isSystem'] == true,
       isPublic: json['isPublic'] == true,
+      isOwner: json['isOwner'] == true,
       wordCount: (json['wordCount'] as num?)?.toInt() ??
           (rawWords is List ? rawWords.length : 0),
       isEnrolled: json['isEnrolled'] == true,
@@ -51,6 +54,7 @@ class DeckModel extends Equatable {
     String? description,
     String? level,
     bool? isPublic,
+    bool? isOwner,
     int? wordCount,
     bool? isEnrolled,
     List<WordModel>? words,
@@ -62,6 +66,7 @@ class DeckModel extends Equatable {
       level: level ?? this.level,
       isSystem: isSystem,
       isPublic: isPublic ?? this.isPublic,
+      isOwner: isOwner ?? this.isOwner,
       wordCount: wordCount ?? this.wordCount,
       isEnrolled: isEnrolled ?? this.isEnrolled,
       words: words ?? this.words,
@@ -76,6 +81,7 @@ class DeckModel extends Equatable {
         level,
         isSystem,
         isPublic,
+        isOwner,
         wordCount,
         isEnrolled,
         words,

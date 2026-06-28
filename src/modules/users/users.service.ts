@@ -118,14 +118,41 @@ export class UsersService {
   /**
    * Completes (or skips) onboarding: records the chosen level, enrolls the user
    * in the selected decks, and stamps `onboardedAt` so clients stop showing the
-   * flow. Enrolling first means an invalid deckId fails before the user is
-   * marked onboarded, avoiding a half-finished state.
+   * flow. Every deckId is validated for visibility up front — a single bad id
+   * rejects the whole request before any enrollment runs, so we never commit a
+   * partial enrollment without marking the user onboarded.
    */
   async completeOnboarding(id: string, dto: OnboardingDto) {
     await this.findByIdOrThrow(id);
 
-    for (const deckId of dto.deckIds ?? []) {
-      await this.decksService.enroll(deckId, id);
+    const deckIds = dto.deckIds ?? [];
+    if (deckIds.length > 0) {
+      // A deck is visible if it's a curated system deck, a public deck, or one
+      // the user owns (mirrors DecksService.visibleWhere). Reject if any id
+      // isn't visible before enrolling in any of them.
+      const visible = await this.prisma.deck.findMany({
+        where: {
+          AND: [
+            { id: { in: deckIds } },
+            {
+              OR: [
+                { isSystem: true },
+                { isPublic: true },
+                { createdById: id },
+              ],
+            },
+          ],
+        },
+        select: { id: true },
+      });
+      const visibleIds = new Set(visible.map((d) => d.id));
+      if (deckIds.some((deckId) => !visibleIds.has(deckId))) {
+        throw new NotFoundException('Deck not found');
+      }
+
+      for (const deckId of deckIds) {
+        await this.decksService.enroll(deckId, id);
+      }
     }
 
     return this.prisma.user.update({

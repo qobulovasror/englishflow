@@ -2853,6 +2853,14 @@
             "type": "boolean",
             "description": "True for curated decks shipped with the app"
           },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Whether the deck is shared publicly. Always false for system decks."
+          },
+          "isOwner": {
+            "type": "boolean",
+            "description": "Whether the current user created (and can edit) this deck"
+          },
           "wordCount": {
             "type": "number",
             "example": 40,
@@ -2871,6 +2879,8 @@
           "id",
           "title",
           "isSystem",
+          "isPublic",
+          "isOwner",
           "wordCount",
           "isEnrolled",
           "createdAt"
@@ -2980,6 +2990,14 @@
             "type": "boolean",
             "description": "True for curated decks shipped with the app"
           },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Whether the deck is shared publicly. Always false for system decks."
+          },
+          "isOwner": {
+            "type": "boolean",
+            "description": "Whether the current user created (and can edit) this deck"
+          },
           "wordCount": {
             "type": "number",
             "example": 40,
@@ -3004,6 +3022,8 @@
           "id",
           "title",
           "isSystem",
+          "isPublic",
+          "isOwner",
           "wordCount",
           "isEnrolled",
           "createdAt",

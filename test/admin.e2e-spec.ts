@@ -64,6 +64,8 @@ describe('Admin decks (e2e)', () => {
         title: 'Curated Deck',
         isSystem: true,
         wordCount: 0,
+        isOwner: false,
+        isPublic: false,
       });
       const stored = prisma._stores.decks.get(res.body.data.id);
       expect(stored?.isSystem).toBe(true);

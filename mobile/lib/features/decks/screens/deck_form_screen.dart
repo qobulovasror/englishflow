@@ -60,7 +60,9 @@ class _DeckFormScreenState extends ConsumerState<DeckFormScreen> {
             title: title,
             description: description,
             level: _level,
-            isPublic: _isPublic,
+            // Only send isPublic when it actually changed, so editing other
+            // fields never silently flips visibility.
+            isPublic: _isPublic != widget.deck!.isPublic ? _isPublic : null,
           )
         : await notifier.createDeck(
             title: title,

@@ -82,7 +82,7 @@ onMounted(() => {
     <template v-else-if="decksStore.currentDeck">
       <div class="flex items-center justify-between mb-1">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ decksStore.currentDeck.title }}</h1>
-        <AppButton v-if="!decksStore.currentDeck.isSystem" @click="showForm = !showForm">
+        <AppButton v-if="decksStore.currentDeck.isOwner" @click="showForm = !showForm">
           {{ showForm ? 'Cancel' : '+ Add word' }}
         </AppButton>
       </div>
@@ -125,7 +125,7 @@ onMounted(() => {
             <div class="flex items-center">
               <SpeakButton :word="word.word" :audio-url="word.audioUrl" />
               <button
-                v-if="!decksStore.currentDeck.isSystem"
+                v-if="decksStore.currentDeck.isOwner"
                 @click="handleRemove(word.id, word.word)"
                 :disabled="removingId === word.id"
                 class="text-gray-400 hover:text-red-500 transition-colors p-2 disabled:opacity-50"

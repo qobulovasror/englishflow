@@ -36,10 +36,15 @@ class SpeakButton extends StatelessWidget {
   Future<void> _speak() async {
     final text = word.trim();
     if (text.isEmpty) return;
-    await _ensureConfigured();
-    await _tts.stop();
-    await _tts.setLanguage('en-US');
-    await _tts.speak(text);
+    // A missing or uninitialised device TTS engine should fail silently
+    // rather than throw onto the UI.
+    try {
+      await _ensureConfigured();
+      await _tts.stop();
+      await _tts.speak(text);
+    } catch (_) {
+      // No TTS engine available; nothing to do.
+    }
   }
 
   @override

@@ -35,11 +35,6 @@ export const decksService = {
     return data
   },
 
-  async get(id: string): Promise<DeckDetail> {
-    const { data } = await api.get<DeckDetail>(`/decks/${id}`)
-    return data
-  },
-
   async getDeck(id: string): Promise<DeckDetail> {
     const { data } = await api.get<DeckDetail>(`/decks/${id}`)
     return data

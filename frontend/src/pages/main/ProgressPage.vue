@@ -122,12 +122,13 @@ onMounted(() => {
               v-for="range in RANGES"
               :key="range"
               type="button"
-              class="px-3 py-1 text-xs font-medium rounded-md transition-colors"
+              class="px-3 py-1 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               :class="
                 trendsDays === range
                   ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 shadow-sm'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               "
+              :disabled="trendsLoading"
               @click="progressStore.fetchTrends(range)"
             >
               {{ range }}d
