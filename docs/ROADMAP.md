@@ -104,3 +104,33 @@ Maqsad: barqarorlik va ishonch.
 ## 4. Tavsiya etilgan boshlang'ich
 
 Eng yaxshi keyingi qadam — **Bosqich 1 (Polish)** + **Bosqich 2 (Foydalanuvchi decklari)**: birinchisi MVP'ni sayqallaydi, ikkinchisi schema'da allaqachon mo'ljallangan tabiiy davom. Engagement (Bosqich 3) bulardan keyin eng yuqori ROI beradi.
+
+---
+
+## 5. Bajarilish holati (2026-06-29)
+
+Barcha 7 bosqich `feature/roadmap-execution` branchida bajarildi va bosqichma-bosqich commit qilindi. Har bosqich avtomat testlar bilan tasdiqlangan; yakunda 3 ta `code-reviewer` agenti (backend/web/mobile) diff'ni ko'rib chiqdi va topilgan kamchiliklar tuzatildi.
+
+| Bosqich | Holat |
+|---------|:-----:|
+| 1 — Polish (word edit/filter/pagination, search debounce) | ✅ |
+| 2 — Foydalanuvchi decklari (CRUD + word management) | ✅ |
+| 3 — Engagement (review log, streak, daily goal) | ✅ |
+| 4 — Analitika (trends, per-deck, leeches) | ✅ |
+| 5 — Audio (audioUrl + listen: Web Speech / flutter_tts) | ✅ |
+| 6 — Akkaunt & RBAC (recovery, verify, delete, admin) | ✅ |
+| 7 — Infra (cleanup cron, test coverage 55%→83%) | ✅ |
+
+Yakuniy tekshiruv: backend **192 unit + 82 e2e** yashil, web `type-check` toza, mobile **83 test** + `flutter analyze` (yangi xato yo'q). 2 ta yangi migration qo'shildi va lokal DB'da qo'llandi.
+
+### Ataylab qoldirilgan ishlar (xavf/keng qamrov sababli)
+
+Bu ishlar buzuvchi yoki keng refactor xavfi tug'dirgani uchun qoldirildi — alohida, ehtiyotkor PR talab qiladi:
+
+- **Soft-delete / audit log** — delete semantikasini butun ilova bo'ylab o'zgartiradi; hozirgi cascade xatti-harakatini buzish xavfi.
+- **Web dual type-system birlashtiruvi** — `types/index.ts` (qo'lda) ni generatsiya `api.ts` bilan to'liq almashtirish keng import refactori; alohida qilingani ma'qul.
+- **Real SMTP mailer** — `MailerService` abstraksiyasi tayyor, dev'da loglaydi; production transport (SMTP/provayder) + kredensiallar kerak.
+- **Push / local bildirishnoma (mobile)** — qurilma + FCM/local-notif platforma sozlamasi talab qiladi.
+- **Mobile router refactori** — `routerProvider` har auth emissiyasida `GoRouter`ni qayta yaratadi; `refreshListenable`ga o'tkazish navigatsiya holatiga ta'sir qilishi mumkin, qurilmada sinash kerak.
+- **Per-email throttle (forgot/verify)** — IP-throttle bor; email-bombingga qarshi per-akkaunt cooldown qo'shilishi mumkin (Low).
+- **Shared-deck so'z o'chirilganda cascade** — public/system deckdan so'z o'chirilsa boshqa foydalanuvchilar progressi ham o'chadi; ataylab shunday, lekin soft-detach yaxshiroq bo'lardi.
