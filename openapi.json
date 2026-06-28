@@ -1784,6 +1784,163 @@
         ]
       }
     },
+    "/progress/trends": {
+      "get": {
+        "operationId": "ProgressController_getTrends",
+        "summary": "Daily review activity over a trailing window (zero-filled)",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "description": "Size of the trailing window in days (ending today, UTC)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 365,
+              "default": 30,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TrendPointDto"
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Progress"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/progress/decks": {
+      "get": {
+        "operationId": "ProgressController_getDeckProgress",
+        "summary": "Per-deck learning progress for joined/created decks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DeckProgressDto"
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Progress"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/progress/leeches": {
+      "get": {
+        "operationId": "ProgressController_getLeeches",
+        "summary": "Troublesome words with a high lapse count",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LeechWordDto"
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Progress"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "HealthController_live",
@@ -2815,6 +2972,132 @@
           "vocabulary",
           "tests",
           "streak"
+        ]
+      },
+      "TrendPointDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "example": "2026-06-29",
+            "description": "UTC calendar day"
+          },
+          "count": {
+            "type": "number",
+            "example": 12,
+            "description": "Reviews completed on this day"
+          }
+        },
+        "required": [
+          "date",
+          "count"
+        ]
+      },
+      "DeckProgressDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "Travel Essentials"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1",
+              "C2"
+            ],
+            "nullable": true,
+            "example": "A2"
+          },
+          "isSystem": {
+            "type": "boolean",
+            "example": true,
+            "description": "Curated system deck"
+          },
+          "total": {
+            "type": "number",
+            "example": 40,
+            "description": "Words in the deck the user is tracking"
+          },
+          "new": {
+            "type": "number",
+            "example": 10
+          },
+          "learning": {
+            "type": "number",
+            "example": 22
+          },
+          "learned": {
+            "type": "number",
+            "example": 8
+          },
+          "progressPercentage": {
+            "type": "number",
+            "example": 20,
+            "description": "Percentage of learned words (0–100)"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "level",
+          "isSystem",
+          "total",
+          "new",
+          "learning",
+          "learned",
+          "progressPercentage"
+        ]
+      },
+      "LeechWordDto": {
+        "type": "object",
+        "properties": {
+          "wordId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "word": {
+            "type": "string",
+            "example": "ubiquitous"
+          },
+          "translation": {
+            "type": "string",
+            "example": "hamma joyda mavjud"
+          },
+          "lapses": {
+            "type": "number",
+            "example": 6,
+            "description": "Times the card was failed after graduating"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "LEARNING",
+              "LEARNED"
+            ]
+          },
+          "lastReviewedAt": {
+            "type": "object",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "wordId",
+          "word",
+          "translation",
+          "lapses",
+          "status",
+          "lastReviewedAt"
         ]
       }
     }

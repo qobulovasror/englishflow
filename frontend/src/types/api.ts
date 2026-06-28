@@ -365,6 +365,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/progress/trends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daily review activity over a trailing window (zero-filled) */
+        get: operations["ProgressController_getTrends"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/progress/decks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Per-deck learning progress for joined/created decks */
+        get: operations["ProgressController_getDeckProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/progress/leeches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Troublesome words with a high lapse count */
+        get: operations["ProgressController_getLeeches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -875,6 +926,67 @@ export interface components {
             vocabulary: components["schemas"]["VocabularyStatsDto"];
             tests: components["schemas"]["TestStatsDto"];
             streak: components["schemas"]["StreakStatsDto"];
+        };
+        TrendPointDto: {
+            /**
+             * @description UTC calendar day
+             * @example 2026-06-29
+             */
+            date: string;
+            /**
+             * @description Reviews completed on this day
+             * @example 12
+             */
+            count: number;
+        };
+        DeckProgressDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Travel Essentials */
+            title: string;
+            /**
+             * @example A2
+             * @enum {string|null}
+             */
+            level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2" | null;
+            /**
+             * @description Curated system deck
+             * @example true
+             */
+            isSystem: boolean;
+            /**
+             * @description Words in the deck the user is tracking
+             * @example 40
+             */
+            total: number;
+            /** @example 10 */
+            new: number;
+            /** @example 22 */
+            learning: number;
+            /** @example 8 */
+            learned: number;
+            /**
+             * @description Percentage of learned words (0–100)
+             * @example 20
+             */
+            progressPercentage: number;
+        };
+        LeechWordDto: {
+            /** Format: uuid */
+            wordId: string;
+            /** @example ubiquitous */
+            word: string;
+            /** @example hamma joyda mavjud */
+            translation: string;
+            /**
+             * @description Times the card was failed after graduating
+             * @example 6
+             */
+            lapses: number;
+            /** @enum {string} */
+            status: "NEW" | "LEARNING" | "LEARNED";
+            /** Format: date-time */
+            lastReviewedAt: Record<string, never> | null;
         };
     };
     responses: never;
@@ -1914,6 +2026,84 @@ export interface operations {
                         /** @example true */
                         success: boolean;
                         data: components["schemas"]["ProgressResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    ProgressController_getTrends: {
+        parameters: {
+            query?: {
+                /** @description Size of the trailing window in days (ending today, UTC) */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["TrendPointDto"][];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    ProgressController_getDeckProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["DeckProgressDto"][];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    ProgressController_getLeeches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["LeechWordDto"][];
                         /** Format: date-time */
                         timestamp: string;
                     };

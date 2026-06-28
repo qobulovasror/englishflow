@@ -35,4 +35,7 @@ class ApiEndpoints {
 
   // Progress
   static const String progress = '/progress';
+  static const String progressTrends = '/progress/trends';
+  static const String progressDecks = '/progress/decks';
+  static const String progressLeeches = '/progress/leeches';
 }

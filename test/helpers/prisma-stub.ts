@@ -58,6 +58,7 @@ export interface StoredUserWord {
   wordId: string;
   status: WordStatus;
   repetitionCount: number;
+  lapses: number;
   lastReviewedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -286,7 +287,8 @@ export function buildPrismaStub() {
         wordId: data.wordId,
         status: data.status ?? WordStatus.NEW,
         repetitionCount: data.repetitionCount ?? 0,
-        lastReviewedAt: null,
+        lapses: data.lapses ?? 0,
+        lastReviewedAt: data.lastReviewedAt ?? null,
         createdAt: now,
         updatedAt: now,
       };
@@ -305,19 +307,60 @@ export function buildPrismaStub() {
       return null;
     }),
     findMany: jest.fn(async (args: any = {}) => {
+      const where = args.where ?? {};
       let list = [...userWords.values()];
-      if (args.where?.userId) {
-        list = list.filter((uw) => uw.userId === args.where.userId);
+      if (where.userId) {
+        list = list.filter((uw) => uw.userId === where.userId);
       }
-      if (args.where?.status?.in) {
-        const allowed: WordStatus[] = args.where.status.in;
+      if (where.status?.in) {
+        const allowed: WordStatus[] = where.status.in;
         list = list.filter((uw) => allowed.includes(uw.status));
       }
-      if (args.take !== undefined) list = list.slice(0, args.take);
-      if (args.include?.word) {
-        return list.map((uw) => ({ ...uw, word: words.get(uw.wordId) }));
+      if (where.wordId?.in) {
+        const ids: string[] = where.wordId.in;
+        list = list.filter((uw) => ids.includes(uw.wordId));
       }
-      return list;
+      if (where.lapses?.gte !== undefined) {
+        list = list.filter((uw) => uw.lapses >= where.lapses.gte);
+      }
+      // Supports the leech ordering: [{ lapses: 'desc' }, { lastReviewedAt: 'desc' }].
+      const orderBy = Array.isArray(args.orderBy)
+        ? args.orderBy
+        : args.orderBy
+          ? [args.orderBy]
+          : [];
+      if (orderBy.length > 0) {
+        list.sort((a, b) => {
+          for (const clause of orderBy) {
+            const [field, dir] = Object.entries(clause)[0] as [
+              keyof StoredUserWord,
+              'asc' | 'desc',
+            ];
+            const av = a[field];
+            const bv = b[field];
+            const an = av instanceof Date ? av.getTime() : (av as number);
+            const bn = bv instanceof Date ? bv.getTime() : (bv as number);
+            if (an === bn) continue;
+            return dir === 'desc' ? bn - an : an - bn;
+          }
+          return 0;
+        });
+      }
+      if (args.take !== undefined) list = list.slice(0, args.take);
+      const withWord = (uw: StoredUserWord) =>
+        args.include?.word ? { ...uw, word: words.get(uw.wordId) } : uw;
+      const sel = args.select;
+      if (sel) {
+        return list.map((uw) => {
+          const out: Record<string, unknown> = {};
+          if (sel.wordId) out.wordId = uw.wordId;
+          if (sel.status) out.status = uw.status;
+          if (sel.lapses) out.lapses = uw.lapses;
+          if (sel.lastReviewedAt) out.lastReviewedAt = uw.lastReviewedAt;
+          return out;
+        });
+      }
+      return list.map(withWord);
     }),
     count: jest.fn(async (args: any = {}) => {
       let list = [...userWords.values()];

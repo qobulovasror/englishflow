@@ -185,4 +185,147 @@ describe('Progress (e2e)', () => {
 
     expect(res.body.data.vocabulary.total).toBe(0);
   });
+
+  it('GET /progress/trends returns a dense zero-filled series', async () => {
+    const { accessToken, userId } = await registerUser(app);
+
+    const now = new Date();
+    prisma._stores.reviews.set('trend-1', {
+      id: 'trend-1',
+      userId,
+      wordId: 'w-a',
+      rating: 'GOOD',
+      createdAt: now,
+    });
+    prisma._stores.reviews.set('trend-2', {
+      id: 'trend-2',
+      userId,
+      wordId: 'w-b',
+      rating: 'EASY',
+      createdAt: now,
+    });
+
+    const res = await request(app.getHttpServer())
+      .get('/progress/trends?days=7')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(res.body.data).toHaveLength(7);
+    // Oldest→newest, today is the last slot and holds both seeded reviews.
+    const last = res.body.data[6];
+    expect(last.count).toBe(2);
+    expect(res.body.data.slice(0, 6).every((p: any) => p.count === 0)).toBe(true);
+  });
+
+  it('GET /progress/decks reports per-deck status counts', async () => {
+    const { accessToken, userId } = await registerUser(app);
+    const now = new Date();
+
+    prisma._stores.decks.set('deck-prog', {
+      id: 'deck-prog',
+      title: 'Travel',
+      description: null,
+      level: 'A2',
+      isSystem: false,
+      isPublic: false,
+      createdById: userId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const statuses: WordStatus[] = [
+      WordStatus.NEW,
+      WordStatus.LEARNING,
+      WordStatus.LEARNED,
+    ];
+    statuses.forEach((status, i) => {
+      const wordId = `dp-w${i}`;
+      prisma._stores.words.set(wordId, {
+        id: wordId,
+        word: `w${i}`,
+        translation: `t${i}`,
+        example: null,
+        createdById: userId,
+        deckId: 'deck-prog',
+        createdAt: now,
+        updatedAt: now,
+      });
+      prisma._stores.userWords.set(`dp-uw${i}`, {
+        id: `dp-uw${i}`,
+        userId,
+        wordId,
+        status,
+        repetitionCount: 0,
+        lapses: 0,
+        lastReviewedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    });
+
+    const res = await request(app.getHttpServer())
+      .get('/progress/decks')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0]).toMatchObject({
+      id: 'deck-prog',
+      title: 'Travel',
+      level: 'A2',
+      isSystem: false,
+      total: 3,
+      new: 1,
+      learning: 1,
+      learned: 1,
+      progressPercentage: 33,
+    });
+  });
+
+  it('GET /progress/leeches returns only words with lapses >= 4', async () => {
+    const { accessToken, userId } = await registerUser(app);
+    const now = new Date();
+
+    const seed = (id: string, lapses: number) => {
+      prisma._stores.words.set(`lw-${id}`, {
+        id: `lw-${id}`,
+        word: `word-${id}`,
+        translation: `tr-${id}`,
+        example: null,
+        createdById: userId,
+        deckId: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+      prisma._stores.userWords.set(`luw-${id}`, {
+        id: `luw-${id}`,
+        userId,
+        wordId: `lw-${id}`,
+        status: WordStatus.LEARNING,
+        repetitionCount: 0,
+        lapses,
+        lastReviewedAt: new Date(now.getTime() - lapses * 1000),
+        createdAt: now,
+        updatedAt: now,
+      });
+    };
+    seed('a', 6); // leech
+    seed('b', 4); // leech (boundary)
+    seed('c', 3); // not a leech
+
+    const res = await request(app.getHttpServer())
+      .get('/progress/leeches')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(res.body.data).toHaveLength(2);
+    // Ordered by lapses desc.
+    expect(res.body.data.map((l: any) => l.lapses)).toEqual([6, 4]);
+    expect(res.body.data[0]).toMatchObject({
+      wordId: 'lw-a',
+      word: 'word-a',
+      translation: 'tr-a',
+      lapses: 6,
+      status: WordStatus.LEARNING,
+    });
+  });
 });

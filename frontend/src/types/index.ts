@@ -186,3 +186,32 @@ export interface ProgressData {
     goalMet: boolean
   }
 }
+
+// One day of review activity (dense, oldest→newest).
+export interface TrendPoint {
+  date: string
+  count: number
+}
+
+// Per-deck learning progress for the current user.
+export interface DeckProgress {
+  id: string
+  title: string
+  level: CefrLevel | null
+  isSystem: boolean
+  total: number
+  new: number
+  learning: number
+  learned: number
+  progressPercentage: number
+}
+
+// A high-lapse "leech" word the user keeps failing.
+export interface LeechWord {
+  wordId: string
+  word: string
+  translation: string
+  lapses: number
+  status: WordStatus
+  lastReviewedAt: string | null
+}

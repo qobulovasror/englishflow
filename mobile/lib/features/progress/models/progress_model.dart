@@ -84,3 +84,107 @@ class ProgressStats extends Equatable {
         streak,
       ];
 }
+
+/// A single day's review count from `GET /progress/trends`.
+class TrendPoint extends Equatable {
+  final String date;
+  final int count;
+
+  const TrendPoint({required this.date, this.count = 0});
+
+  factory TrendPoint.fromJson(Map<String, dynamic> json) {
+    return TrendPoint(
+      date: json['date']?.toString() ?? '',
+      count: (json['count'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  @override
+  List<Object?> get props => [date, count];
+}
+
+/// Per-deck progress breakdown from `GET /progress/decks`.
+class DeckProgress extends Equatable {
+  final String id;
+  final String title;
+  final String? level;
+  final bool isSystem;
+  final int total;
+  final int newWords;
+  final int learning;
+  final int learned;
+  final int progressPercentage;
+
+  const DeckProgress({
+    required this.id,
+    required this.title,
+    this.level,
+    this.isSystem = false,
+    this.total = 0,
+    this.newWords = 0,
+    this.learning = 0,
+    this.learned = 0,
+    this.progressPercentage = 0,
+  });
+
+  factory DeckProgress.fromJson(Map<String, dynamic> json) {
+    return DeckProgress(
+      id: json['id']?.toString() ?? '',
+      title: json['title'] ?? '',
+      level: json['level']?.toString(),
+      isSystem: json['isSystem'] == true,
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      newWords: (json['new'] as num?)?.toInt() ?? 0,
+      learning: (json['learning'] as num?)?.toInt() ?? 0,
+      learned: (json['learned'] as num?)?.toInt() ?? 0,
+      progressPercentage: (json['progressPercentage'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+        id,
+        title,
+        level,
+        isSystem,
+        total,
+        newWords,
+        learning,
+        learned,
+        progressPercentage,
+      ];
+}
+
+/// A high-lapse word ("leech") from `GET /progress/leeches`.
+class Leech extends Equatable {
+  final String wordId;
+  final String word;
+  final String translation;
+  final int lapses;
+  final String? status;
+  final String? lastReviewedAt;
+
+  const Leech({
+    required this.wordId,
+    required this.word,
+    this.translation = '',
+    this.lapses = 0,
+    this.status,
+    this.lastReviewedAt,
+  });
+
+  factory Leech.fromJson(Map<String, dynamic> json) {
+    return Leech(
+      wordId: json['wordId']?.toString() ?? '',
+      word: json['word'] ?? '',
+      translation: json['translation'] ?? '',
+      lapses: (json['lapses'] as num?)?.toInt() ?? 0,
+      status: json['status']?.toString(),
+      lastReviewedAt: json['lastReviewedAt']?.toString(),
+    );
+  }
+
+  @override
+  List<Object?> get props =>
+      [wordId, word, translation, lapses, status, lastReviewedAt];
+}
