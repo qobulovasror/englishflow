@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:englishflow/core/theme/app_colors.dart';
 import 'package:englishflow/core/utils/snackbar_utils.dart';
 import 'package:englishflow/features/decks/models/deck_model.dart';
@@ -59,7 +60,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Library')),
+      appBar: AppBar(
+        title: const Text('Library'),
+        actions: [
+          IconButton(
+            onPressed: () => context.push('/my-decks'),
+            icon: const Icon(Icons.style_outlined),
+            tooltip: 'My decks',
+          ),
+        ],
+      ),
       body: Column(
         children: [
           SizedBox(

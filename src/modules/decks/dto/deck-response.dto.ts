@@ -53,3 +53,17 @@ export class EnrollResponseDto {
   @Expose()
   enrolledCount: number;
 }
+
+export class AddDeckWordsResponseDto {
+  @ApiProperty({ example: 'Added 3 words to "My Travel Words"' })
+  @Expose()
+  message: string;
+
+  @ApiProperty({ example: 3, description: 'Words added by this request' })
+  @Expose()
+  addedCount: number;
+
+  @ApiProperty({ example: 12, description: 'Total words in the deck now' })
+  @Expose()
+  wordCount: number;
+}

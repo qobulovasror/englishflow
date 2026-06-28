@@ -29,6 +29,21 @@ export interface EnrollResult {
   enrolledCount: number
 }
 
+export interface CreateDeckPayload {
+  title: string
+  description?: string
+  level?: CefrLevel
+  isPublic?: boolean
+}
+
+export type UpdateDeckPayload = Partial<CreateDeckPayload>
+
+export interface AddDeckWordsResult {
+  message: string
+  addedCount: number
+  wordCount: number
+}
+
 export interface OnboardingPayload {
   level?: CefrLevel
   deckIds: string[]

@@ -16,7 +16,11 @@ import 'package:englishflow/features/test/screens/quiz_result_screen.dart';
 import 'package:englishflow/features/progress/screens/progress_screen.dart';
 import 'package:englishflow/features/users/screens/profile_screen.dart';
 import 'package:englishflow/features/onboarding/screens/onboarding_screen.dart';
+import 'package:englishflow/features/decks/models/deck_model.dart';
 import 'package:englishflow/features/decks/screens/library_screen.dart';
+import 'package:englishflow/features/decks/screens/my_decks_screen.dart';
+import 'package:englishflow/features/decks/screens/deck_form_screen.dart';
+import 'package:englishflow/features/decks/screens/deck_detail_screen.dart';
 import 'package:englishflow/shared/widgets/main_scaffold.dart';
 import 'package:englishflow/features/auth/screens/splash_screen.dart';
 
@@ -153,6 +157,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/library',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const LibraryScreen(),
+      ),
+      GoRoute(
+        path: '/my-decks',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const MyDecksScreen(),
+      ),
+      GoRoute(
+        path: '/deck-form',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) =>
+            DeckFormScreen(deck: state.extra as DeckModel?),
+      ),
+      GoRoute(
+        path: '/deck-detail',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) =>
+            DeckDetailScreen(deck: state.extra as DeckModel),
       ),
     ],
   );

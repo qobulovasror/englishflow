@@ -642,6 +642,59 @@
             "JWT": []
           }
         ]
+      },
+      "post": {
+        "operationId": "DecksController_create",
+        "summary": "Create a personal deck",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeckDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Deck created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/DeckResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Decks"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
       }
     },
     "/decks/mine": {
@@ -755,6 +808,159 @@
             "JWT": []
           }
         ]
+      },
+      "patch": {
+        "operationId": "DecksController_update",
+        "summary": "Edit a deck the current user created",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDeckDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deck updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/DeckResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "You can only edit your own decks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Decks"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "DecksController_remove",
+        "summary": "Delete a deck the current user created",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deck deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "example": {
+                        "message": "Deck deleted successfully"
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "You can only edit your own decks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Decks"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
       }
     },
     "/decks/{id}/enroll": {
@@ -803,6 +1009,172 @@
           },
           "404": {
             "description": "Deck not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Decks"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/decks/{id}/words": {
+      "post": {
+        "operationId": "DecksController_addWords",
+        "summary": "Add words to a deck the current user created",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddDeckWordsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Words added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AddDeckWordsResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "You can only edit your own decks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Decks"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/decks/{id}/words/{wordId}": {
+      "delete": {
+        "operationId": "DecksController_removeWord",
+        "summary": "Remove a word from a deck the current user created",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "wordId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Word removed from deck",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "example": {
+                        "message": "Word removed from deck"
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "You can only edit your own decks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck or word not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1754,6 +2126,39 @@
           "createdAt"
         ]
       },
+      "CreateDeckDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "My Travel Words"
+          },
+          "description": {
+            "type": "string",
+            "example": "Words I picked up on my trips abroad."
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1",
+              "C2"
+            ],
+            "example": "A2"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "default": false,
+            "description": "Make the deck visible to other users"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
       "WordResponseDto": {
         "type": "object",
         "properties": {
@@ -1867,6 +2272,94 @@
         "required": [
           "message",
           "enrolledCount"
+        ]
+      },
+      "UpdateDeckDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "My Travel Words"
+          },
+          "description": {
+            "type": "string",
+            "example": "Words I picked up on my trips abroad."
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1",
+              "C2"
+            ],
+            "example": "A2"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Make the deck visible to other users"
+          }
+        }
+      },
+      "AddDeckWordsResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Added 3 words to \"My Travel Words\""
+          },
+          "addedCount": {
+            "type": "number",
+            "example": 3,
+            "description": "Words added by this request"
+          },
+          "wordCount": {
+            "type": "number",
+            "example": 12,
+            "description": "Total words in the deck now"
+          }
+        },
+        "required": [
+          "message",
+          "addedCount",
+          "wordCount"
+        ]
+      },
+      "DeckWordItemDto": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string",
+            "example": "serendipity"
+          },
+          "translation": {
+            "type": "string",
+            "example": "kutilmagan yoqimli kashfiyot"
+          },
+          "example": {
+            "type": "string",
+            "example": "Finding that book was pure serendipity."
+          }
+        },
+        "required": [
+          "word",
+          "translation"
+        ]
+      },
+      "AddDeckWordsDto": {
+        "type": "object",
+        "properties": {
+          "words": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeckWordItemDto"
+            }
+          }
+        },
+        "required": [
+          "words"
         ]
       },
       "CreateWordDto": {

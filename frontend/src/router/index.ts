@@ -46,6 +46,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/main/LibraryPage.vue'),
       },
       {
+        path: 'my-decks',
+        name: 'MyDecks',
+        component: () => import('@/pages/main/MyDecksPage.vue'),
+      },
+      {
+        path: 'my-decks/:id',
+        name: 'DeckDetail',
+        component: () => import('@/pages/main/DeckDetailPage.vue'),
+      },
+      {
         path: 'learn',
         name: 'Learn',
         component: () => import('@/pages/main/LearnPage.vue'),

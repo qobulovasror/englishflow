@@ -149,7 +149,8 @@ export interface paths {
         /** Browse system and public decks (paginated) */
         get: operations["DecksController_findAll"];
         put?: never;
-        post?: never;
+        /** Create a personal deck */
+        post: operations["DecksController_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -184,10 +185,12 @@ export interface paths {
         get: operations["DecksController_findOne"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete a deck the current user created */
+        delete: operations["DecksController_remove"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Edit a deck the current user created */
+        patch: operations["DecksController_update"];
         trace?: never;
     };
     "/decks/{id}/enroll": {
@@ -202,6 +205,40 @@ export interface paths {
         /** Join a deck — adds its words to your learning list */
         post: operations["DecksController_enroll"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decks/{id}/words": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add words to a deck the current user created */
+        post: operations["DecksController_addWords"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decks/{id}/words/{wordId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a word from a deck the current user created */
+        delete: operations["DecksController_removeWord"];
         options?: never;
         head?: never;
         patch?: never;
@@ -525,6 +562,22 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        CreateDeckDto: {
+            /** @example My Travel Words */
+            title: string;
+            /** @example Words I picked up on my trips abroad. */
+            description?: string;
+            /**
+             * @example A2
+             * @enum {string}
+             */
+            level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+            /**
+             * @description Make the deck visible to other users
+             * @default false
+             */
+            isPublic: boolean;
+        };
         WordResponseDto: {
             /** Format: uuid */
             id: string;
@@ -572,6 +625,44 @@ export interface components {
              * @example 40
              */
             enrolledCount: number;
+        };
+        UpdateDeckDto: {
+            /** @example My Travel Words */
+            title?: string;
+            /** @example Words I picked up on my trips abroad. */
+            description?: string;
+            /**
+             * @example A2
+             * @enum {string}
+             */
+            level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+            /** @description Make the deck visible to other users */
+            isPublic?: boolean;
+        };
+        AddDeckWordsResponseDto: {
+            /** @example Added 3 words to "My Travel Words" */
+            message: string;
+            /**
+             * @description Words added by this request
+             * @example 3
+             */
+            addedCount: number;
+            /**
+             * @description Total words in the deck now
+             * @example 12
+             */
+            wordCount: number;
+        };
+        DeckWordItemDto: {
+            /** @example serendipity */
+            word: string;
+            /** @example kutilmagan yoqimli kashfiyot */
+            translation: string;
+            /** @example Finding that book was pure serendipity. */
+            example?: string;
+        };
+        AddDeckWordsDto: {
+            words: components["schemas"]["DeckWordItemDto"][];
         };
         CreateWordDto: {
             /** @example serendipity */
@@ -1138,6 +1229,36 @@ export interface operations {
             };
         };
     };
+    DecksController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDeckDto"];
+            };
+        };
+        responses: {
+            /** @description Deck created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["DeckResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
     DecksController_findMine: {
         parameters: {
             query?: never;
@@ -1199,6 +1320,107 @@ export interface operations {
             };
         };
     };
+    DecksController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deck deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "Deck deleted successfully"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description You can only edit your own decks */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    DecksController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDeckDto"];
+            };
+        };
+        responses: {
+            /** @description Deck updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["DeckResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description You can only edit your own decks */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
     DecksController_enroll: {
         parameters: {
             query?: never;
@@ -1225,6 +1447,108 @@ export interface operations {
                 };
             };
             /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    DecksController_addWords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddDeckWordsDto"];
+            };
+        };
+        responses: {
+            /** @description Words added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["AddDeckWordsResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description You can only edit your own decks */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    DecksController_removeWord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                wordId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Word removed from deck */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "Word removed from deck"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description You can only edit your own decks */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description Deck or word not found */
             404: {
                 headers: {
                     [name: string]: unknown;

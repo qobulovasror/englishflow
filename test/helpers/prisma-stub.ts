@@ -10,7 +10,7 @@
  * Anything beyond these is a deliberate gap; add tests + extend together.
  */
 import { randomUUID } from 'node:crypto';
-import { WordStatus } from '@prisma/client';
+import { CefrLevel, WordStatus } from '@prisma/client';
 
 export interface StoredUser {
   id: string;
@@ -27,8 +27,28 @@ export interface StoredWord {
   translation: string;
   example: string | null;
   createdById: string;
+  deckId: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface StoredDeck {
+  id: string;
+  title: string;
+  description: string | null;
+  level: CefrLevel | null;
+  isSystem: boolean;
+  isPublic: boolean;
+  createdById: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface StoredDeckEnrollment {
+  id: string;
+  userId: string;
+  deckId: string;
+  createdAt: Date;
 }
 
 export interface StoredUserWord {
@@ -71,6 +91,8 @@ export interface StoredRefreshToken {
 interface Counters {
   user: number;
   word: number;
+  deck: number;
+  deckEnrollment: number;
   userWord: number;
   test: number;
   testQuestion: number;
@@ -84,6 +106,8 @@ function uuid(_prefix: string, _n: number): string {
 export function buildPrismaStub() {
   const users = new Map<string, StoredUser>();
   const words = new Map<string, StoredWord>();
+  const decks = new Map<string, StoredDeck>();
+  const deckEnrollments = new Map<string, StoredDeckEnrollment>();
   const userWords = new Map<string, StoredUserWord>();
   const tests = new Map<string, StoredTest>();
   const testQuestions = new Map<string, StoredTestQuestion>();
@@ -91,6 +115,8 @@ export function buildPrismaStub() {
   const counters: Counters = {
     user: 0,
     word: 0,
+    deck: 0,
+    deckEnrollment: 0,
     userWord: 0,
     test: 0,
     testQuestion: 0,
@@ -141,6 +167,7 @@ export function buildPrismaStub() {
   // where shape used by GET /words (optionally with a status filter).
   function matchesWordWhere(w: StoredWord, where: any = {}): boolean {
     if (where.createdById && w.createdById !== where.createdById) return false;
+    if (where.deckId !== undefined && w.deckId !== where.deckId) return false;
     const some = where.userWords?.some;
     if (some) {
       const hit = [...userWords.values()].some(
@@ -164,11 +191,31 @@ export function buildPrismaStub() {
         translation: data.translation,
         example: data.example ?? null,
         createdById: data.createdById,
+        deckId: data.deckId ?? null,
         createdAt: now,
         updatedAt: now,
       };
       words.set(w.id, w);
       return w;
+    }),
+    createMany: jest.fn(async ({ data }: any) => {
+      const rows: any[] = Array.isArray(data) ? data : [data];
+      for (const d of rows) {
+        counters.word += 1;
+        const now = new Date();
+        const w: StoredWord = {
+          id: uuid('word', counters.word),
+          word: d.word,
+          translation: d.translation,
+          example: d.example ?? null,
+          createdById: d.createdById,
+          deckId: d.deckId ?? null,
+          createdAt: now,
+          updatedAt: now,
+        };
+        words.set(w.id, w);
+      }
+      return { count: rows.length };
     }),
     findUnique: jest.fn(async ({ where }: any) => words.get(where.id) ?? null),
     update: jest.fn(async ({ where, data }: any) => {
@@ -281,6 +328,169 @@ export function buildPrismaStub() {
         ? { ...updated, word: words.get(updated.wordId) }
         : updated;
       return result;
+    }),
+  };
+
+  // Recursively evaluates the deck `where` shapes the service builds: nested
+  // AND/OR plus the leaf fields (id, isSystem, isPublic, createdById, level,
+  // title contains, enrollments.some).
+  function deckMatches(d: StoredDeck, where: any = {}): boolean {
+    if (!where) return true;
+    if (Array.isArray(where.AND)) {
+      if (!where.AND.every((w: any) => deckMatches(d, w))) return false;
+    }
+    if (Array.isArray(where.OR)) {
+      if (!where.OR.some((w: any) => deckMatches(d, w))) return false;
+    }
+    if (where.id !== undefined && d.id !== where.id) return false;
+    if (where.isSystem !== undefined && d.isSystem !== where.isSystem) return false;
+    if (where.isPublic !== undefined && d.isPublic !== where.isPublic) return false;
+    if (where.createdById !== undefined && d.createdById !== where.createdById)
+      return false;
+    if (where.level !== undefined && d.level !== where.level) return false;
+    if (where.title?.contains !== undefined) {
+      if (
+        !d.title
+          .toLowerCase()
+          .includes(String(where.title.contains).toLowerCase())
+      )
+        return false;
+    }
+    const some = where.enrollments?.some;
+    if (some) {
+      const hit = [...deckEnrollments.values()].some(
+        (e) => e.deckId === d.id && (!some.userId || e.userId === some.userId),
+      );
+      if (!hit) return false;
+    }
+    return true;
+  }
+
+  function countDeckWords(deckId: string): number {
+    return [...words.values()].filter((w) => w.deckId === deckId).length;
+  }
+
+  function withDeckIncludes(d: StoredDeck, include: any = {}) {
+    const out: Record<string, unknown> = { ...d };
+    if (include?._count?.select?.words) {
+      out._count = { words: countDeckWords(d.id) };
+    }
+    if (include?.words) {
+      out.words = [...words.values()]
+        .filter((w) => w.deckId === d.id)
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    }
+    return out;
+  }
+
+  const deck = {
+    create: jest.fn(async ({ data, include }: any) => {
+      counters.deck += 1;
+      const now = new Date();
+      const d: StoredDeck = {
+        id: uuid('deck', counters.deck),
+        title: data.title,
+        description: data.description ?? null,
+        level: data.level ?? null,
+        isSystem: data.isSystem ?? false,
+        isPublic: data.isPublic ?? false,
+        createdById: data.createdById ?? null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      decks.set(d.id, d);
+      return withDeckIncludes(d, include);
+    }),
+    findUnique: jest.fn(async ({ where }: any) => decks.get(where.id) ?? null),
+    findFirst: jest.fn(async (args: any = {}) => {
+      for (const d of decks.values()) {
+        if (deckMatches(d, args.where)) return withDeckIncludes(d, args.include);
+      }
+      return null;
+    }),
+    findMany: jest.fn(async (args: any = {}) => {
+      let list = [...decks.values()].filter((d) => deckMatches(d, args.where));
+      if (args.skip) list = list.slice(args.skip);
+      if (args.take !== undefined) list = list.slice(0, args.take);
+      return list.map((d) => withDeckIncludes(d, args.include));
+    }),
+    count: jest.fn(async (args: any = {}) => {
+      return [...decks.values()].filter((d) => deckMatches(d, args.where)).length;
+    }),
+    update: jest.fn(async ({ where, data, include }: any) => {
+      const existing = decks.get(where.id);
+      if (!existing) {
+        const { Prisma } = await import('@prisma/client');
+        throw new Prisma.PrismaClientKnownRequestError('not found', {
+          code: 'P2025',
+          clientVersion: 'test',
+        });
+      }
+      const updated = { ...existing, ...data, updatedAt: new Date() };
+      decks.set(where.id, updated);
+      return withDeckIncludes(updated, include);
+    }),
+    delete: jest.fn(async ({ where }: any) => {
+      const d = decks.get(where.id);
+      if (!d) {
+        const { Prisma } = await import('@prisma/client');
+        throw new Prisma.PrismaClientKnownRequestError('not found', {
+          code: 'P2025',
+          clientVersion: 'test',
+        });
+      }
+      // Cascade: remove the deck's words (and their userWord rows) plus any
+      // enrollments, mirroring the schema's onDelete: Cascade relations.
+      for (const w of [...words.values()]) {
+        if (w.deckId === where.id) {
+          for (const [uwId, uw] of userWords) {
+            if (uw.wordId === w.id) userWords.delete(uwId);
+          }
+          words.delete(w.id);
+        }
+      }
+      for (const [eId, e] of deckEnrollments) {
+        if (e.deckId === where.id) deckEnrollments.delete(eId);
+      }
+      decks.delete(where.id);
+      return d;
+    }),
+  };
+
+  const deckEnrollment = {
+    findMany: jest.fn(async (args: any = {}) => {
+      const where = args.where ?? {};
+      let list = [...deckEnrollments.values()];
+      if (where.userId) list = list.filter((e) => e.userId === where.userId);
+      if (where.deckId?.in) {
+        const ids: string[] = where.deckId.in;
+        list = list.filter((e) => ids.includes(e.deckId));
+      }
+      if (args.select?.deckId) return list.map((e) => ({ deckId: e.deckId }));
+      return list;
+    }),
+    findUnique: jest.fn(async ({ where }: any) => {
+      const key = where.userId_deckId;
+      if (!key) return null;
+      for (const e of deckEnrollments.values()) {
+        if (e.userId === key.userId && e.deckId === key.deckId) return e;
+      }
+      return null;
+    }),
+    upsert: jest.fn(async ({ where, create }: any) => {
+      const key = where.userId_deckId;
+      for (const e of deckEnrollments.values()) {
+        if (e.userId === key.userId && e.deckId === key.deckId) return e;
+      }
+      counters.deckEnrollment += 1;
+      const e: StoredDeckEnrollment = {
+        id: uuid('enroll', counters.deckEnrollment),
+        userId: create.userId,
+        deckId: create.deckId,
+        createdAt: new Date(),
+      };
+      deckEnrollments.set(e.id, e);
+      return e;
     }),
   };
 
@@ -435,6 +645,8 @@ export function buildPrismaStub() {
     onModuleDestroy: async () => undefined,
     user,
     word,
+    deck,
+    deckEnrollment,
     userWord,
     test,
     testQuestion,
@@ -442,6 +654,8 @@ export function buildPrismaStub() {
     _stores: {
       users,
       words,
+      decks,
+      deckEnrollments,
       userWords,
       tests,
       testQuestions,
