@@ -46,6 +46,7 @@ export interface StoredTest {
   id: string;
   userId: string;
   score: number;
+  submittedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,7 +55,7 @@ export interface StoredTestQuestion {
   id: string;
   testId: string;
   wordId: string;
-  selectedAnswer: string;
+  selectedAnswer: string | null;
   correctAnswer: string;
 }
 
@@ -264,6 +265,7 @@ export function buildPrismaStub() {
         id: uuid('test', counters.test),
         userId: data.userId,
         score: data.score ?? 0,
+        submittedAt: data.submittedAt ?? null,
         createdAt: now,
         updatedAt: now,
       };
@@ -276,7 +278,7 @@ export function buildPrismaStub() {
             id: uuid('tq', counters.testQuestion),
             testId: t.id,
             wordId: q.wordId,
-            selectedAnswer: q.selectedAnswer,
+            selectedAnswer: q.selectedAnswer ?? null,
             correctAnswer: q.correctAnswer,
           };
           testQuestions.set(tq.id, tq);
@@ -284,6 +286,31 @@ export function buildPrismaStub() {
         }
       }
       return include?.questions ? { ...t, questions } : t;
+    }),
+    findFirst: jest.fn(async (args: any = {}) => {
+      const where = args.where ?? {};
+      for (const t of tests.values()) {
+        if (
+          (!where.id || t.id === where.id) &&
+          (!where.userId || t.userId === where.userId)
+        ) {
+          if (args.include?.questions) {
+            const questions = [...testQuestions.values()].filter(
+              (q) => q.testId === t.id,
+            );
+            return { ...t, questions };
+          }
+          return t;
+        }
+      }
+      return null;
+    }),
+    update: jest.fn(async ({ where, data }: any) => {
+      const existing = tests.get(where.id);
+      if (!existing) throw new Error('Test not found');
+      const updated = { ...existing, ...data, updatedAt: new Date() };
+      tests.set(where.id, updated);
+      return updated;
     }),
     findMany: jest.fn(async (args: any = {}) => {
       let list = [...tests.values()];
@@ -320,6 +347,16 @@ export function buildPrismaStub() {
       if (args.where?.userId) list = list.filter((t) => t.userId === args.where.userId);
       const sum = list.reduce((acc, t) => acc + t.score, 0);
       return { _avg: { score: list.length === 0 ? null : sum / list.length } };
+    }),
+  };
+
+  const testQuestion = {
+    update: jest.fn(async ({ where, data }: any) => {
+      const existing = testQuestions.get(where.id);
+      if (!existing) throw new Error('TestQuestion not found');
+      const updated = { ...existing, ...data };
+      testQuestions.set(where.id, updated);
+      return updated;
     }),
   };
 
@@ -373,6 +410,7 @@ export function buildPrismaStub() {
     word,
     userWord,
     test,
+    testQuestion,
     refreshToken,
     _stores: {
       users,

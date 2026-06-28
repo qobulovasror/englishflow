@@ -103,44 +103,65 @@ describe('Tests (e2e)', () => {
   describe('POST /tests/submit', () => {
     let token: string;
     let wordIds: string[];
+    // Grading is server-authoritative: the client cannot submit free-form
+    // answers — it must first start a test (which commits the answer key) and
+    // submit against that testId. We keep the seeded answer key to compute the
+    // correct option for each returned question.
+    let translationByWordId: Map<string, string>;
 
     beforeAll(async () => {
       const u = await registerUser(app);
       token = u.accessToken;
-      wordIds = await seedWords(app, token, [
+      const pairs = [
         { word: 'one', translation: 'bir' },
         { word: 'two', translation: 'ikki' },
         { word: 'three', translation: 'uch' },
-      ]);
+        { word: 'four', translation: 'to’rt' },
+        { word: 'five', translation: 'besh' },
+      ];
+      wordIds = await seedWords(app, token, pairs);
+      translationByWordId = new Map(
+        wordIds.map((id, i) => [id, pairs[i].translation]),
+      );
     });
 
     it('grades correct answers and stores the test', async () => {
+      const start = await request(app.getHttpServer())
+        .post('/tests/start')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      const { testId, questions } = start.body.data;
+
+      // Answer every question correctly except the first → score = total - 1.
+      const answers = questions.map(
+        (q: { wordId: string }, i: number) => ({
+          wordId: q.wordId,
+          selectedAnswer:
+            i === 0 ? 'WRONG' : translationByWordId.get(q.wordId),
+        }),
+      );
+
       const res = await request(app.getHttpServer())
         .post('/tests/submit')
         .set('Authorization', `Bearer ${token}`)
-        .send({
-          answers: [
-            { wordId: wordIds[0], selectedAnswer: 'bir' }, // correct
-            { wordId: wordIds[1], selectedAnswer: 'ikki' }, // correct
-            { wordId: wordIds[2], selectedAnswer: 'WRONG' }, // wrong
-          ],
-        })
+        .send({ testId, answers })
         .expect(200);
 
+      const total = questions.length;
       expect(res.body.data).toMatchObject({
-        score: 2,
-        total: 3,
-        percentage: 67,
+        score: total - 1,
+        total,
+        percentage: Math.round(((total - 1) / total) * 100),
       });
       expect(res.body.data.testId).toEqual(expect.any(String));
-      expect(res.body.data.questions).toHaveLength(3);
+      expect(res.body.data.questions).toHaveLength(total);
     });
 
     it('rejects an empty answers array with 400', async () => {
       await request(app.getHttpServer())
         .post('/tests/submit')
         .set('Authorization', `Bearer ${token}`)
-        .send({ answers: [] })
+        .send({ testId: wordIds[0], answers: [] })
         .expect(400);
     });
 
@@ -148,7 +169,7 @@ describe('Tests (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/tests/submit')
         .set('Authorization', `Bearer ${token}`)
-        .send({ answers: [{ wordId: wordIds[0] }] })
+        .send({ testId: wordIds[0], answers: [{ wordId: wordIds[0] }] })
         .expect(400);
       expect(res.body.errors.join(' ')).toMatch(/selectedAnswer/);
     });
