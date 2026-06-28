@@ -65,6 +65,12 @@ export interface CreateWordPayload {
   example?: string
 }
 
+export interface UpdateWordPayload {
+  word?: string
+  translation?: string
+  example?: string
+}
+
 export interface PaginatedResponse<T> {
   items: T[]
   total: number

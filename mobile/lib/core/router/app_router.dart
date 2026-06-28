@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:englishflow/features/auth/providers/auth_provider.dart';
 import 'package:englishflow/features/auth/screens/login_screen.dart';
 import 'package:englishflow/features/auth/screens/register_screen.dart';
+import 'package:englishflow/features/words/models/word_model.dart';
 import 'package:englishflow/features/words/screens/words_screen.dart';
 import 'package:englishflow/features/words/screens/add_word_screen.dart';
+import 'package:englishflow/features/words/screens/edit_word_screen.dart';
 import 'package:englishflow/features/learning/screens/learn_screen.dart';
 import 'package:englishflow/features/learning/screens/flashcard_screen.dart';
 import 'package:englishflow/features/test/screens/test_screen.dart';
@@ -140,6 +142,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/add-word',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const AddWordScreen(),
+      ),
+      GoRoute(
+        path: '/edit-word',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) =>
+            EditWordScreen(word: state.extra as WordModel),
       ),
       GoRoute(
         path: '/library',

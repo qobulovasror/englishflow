@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { wordsService } from '@/services/words.service'
 import { extractErrorMessage } from '@/services/api'
-import type { Word, CreateWordPayload } from '@/types'
+import type { Word, WordStatus, CreateWordPayload, UpdateWordPayload } from '@/types'
 
 const PAGE_SIZE = 20
 
@@ -13,13 +13,19 @@ export const useWordsStore = defineStore('words', () => {
   const hasMore = ref(false)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  // Active status filter; null means "All" (no status sent to the API).
+  const status = ref<WordStatus | null>(null)
 
   async function fetchWords(opts: { reset?: boolean } = { reset: true }) {
     loading.value = true
     error.value = null
     try {
       const nextPage = opts.reset ? 1 : page.value + 1
-      const result = await wordsService.list({ page: nextPage, limit: PAGE_SIZE })
+      const result = await wordsService.list({
+        page: nextPage,
+        limit: PAGE_SIZE,
+        status: status.value ?? undefined,
+      })
       page.value = result.page
       total.value = result.total
       hasMore.value = result.hasMore
@@ -29,6 +35,12 @@ export const useWordsStore = defineStore('words', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  async function setStatus(next: WordStatus | null) {
+    status.value = next
+    page.value = 1
+    await fetchWords({ reset: true })
   }
 
   async function loadMore() {
@@ -51,6 +63,19 @@ export const useWordsStore = defineStore('words', () => {
     }
   }
 
+  async function updateWord(id: string, payload: UpdateWordPayload) {
+    error.value = null
+    try {
+      const updated = await wordsService.update(id, payload)
+      const index = words.value.findIndex((w) => w.id === id)
+      if (index !== -1) words.value[index] = updated
+      return updated
+    } catch (e) {
+      error.value = extractErrorMessage(e, 'Failed to update word')
+      throw e
+    }
+  }
+
   async function deleteWord(id: string) {
     try {
       await wordsService.remove(id)
@@ -69,9 +94,12 @@ export const useWordsStore = defineStore('words', () => {
     hasMore,
     loading,
     error,
+    status,
     fetchWords,
+    setStatus,
     loadMore,
     addWord,
+    updateWord,
     deleteWord,
   }
 })

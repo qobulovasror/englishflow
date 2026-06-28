@@ -137,6 +137,23 @@ export function buildPrismaStub() {
     }),
   };
 
+  // Applies the `{ createdById, userWords: { some: { userId, status } } }`
+  // where shape used by GET /words (optionally with a status filter).
+  function matchesWordWhere(w: StoredWord, where: any = {}): boolean {
+    if (where.createdById && w.createdById !== where.createdById) return false;
+    const some = where.userWords?.some;
+    if (some) {
+      const hit = [...userWords.values()].some(
+        (uw) =>
+          uw.wordId === w.id &&
+          (!some.userId || uw.userId === some.userId) &&
+          (!some.status || uw.status === some.status),
+      );
+      if (!hit) return false;
+    }
+    return true;
+  }
+
   const word = {
     create: jest.fn(async ({ data }: any) => {
       counters.word += 1;
@@ -154,11 +171,23 @@ export function buildPrismaStub() {
       return w;
     }),
     findUnique: jest.fn(async ({ where }: any) => words.get(where.id) ?? null),
-    findMany: jest.fn(async (args: any = {}) => {
-      let list = [...words.values()];
-      if (args.where?.createdById) {
-        list = list.filter((w) => w.createdById === args.where.createdById);
+    update: jest.fn(async ({ where, data }: any) => {
+      const existing = words.get(where.id);
+      if (!existing) {
+        const { Prisma } = await import('@prisma/client');
+        throw new Prisma.PrismaClientKnownRequestError('not found', {
+          code: 'P2025',
+          clientVersion: 'test',
+        });
       }
+      const updated = { ...existing, ...data, updatedAt: new Date() };
+      words.set(where.id, updated);
+      return updated;
+    }),
+    findMany: jest.fn(async (args: any = {}) => {
+      let list = [...words.values()].filter((w) =>
+        matchesWordWhere(w, args.where),
+      );
       if (args.orderBy?.createdAt === 'desc') {
         list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       } else if (args.orderBy?.createdAt === 'asc') {
@@ -169,11 +198,9 @@ export function buildPrismaStub() {
       return list;
     }),
     count: jest.fn(async (args: any = {}) => {
-      let list = [...words.values()];
-      if (args.where?.createdById) {
-        list = list.filter((w) => w.createdById === args.where.createdById);
-      }
-      return list.length;
+      return [...words.values()].filter((w) =>
+        matchesWordWhere(w, args.where),
+      ).length;
     }),
     delete: jest.fn(async ({ where }: any) => {
       const w = words.get(where.id);

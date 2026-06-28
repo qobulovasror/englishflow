@@ -902,6 +902,20 @@
               "default": 20,
               "type": "number"
             }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by the learning status of the word",
+            "schema": {
+              "enum": [
+                "NEW",
+                "LEARNING",
+                "LEARNED"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -976,6 +990,89 @@
       }
     },
     "/words/{id}": {
+      "patch": {
+        "operationId": "WordsController_update",
+        "summary": "Edit a word owned by the current user",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Word updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/WordResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Word belongs to another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Word not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Words"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      },
       "delete": {
         "operationId": "WordsController_remove",
         "summary": "Delete a word owned by the current user",
@@ -1792,6 +1889,23 @@
           "word",
           "translation"
         ]
+      },
+      "UpdateWordDto": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string",
+            "example": "serendipity"
+          },
+          "translation": {
+            "type": "string",
+            "example": "kutilmagan yoqimli kashfiyot"
+          },
+          "example": {
+            "type": "string",
+            "example": "Finding that book was pure serendipity."
+          }
+        }
       },
       "DailyWordResponseDto": {
         "type": "object",

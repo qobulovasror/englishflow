@@ -49,7 +49,42 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
           ),
         ],
       ),
-      body: _buildBody(state),
+      body: Column(
+        children: [
+          _buildFilterBar(state),
+          Expanded(child: _buildBody(state)),
+        ],
+      ),
+    );
+  }
+
+  static const _filters = <(String, String?)>[
+    ('All', null),
+    ('New', 'NEW'),
+    ('Learning', 'LEARNING'),
+    ('Learned', 'LEARNED'),
+  ];
+
+  Widget _buildFilterBar(state) {
+    return SizedBox(
+      height: 56,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        children: [
+          for (final (label, value) in _filters)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(label),
+                selected: state.statusFilter == value,
+                onSelected: (_) =>
+                    ref.read(wordsProvider.notifier).setStatusFilter(value),
+                selectedColor: AppColors.primaryLight,
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -157,9 +192,14 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                     ],
                   ],
                 ),
-                trailing: const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.textHint,
+                onTap: () => context.push('/edit-word', extra: word),
+                trailing: IconButton(
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.textHint,
+                  ),
+                  tooltip: 'Edit word',
+                  onPressed: () => context.push('/edit-word', extra: word),
                 ),
               ),
             ),

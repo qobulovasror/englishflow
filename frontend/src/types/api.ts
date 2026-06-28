@@ -239,7 +239,8 @@ export interface paths {
         delete: operations["WordsController_remove"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Edit a word owned by the current user */
+        patch: operations["WordsController_update"];
         trace?: never;
     };
     "/learning/daily": {
@@ -577,6 +578,14 @@ export interface components {
             word: string;
             /** @example kutilmagan yoqimli kashfiyot */
             translation: string;
+            /** @example Finding that book was pure serendipity. */
+            example?: string;
+        };
+        UpdateWordDto: {
+            /** @example serendipity */
+            word?: string;
+            /** @example kutilmagan yoqimli kashfiyot */
+            translation?: string;
             /** @example Finding that book was pure serendipity. */
             example?: string;
         };
@@ -1233,6 +1242,8 @@ export interface operations {
                 page?: number;
                 /** @description Items per page (capped at 100) */
                 limit?: number;
+                /** @description Filter by the learning status of the word */
+                status?: "NEW" | "LEARNING" | "LEARNED";
             };
             header?: never;
             path?: never;
@@ -1324,6 +1335,56 @@ export interface operations {
                         data?: unknown;
                         /** Format: date-time */
                         timestamp?: string;
+                    };
+                };
+            };
+            /** @description Word belongs to another user */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description Word not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    WordsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWordDto"];
+            };
+        };
+        responses: {
+            /** @description Word updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["WordResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
                     };
                 };
             };
