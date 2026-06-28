@@ -29,12 +29,17 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter';
 import { LoggingInterceptor } from '../src/common/interceptors/logging.interceptor';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor';
+import {
+  MailerService,
+  MailMessage,
+} from '../src/common/mailer/mailer.service';
 
 interface StoredUser {
   id: string;
   email: string;
   password: string;
   passwordChangedAt: Date;
+  emailVerifiedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,11 +53,23 @@ interface StoredRefreshToken {
   createdAt: Date;
 }
 
+interface StoredAuthToken {
+  id: string;
+  type: string;
+  tokenHash: string;
+  expiresAt: Date;
+  usedAt: Date | null;
+  userId: string;
+  createdAt: Date;
+}
+
 function buildPrismaStub() {
   const users = new Map<string, StoredUser>();
   const refreshTokens = new Map<string, StoredRefreshToken>(); // keyed by hash
+  const authTokens = new Map<string, StoredAuthToken>(); // keyed by hash
   let userCounter = 0;
   let tokenCounter = 0;
+  let authTokenCounter = 0;
 
   const user = {
     findUnique: jest.fn(async ({ where }: { where: { id?: string; email?: string } }) => {
@@ -81,6 +98,7 @@ function buildPrismaStub() {
           email: data.email,
           password: data.password,
           passwordChangedAt: now,
+          emailVerifiedAt: null,
           createdAt: now,
           updatedAt: now,
         };
@@ -101,6 +119,86 @@ function buildPrismaStub() {
         const updated = { ...existing, ...data, updatedAt: new Date() };
         users.set(where.id, updated);
         return updated;
+      },
+    ),
+    delete: jest.fn(async ({ where }: { where: { id: string } }) => {
+      const existing = users.get(where.id);
+      if (!existing) {
+        const { Prisma } = await import('@prisma/client');
+        throw new Prisma.PrismaClientKnownRequestError('not found', {
+          code: 'P2025',
+          clientVersion: 'test',
+        });
+      }
+      for (const [hash, t] of refreshTokens) {
+        if (t.userId === where.id) refreshTokens.delete(hash);
+      }
+      for (const [hash, t] of authTokens) {
+        if (t.userId === where.id) authTokens.delete(hash);
+      }
+      users.delete(where.id);
+      return existing;
+    }),
+  };
+
+  const authToken = {
+    create: jest.fn(
+      async ({
+        data,
+      }: {
+        data: {
+          userId: string;
+          type: string;
+          tokenHash: string;
+          expiresAt: Date;
+        };
+      }) => {
+        authTokenCounter += 1;
+        const row: StoredAuthToken = {
+          id: `at${authTokenCounter}`,
+          type: data.type,
+          tokenHash: data.tokenHash,
+          expiresAt: data.expiresAt,
+          usedAt: null,
+          userId: data.userId,
+          createdAt: new Date(),
+        };
+        authTokens.set(data.tokenHash, row);
+        return row;
+      },
+    ),
+    findUnique: jest.fn(
+      async ({ where }: { where: { tokenHash?: string; id?: string } }) => {
+        if (where.tokenHash) return authTokens.get(where.tokenHash) ?? null;
+        if (where.id) {
+          for (const t of authTokens.values()) if (t.id === where.id) return t;
+        }
+        return null;
+      },
+    ),
+    update: jest.fn(
+      async ({
+        where,
+        data,
+      }: {
+        where: { id?: string; tokenHash?: string };
+        data: Partial<StoredAuthToken>;
+      }) => {
+        for (const t of authTokens.values()) {
+          if (
+            (where.id && t.id === where.id) ||
+            (where.tokenHash && t.tokenHash === where.tokenHash)
+          ) {
+            const updated = { ...t, ...data };
+            authTokens.set(t.tokenHash, updated);
+            return updated;
+          }
+        }
+        const { Prisma } = await import('@prisma/client');
+        throw new Prisma.PrismaClientKnownRequestError('not found', {
+          code: 'P2025',
+          clientVersion: 'test',
+        });
       },
     ),
   };
@@ -162,21 +260,42 @@ function buildPrismaStub() {
     }),
   };
 
-  return {
+  const stub = {
     onModuleInit: async () => undefined,
     onModuleDestroy: async () => undefined,
     user,
     refreshToken,
-    // $transaction with an array form: just await each promise sequentially.
-    $transaction: jest.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
+    authToken,
+    // Supports both transaction shapes: the array form (await each op) and the
+    // interactive callback form used by AuthTokensService.consume.
+    $transaction: jest.fn(async (input: unknown) => {
+      if (typeof input === 'function') {
+        return (input as (tx: typeof stub) => Promise<unknown>)(stub);
+      }
+      return Promise.all(input as Promise<unknown>[]);
+    }),
     _users: users,
     _refreshTokens: refreshTokens,
+    _authTokens: authTokens,
   };
+  return stub;
 }
 
 describe('Auth (e2e)', () => {
   let app: INestApplication;
   let prismaStub: ReturnType<typeof buildPrismaStub>;
+  // Captures every email the app "sends" so tests can read the reset/verify
+  // token straight out of the link (the plaintext is never persisted).
+  const sentEmails: MailMessage[] = [];
+
+  /** Pulls the `?token=...` value out of the most recent matching email. */
+  function tokenFromLastEmail(predicate: (m: MailMessage) => boolean): string {
+    const msg = [...sentEmails].reverse().find(predicate);
+    if (!msg) throw new Error('no matching email captured');
+    const match = msg.text.match(/token=([^\s]+)/);
+    if (!match) throw new Error('no token in email');
+    return match[1];
+  }
 
   beforeAll(async () => {
     prismaStub = buildPrismaStub();
@@ -186,6 +305,12 @@ describe('Auth (e2e)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue(prismaStub)
+      .overrideProvider(MailerService)
+      .useValue({
+        send: jest.fn(async (msg: MailMessage) => {
+          sentEmails.push(msg);
+        }),
+      })
       .compile();
 
     app = moduleRef.createNestApplication({ bufferLogs: true });
@@ -486,6 +611,162 @@ describe('Auth (e2e)', () => {
         (t) => t.userId === userId,
       );
       expect(tokensForUser).toHaveLength(0);
+    });
+  });
+
+  // ── Phase 6: password reset + email verification ──────────────────────────
+  //
+  // One shared `recover@example.com` account is reused across these tests to
+  // stay under the per-route 10/min throttle on /auth/register. Its password
+  // evolves: PW1 (register) → PW2 (reset) → PW3 (reuse-token test).
+  describe('Account recovery', () => {
+    const RECOVER = 'recover@example.com';
+    const PW1 = 'OldPass123!';
+    const PW2 = 'BrandNewPass456!';
+    const PW3 = 'FirstNew123!';
+    let recoverUserId: string;
+    let preResetRefreshToken: string;
+
+    it('forgot-password returns 200 for an unknown email and sends no mail', async () => {
+      const before = sentEmails.length;
+      const res = await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email: 'ghost@example.com' })
+        .expect(200);
+
+      expect(res.body.data.message).toEqual(expect.any(String));
+      expect(sentEmails.length).toBe(before); // nothing emailed
+    });
+
+    it('resets the password end-to-end: new password works, old sessions die', async () => {
+      const reg = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email: RECOVER, password: PW1 })
+        .expect(201);
+      recoverUserId = reg.body.data.user.id;
+      preResetRefreshToken = reg.body.data.refreshToken;
+
+      await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email: RECOVER })
+        .expect(200);
+
+      const token = tokenFromLastEmail((m) => m.to === RECOVER);
+
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token, newPassword: PW2 })
+        .expect(200);
+
+      // Old password no longer works; the new one does.
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: RECOVER, password: PW1 })
+        .expect(401);
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: RECOVER, password: PW2 })
+        .expect(200);
+
+      // The pre-reset refresh token was invalidated.
+      await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .send({ refreshToken: preResetRefreshToken })
+        .expect(401);
+    });
+
+    it('rejects a reused reset token with 400', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email: RECOVER })
+        .expect(200);
+      const token = tokenFromLastEmail((m) => m.to === RECOVER);
+
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token, newPassword: PW3 })
+        .expect(200);
+
+      // Replaying the now-consumed token fails.
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token, newPassword: 'SecondNew123!' })
+        .expect(400);
+    });
+
+    it('rejects an unknown/garbage reset token with 400', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token: 'not-a-real-token', newPassword: 'Whatever123!' })
+        .expect(400);
+    });
+
+    it('requires auth to request a verification email', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/verify-email/request')
+        .expect(401);
+    });
+
+    it('verifies the email end-to-end', async () => {
+      // Authenticate as the recovered user (current password is PW3).
+      const login = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: RECOVER, password: PW3 })
+        .expect(200);
+      const accessToken = login.body.data.accessToken;
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email/request')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      const token = tokenFromLastEmail(
+        (m) => m.to === RECOVER && /verify-email/.test(m.text),
+      );
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .send({ token })
+        .expect(200);
+
+      expect(
+        prismaStub._users.get(recoverUserId)!.emailVerifiedAt,
+      ).toBeInstanceOf(Date);
+    });
+  });
+
+  // ── Phase 6: account deletion ─────────────────────────────────────────────
+  describe('DELETE /users/me', () => {
+    let accessToken: string;
+    let userId: string;
+
+    beforeAll(async () => {
+      const reg = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email: 'delete-me@example.com', password: 'StrongPass!1' })
+        .expect(201);
+      accessToken = reg.body.data.accessToken;
+      userId = reg.body.data.user.id;
+    });
+
+    it('rejects deletion with the wrong password (401) and keeps the account', async () => {
+      await request(app.getHttpServer())
+        .delete('/users/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ currentPassword: 'wrong-password' })
+        .expect(401);
+
+      expect(prismaStub._users.get(userId)).toBeDefined();
+    });
+
+    it('deletes the account with the correct password', async () => {
+      await request(app.getHttpServer())
+        .delete('/users/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ currentPassword: 'StrongPass!1' })
+        .expect(200);
+
+      expect(prismaStub._users.get(userId)).toBeUndefined();
     });
   });
 });

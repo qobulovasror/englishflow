@@ -1,5 +1,7 @@
 export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
 
+export type UserRole = 'USER' | 'ADMIN'
+
 export interface User {
   id: string
   email: string
@@ -8,6 +10,10 @@ export interface User {
   onboardedAt?: string | null
   // Daily review goal (1–200).
   dailyGoal: number
+  // Access role. Absent on older stored profiles → treated as 'USER'.
+  role?: UserRole
+  // Timestamp the email was verified; null/undefined when still unverified.
+  emailVerifiedAt?: string | null
   createdAt?: string
 }
 

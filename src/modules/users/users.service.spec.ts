@@ -16,6 +16,7 @@ type MockedPrisma = {
     create: jest.Mock;
     findUnique: jest.Mock;
     update: jest.Mock;
+    delete: jest.Mock;
   };
   refreshToken: {
     deleteMany: jest.Mock;
@@ -30,6 +31,8 @@ function buildUser(overrides: Partial<User> = {}): User {
     password: 'hashed',
     level: null,
     onboardedAt: null,
+    emailVerifiedAt: null,
+    dailyGoal: 20,
     createdAt: new Date(),
     updatedAt: new Date(),
     passwordChangedAt: new Date(),
@@ -48,6 +51,7 @@ describe('UsersService', () => {
         create: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
+        delete: jest.fn(),
       },
       refreshToken: {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
@@ -284,6 +288,43 @@ describe('UsersService', () => {
           newPassword: NEW,
         }),
       ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('deleteAccount', () => {
+    const CURRENT = 'CurrentPass123!';
+
+    async function userWithPassword(plain: string): Promise<User> {
+      return buildUser({ password: await bcrypt.hash(plain, 10) });
+    }
+
+    it('throws Unauthorized when the password is incorrect and does not delete', async () => {
+      prisma.user.findUnique.mockResolvedValue(await userWithPassword(CURRENT));
+
+      await expect(
+        service.deleteAccount('u1', 'wrong'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(prisma.user.delete).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFound when the user is missing', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.deleteAccount('u1', CURRENT),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(prisma.user.delete).not.toHaveBeenCalled();
+    });
+
+    it('deletes the account when the password is correct', async () => {
+      prisma.user.findUnique.mockResolvedValue(await userWithPassword(CURRENT));
+      prisma.user.delete.mockResolvedValue(buildUser());
+
+      await expect(service.deleteAccount('u1', CURRENT)).resolves.toBeUndefined();
+
+      expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: 'u1' } });
     });
   });
 });

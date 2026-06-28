@@ -25,4 +25,12 @@ export const usersService = {
   async changePassword(payload: ChangePasswordPayload): Promise<void> {
     await api.post('/users/me/password', payload)
   },
+
+  // Permanently deletes the current account. Requires the current password.
+  async deleteMe(currentPassword: string): Promise<{ message: string }> {
+    const { data } = await api.delete<{ message: string }>('/users/me', {
+      data: { currentPassword },
+    })
+    return data
+  },
 }

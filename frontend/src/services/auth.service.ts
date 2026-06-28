@@ -19,4 +19,31 @@ export const authService = {
   async logout(): Promise<void> {
     await api.post('/auth/logout', {})
   },
+
+  // Always resolves 200 with a neutral message — no account enumeration.
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const { data } = await api.post<{ message: string }>('/auth/forgot-password', { email })
+    return data
+  },
+
+  // Invalid/expired token → 400.
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const { data } = await api.post<{ message: string }>('/auth/reset-password', {
+      token,
+      newPassword,
+    })
+    return data
+  },
+
+  // Authenticated — sends a verification email to the current user.
+  async requestEmailVerification(): Promise<{ message: string }> {
+    const { data } = await api.post<{ message: string }>('/auth/verify-email/request', {})
+    return data
+  },
+
+  // Public — confirms the email with the token from the link.
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    const { data } = await api.post<{ message: string }>('/auth/verify-email', { token })
+    return data
+  },
 }

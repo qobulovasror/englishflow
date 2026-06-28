@@ -173,6 +173,21 @@ export const useAuthStore = defineStore('auth', () => {
     router.push('/login')
   }
 
+  async function deleteAccount(currentPassword: string) {
+    loading.value = true
+    error.value = null
+    try {
+      await usersService.deleteMe(currentPassword)
+      clearSession()
+      router.push('/login')
+    } catch (e) {
+      error.value = extractErrorMessage(e, 'Failed to delete account')
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     user,
     token,
@@ -182,6 +197,7 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     login,
     logout,
+    deleteAccount,
     fetchMe,
     updateProfile,
     changePassword,

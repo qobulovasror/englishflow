@@ -296,6 +296,85 @@ describe('DecksService', () => {
     });
   });
 
+  describe('adminCreate', () => {
+    it('creates a system deck (isSystem + isPublic, no owner)', async () => {
+      prisma.deck.create.mockResolvedValue(
+        makeDeck({ id: 'sys1', isSystem: true, isPublic: true, createdById: null }),
+      );
+
+      const result = await service.adminCreate({ title: 'Curated' } as never);
+
+      expect(prisma.deck.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: 'Curated',
+            isSystem: true,
+            isPublic: true,
+            createdById: null,
+          }),
+        }),
+      );
+      expect(result).toMatchObject({ id: 'sys1', wordCount: 0, isEnrolled: false });
+    });
+  });
+
+  describe('adminAddWords', () => {
+    it('adds words to any deck without an ownership check', async () => {
+      prisma.deck.findUnique.mockResolvedValue(
+        makeDeck({ isSystem: true, createdById: null }),
+      );
+      prisma.word.count.mockResolvedValue(2);
+
+      const result = await service.adminAddWords('d1', {
+        words: [
+          { word: 'a', translation: 'A' },
+          { word: 'b', translation: 'B' },
+        ],
+      } as never);
+
+      expect(prisma.word.createMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: [
+            expect.objectContaining({ word: 'a', deckId: 'd1', createdById: null }),
+            expect.objectContaining({ word: 'b', deckId: 'd1', createdById: null }),
+          ],
+        }),
+      );
+      expect(result).toMatchObject({ addedCount: 2, wordCount: 2 });
+    });
+
+    it('throws NotFound when the deck does not exist', async () => {
+      prisma.deck.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.adminAddWords('missing', { words: [{ word: 'a', translation: 'A' }] } as never),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.word.createMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('adminRemove', () => {
+    it('deletes any deck, including system decks', async () => {
+      prisma.deck.findUnique.mockResolvedValue(
+        makeDeck({ isSystem: true, createdById: null }),
+      );
+
+      const result = await service.adminRemove('d1');
+
+      expect(prisma.deck.delete).toHaveBeenCalledWith({ where: { id: 'd1' } });
+      expect(result.message).toBe('Deck deleted successfully');
+    });
+
+    it('throws NotFound when the deck does not exist', async () => {
+      prisma.deck.findUnique.mockResolvedValue(null);
+
+      await expect(service.adminRemove('missing')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.deck.delete).not.toHaveBeenCalled();
+    });
+  });
+
   describe('removeWord', () => {
     it('deletes a word that belongs to the owned deck', async () => {
       prisma.deck.findUnique.mockResolvedValue(

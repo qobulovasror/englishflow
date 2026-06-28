@@ -66,6 +66,19 @@ class UsersService {
     }
   }
 
+  /// Permanently deletes the authenticated user's account. Requires the
+  /// current password for confirmation.
+  Future<void> deleteMe(String currentPassword) async {
+    try {
+      await _dio.delete(
+        ApiEndpoints.me,
+        data: {'currentPassword': currentPassword},
+      );
+    } on DioException catch (e) {
+      throw _toApiException(e, 'Failed to delete account');
+    }
+  }
+
   ApiException _toApiException(DioException e, String fallback) {
     if (e.error is ApiException) return e.error as ApiException;
     return ApiException(message: fallback);

@@ -10,13 +10,15 @@
  * Anything beyond these is a deliberate gap; add tests + extend together.
  */
 import { randomUUID } from 'node:crypto';
-import { CefrLevel, ReviewRating, WordStatus } from '@prisma/client';
+import { AuthTokenType, CefrLevel, ReviewRating, Role, WordStatus } from '@prisma/client';
 
 export interface StoredUser {
   id: string;
   email: string;
   password: string;
+  role: Role;
   passwordChangedAt: Date;
+  emailVerifiedAt: Date | null;
   dailyGoal: number;
   createdAt: Date;
   updatedAt: Date;
@@ -99,6 +101,16 @@ export interface StoredReview {
   createdAt: Date;
 }
 
+export interface StoredAuthToken {
+  id: string;
+  type: AuthTokenType;
+  tokenHash: string;
+  expiresAt: Date;
+  usedAt: Date | null;
+  userId: string;
+  createdAt: Date;
+}
+
 interface Counters {
   user: number;
   word: number;
@@ -109,6 +121,7 @@ interface Counters {
   testQuestion: number;
   refreshToken: number;
   review: number;
+  authToken: number;
 }
 
 function uuid(_prefix: string, _n: number): string {
@@ -125,6 +138,7 @@ export function buildPrismaStub() {
   const testQuestions = new Map<string, StoredTestQuestion>();
   const refreshTokens = new Map<string, StoredRefreshToken>();
   const reviews = new Map<string, StoredReview>();
+  const authTokens = new Map<string, StoredAuthToken>(); // keyed by tokenHash
   const counters: Counters = {
     user: 0,
     word: 0,
@@ -135,6 +149,7 @@ export function buildPrismaStub() {
     testQuestion: 0,
     refreshToken: 0,
     review: 0,
+    authToken: 0,
   };
 
   async function unique(target: string[]): Promise<never> {
@@ -161,7 +176,9 @@ export function buildPrismaStub() {
         id: uuid('user', counters.user),
         email: data.email,
         password: data.password,
+        role: data.role ?? Role.USER,
         passwordChangedAt: now,
+        emailVerifiedAt: data.emailVerifiedAt ?? null,
         dailyGoal: data.dailyGoal ?? 20,
         createdAt: now,
         updatedAt: now,
@@ -175,6 +192,26 @@ export function buildPrismaStub() {
       const updated = { ...existing, ...data, updatedAt: new Date() };
       users.set(where.id, updated);
       return updated;
+    }),
+    delete: jest.fn(async ({ where }: any) => {
+      const existing = users.get(where.id);
+      if (!existing) {
+        const { Prisma } = await import('@prisma/client');
+        throw new Prisma.PrismaClientKnownRequestError('not found', {
+          code: 'P2025',
+          clientVersion: 'test',
+        });
+      }
+      // Mirror the schema's onDelete: Cascade relations.
+      for (const [k, t] of refreshTokens) if (t.userId === where.id) refreshTokens.delete(k);
+      for (const [k, t] of authTokens) if (t.userId === where.id) authTokens.delete(k);
+      for (const [k, uw] of userWords) if (uw.userId === where.id) userWords.delete(k);
+      for (const [k, r] of reviews) if (r.userId === where.id) reviews.delete(k);
+      for (const [k, e] of deckEnrollments) if (e.userId === where.id) deckEnrollments.delete(k);
+      for (const [k, w] of words) if (w.createdById === where.id) words.delete(k);
+      for (const [k, t] of tests) if (t.userId === where.id) tests.delete(k);
+      users.delete(where.id);
+      return existing;
     }),
   };
 
@@ -733,6 +770,47 @@ export function buildPrismaStub() {
     }),
   };
 
+  const authToken = {
+    create: jest.fn(async ({ data }: any) => {
+      counters.authToken += 1;
+      const t: StoredAuthToken = {
+        id: uuid('authToken', counters.authToken),
+        type: data.type,
+        tokenHash: data.tokenHash,
+        expiresAt: data.expiresAt,
+        usedAt: null,
+        userId: data.userId,
+        createdAt: new Date(),
+      };
+      authTokens.set(t.tokenHash, t);
+      return t;
+    }),
+    findUnique: jest.fn(async ({ where }: any) => {
+      if (where.tokenHash) return authTokens.get(where.tokenHash) ?? null;
+      if (where.id) {
+        for (const t of authTokens.values()) if (t.id === where.id) return t;
+      }
+      return null;
+    }),
+    update: jest.fn(async ({ where, data }: any) => {
+      for (const t of authTokens.values()) {
+        if (
+          (where.id && t.id === where.id) ||
+          (where.tokenHash && t.tokenHash === where.tokenHash)
+        ) {
+          const updated = { ...t, ...data };
+          authTokens.set(t.tokenHash, updated);
+          return updated;
+        }
+      }
+      const { Prisma } = await import('@prisma/client');
+      throw new Prisma.PrismaClientKnownRequestError('not found', {
+        code: 'P2025',
+        clientVersion: 'test',
+      });
+    }),
+  };
+
   const stub: Record<string, unknown> = {
     onModuleInit: async () => undefined,
     onModuleDestroy: async () => undefined,
@@ -745,6 +823,7 @@ export function buildPrismaStub() {
     testQuestion,
     refreshToken,
     review,
+    authToken,
     _stores: {
       users,
       words,
@@ -755,6 +834,7 @@ export function buildPrismaStub() {
       testQuestions,
       refreshTokens,
       reviews,
+      authTokens,
     },
   };
 

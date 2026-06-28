@@ -119,7 +119,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: () => context.go('/forgot-password'),
+                    child: Text(
+                      'Forgot password?',
+                      style: AppTextStyles.bodyBold.copyWith(
+                        color: AppColors.primary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 AppButton(
                   text: 'Sign In',
                   onPressed: _handleLogin,

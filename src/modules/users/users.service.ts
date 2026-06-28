@@ -166,4 +166,48 @@ export class UsersService {
       this.prisma.refreshToken.deleteMany({ where: { userId: id } }),
     ]);
   }
+
+  /**
+   * Sets a new password from the account-recovery flow (no current-password
+   * check — the caller already proved ownership by consuming a reset token).
+   * Reuses the same invalidation path as `changePassword`: bump
+   * `passwordChangedAt` and drop every refresh token so old sessions die.
+   */
+  async resetPassword(id: string, newPassword: string): Promise<void> {
+    await this.findByIdOrThrow(id);
+
+    const hashed = await bcrypt.hash(newPassword, UsersService.BCRYPT_ROUNDS);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id },
+        data: { password: hashed, passwordChangedAt: new Date() },
+      }),
+      this.prisma.refreshToken.deleteMany({ where: { userId: id } }),
+    ]);
+  }
+
+  /** Stamps the email as verified. Idempotent — re-verifying is harmless. */
+  async markEmailVerified(id: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: { emailVerifiedAt: new Date() },
+    });
+  }
+
+  /**
+   * Permanently deletes the account after re-verifying the current password.
+   * The schema's `onDelete: Cascade` relations remove all owned rows (words,
+   * progress, tokens, enrollments, reviews).
+   */
+  async deleteAccount(id: string, currentPassword: string): Promise<void> {
+    const user = await this.findByIdOrThrow(id);
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    await this.prisma.user.delete({ where: { id } });
+  }
 }

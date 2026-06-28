@@ -257,6 +257,75 @@ export class DecksService {
     return { message: 'Word removed from deck' };
   }
 
+  // --- Admin scope ---------------------------------------------------------
+  // These methods back the /admin/decks endpoints (RolesGuard + @Roles(ADMIN)).
+  // They deliberately skip the per-user ownership checks above: an admin curates
+  // shared/system content, so access is gated by role at the controller layer.
+
+  /** Creates a curated SYSTEM deck (no individual owner, visible to everyone). */
+  async adminCreate(dto: CreateDeckDto): Promise<DeckResponseDto> {
+    const deck = await this.prisma.deck.create({
+      data: {
+        title: dto.title,
+        description: dto.description,
+        level: dto.level,
+        isPublic: true,
+        isSystem: true,
+        createdById: null,
+      },
+    });
+
+    return this.toDto({ ...deck, _count: { words: 0 } }, false);
+  }
+
+  /** Adds words to ANY deck, bypassing the owner check. */
+  async adminAddWords(
+    id: string,
+    dto: AddDeckWordsDto,
+  ): Promise<AddDeckWordsResponseDto> {
+    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    if (!deck) {
+      throw new NotFoundException('Deck not found');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.word.createMany({
+        data: dto.words.map((w) => ({
+          word: w.word,
+          translation: w.translation,
+          example: w.example,
+          audioUrl: w.audioUrl,
+          deckId: id,
+          createdById: null,
+        })),
+      });
+    });
+
+    const wordCount = await this.prisma.word.count({ where: { deckId: id } });
+
+    return plainToInstance(
+      AddDeckWordsResponseDto,
+      {
+        message: `Added ${dto.words.length} words to "${deck.title}"`,
+        addedCount: dto.words.length,
+        wordCount,
+      },
+      { excludeExtraneousValues: true },
+    );
+  }
+
+  /** Deletes ANY deck. Cascades remove its words and enrollments. */
+  async adminRemove(id: string): Promise<{ message: string }> {
+    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    if (!deck) {
+      throw new NotFoundException('Deck not found');
+    }
+
+    await this.prisma.deck.delete({ where: { id } });
+
+    return { message: 'Deck deleted successfully' };
+  }
+
   // Loads a deck the user is allowed to mutate. The same 404/403 guard backs
   // every write path so the ownership rule lives in one place: system decks and
   // other users' decks are off-limits.

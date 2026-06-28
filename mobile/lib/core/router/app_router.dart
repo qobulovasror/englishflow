@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:englishflow/features/auth/providers/auth_provider.dart';
 import 'package:englishflow/features/auth/screens/login_screen.dart';
 import 'package:englishflow/features/auth/screens/register_screen.dart';
+import 'package:englishflow/features/auth/screens/forgot_password_screen.dart';
+import 'package:englishflow/features/auth/screens/reset_password_screen.dart';
 import 'package:englishflow/features/words/models/word_model.dart';
 import 'package:englishflow/features/words/screens/words_screen.dart';
 import 'package:englishflow/features/words/screens/add_word_screen.dart';
@@ -36,7 +38,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
+          state.matchedLocation == '/register' ||
+          state.matchedLocation == '/forgot-password' ||
+          state.matchedLocation == '/reset-password';
       final isSplash = state.matchedLocation == '/splash';
       final isOnboarding = state.matchedLocation == '/onboarding';
 
@@ -74,6 +78,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) => const ResetPasswordScreen(),
       ),
       GoRoute(
         path: '/onboarding',

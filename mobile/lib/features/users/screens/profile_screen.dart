@@ -26,10 +26,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _newPwController = TextEditingController();
   final _confirmPwController = TextEditingController();
   final _goalController = TextEditingController();
+  final _deleteFormKey = GlobalKey<FormState>();
+  final _deletePwController = TextEditingController();
 
   bool _emailSubmitting = false;
   bool _passwordSubmitting = false;
   bool _goalSubmitting = false;
+  bool _verificationSubmitting = false;
+  bool _deleteSubmitting = false;
   bool _initialFetchAttempted = false;
 
   @override
@@ -46,6 +50,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _newPwController.dispose();
     _confirmPwController.dispose();
     _goalController.dispose();
+    _deletePwController.dispose();
     super.dispose();
   }
 
@@ -179,6 +184,69 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
     if (confirmed == true) {
       await ref.read(authProvider.notifier).logout();
+    }
+  }
+
+  Future<void> _sendVerificationEmail() async {
+    setState(() => _verificationSubmitting = true);
+    try {
+      await ref.read(authProvider.notifier).requestEmailVerification();
+      if (!mounted) return;
+      SnackbarUtils.showSuccess(
+        context,
+        'Verification email sent. Check your inbox.',
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      SnackbarUtils.showError(context, e.message);
+    } catch (e) {
+      if (!mounted) return;
+      SnackbarUtils.showError(context, 'Failed to send verification email');
+    } finally {
+      if (mounted) setState(() => _verificationSubmitting = false);
+    }
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    if (!(_deleteFormKey.currentState?.validate() ?? false)) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete account?'),
+        content: const Text(
+          'This permanently deletes your account and all of your data. '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete account'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _deleteSubmitting = true);
+    try {
+      await ref
+          .read(authProvider.notifier)
+          .deleteAccount(_deletePwController.text);
+      // The session is now cleared; the router redirect sends us to /login.
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      SnackbarUtils.showError(context, e.message);
+    } catch (e) {
+      if (!mounted) return;
+      SnackbarUtils.showError(context, 'Failed to delete account');
+    } finally {
+      if (mounted) setState(() => _deleteSubmitting = false);
     }
   }
 
@@ -329,6 +397,54 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    _EmailVerificationSection(
+                      isVerified: user?.isEmailVerified ?? false,
+                      isSubmitting: _verificationSubmitting,
+                      onSend: _verificationSubmitting
+                          ? null
+                          : _sendVerificationEmail,
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: 'Delete account',
+                      child: Form(
+                        key: _deleteFormKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Permanently delete your account and all data. '
+                              'This cannot be undone.',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: AppColors.error),
+                            ),
+                            const SizedBox(height: 12),
+                            AppTextField(
+                              controller: _deletePwController,
+                              label: 'Current password',
+                              obscureText: true,
+                              prefixIcon: Icons.lock_outline,
+                              validator: (v) => Validators.required(
+                                v,
+                                'Current password',
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            AppButton(
+                              text: 'Delete account',
+                              backgroundColor: AppColors.error,
+                              isLoading: _deleteSubmitting,
+                              onPressed: _deleteSubmitting
+                                  ? null
+                                  : _confirmDeleteAccount,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -357,6 +473,65 @@ class _AccountCard extends StatelessWidget {
           _InfoRow(label: 'Email', value: user?.email ?? '—'),
           const Divider(height: 24),
           _InfoRow(label: 'Member since', value: memberSince),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmailVerificationSection extends StatelessWidget {
+  final bool isVerified;
+  final bool isSubmitting;
+  final VoidCallback? onSend;
+
+  const _EmailVerificationSection({
+    required this.isVerified,
+    required this.isSubmitting,
+    required this.onSend,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      title: 'Email verification',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isVerified
+                    ? Icons.verified_rounded
+                    : Icons.error_outline_rounded,
+                size: 20,
+                color: isVerified ? AppColors.success : AppColors.warning,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isVerified ? 'Verified' : 'Not verified',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isVerified ? AppColors.success : AppColors.warning,
+                    ),
+              ),
+            ],
+          ),
+          if (!isVerified) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Verify your email to secure your account.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+            AppButton(
+              text: 'Send verification email',
+              isLoading: isSubmitting,
+              onPressed: onSend,
+            ),
+          ],
         ],
       ),
     );

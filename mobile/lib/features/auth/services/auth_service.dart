@@ -57,6 +57,45 @@ class AuthService {
     }
   }
 
+  /// Requests a password-reset email. Always succeeds server-side (200) for
+  /// any input, so callers must show a neutral message (no account enumeration).
+  Future<void> forgotPassword(String email) async {
+    try {
+      await _dio.post(
+        ApiEndpoints.forgotPassword,
+        data: {'email': email},
+      );
+    } on DioException catch (e) {
+      throw _toApiException(e, 'Could not send the reset email');
+    }
+  }
+
+  /// Completes a password reset with a token from the email. A bad/expired
+  /// token returns 400 and is surfaced as an [ApiException].
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      await _dio.post(
+        ApiEndpoints.resetPassword,
+        data: {'token': token, 'newPassword': newPassword},
+      );
+    } on DioException catch (e) {
+      throw _toApiException(e, 'Could not reset your password');
+    }
+  }
+
+  /// Asks the server to (re)send the email-verification message to the
+  /// authenticated user.
+  Future<void> requestEmailVerification() async {
+    try {
+      await _dio.post(ApiEndpoints.verifyEmailRequest);
+    } on DioException catch (e) {
+      throw _toApiException(e, 'Could not send the verification email');
+    }
+  }
+
   Future<void> logout(String refreshToken) async {
     try {
       await _dio.post(

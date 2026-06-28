@@ -6,7 +6,9 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RefreshTokensService } from './refresh-tokens.service';
+import { AuthTokensService } from './auth-tokens.service';
 import { UsersModule } from '../users/users.module';
+import { MailerModule } from '../../common/mailer/mailer.module';
 import { JwtConfig } from '../../config/configuration';
 
 @Module({
@@ -24,9 +26,10 @@ import { JwtConfig } from '../../config/configuration';
       },
     }),
     UsersModule,
+    MailerModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RefreshTokensService],
+  providers: [AuthService, JwtStrategy, RefreshTokensService, AuthTokensService],
   exports: [AuthService, RefreshTokensService],
 })
 export class AuthModule {}
