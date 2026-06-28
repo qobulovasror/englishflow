@@ -76,4 +76,56 @@ void main() {
     expect(a, b);
     expect(a, isNot(c));
   });
+
+  group('role and email verification', () {
+    test('parses role and emailVerifiedAt', () {
+      final user = UserModel.fromJson({
+        'id': '1',
+        'email': 'a@b.c',
+        'role': 'ADMIN',
+        'emailVerifiedAt': '2026-06-01T10:00:00.000Z',
+      });
+      expect(user.role, 'ADMIN');
+      expect(user.emailVerifiedAt, isNotNull);
+      expect(user.isEmailVerified, isTrue);
+    });
+
+    test('isEmailVerified is false when emailVerifiedAt is null', () {
+      const user = UserModel(id: '1', email: 'a@b.c');
+      expect(user.isEmailVerified, isFalse);
+      expect(user.role, isNull);
+    });
+
+    test('needsOnboarding reflects onboardedAt', () {
+      const fresh = UserModel(id: '1', email: 'a@b.c');
+      expect(fresh.needsOnboarding, isTrue);
+
+      final onboarded = UserModel(
+        id: '1',
+        email: 'a@b.c',
+        onboardedAt: DateTime.utc(2026, 6, 1),
+      );
+      expect(onboarded.needsOnboarding, isFalse);
+    });
+
+    test('toJson includes role/dailyGoal/emailVerifiedAt only when set', () {
+      const minimal = UserModel(id: '1', email: 'a@b.c');
+      final json = minimal.toJson();
+      expect(json.containsKey('role'), isFalse);
+      expect(json.containsKey('dailyGoal'), isFalse);
+      expect(json.containsKey('emailVerifiedAt'), isFalse);
+
+      final full = UserModel(
+        id: '1',
+        email: 'a@b.c',
+        role: 'STUDENT',
+        dailyGoal: 20,
+        emailVerifiedAt: DateTime.utc(2026, 6, 1, 9),
+      );
+      final fullJson = full.toJson();
+      expect(fullJson['role'], 'STUDENT');
+      expect(fullJson['dailyGoal'], 20);
+      expect(fullJson['emailVerifiedAt'], '2026-06-01T09:00:00.000Z');
+    });
+  });
 }
