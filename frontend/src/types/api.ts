@@ -425,6 +425,11 @@ export interface components {
              */
             onboardedAt?: Record<string, never> | null;
             /**
+             * @description Daily review goal (1–200)
+             * @example 20
+             */
+            dailyGoal: number;
+            /**
              * Format: date-time
              * @example 2026-05-11T12:00:00.000Z
              */
@@ -507,10 +512,15 @@ export interface components {
              */
             email?: string;
             /**
-             * @description The current password — required when changing email to prevent account takeover via stolen access tokens. Ignored when no email change is requested.
+             * @description Daily review goal (1–200). Editable without the current password.
+             * @example 20
+             */
+            dailyGoal?: number;
+            /**
+             * @description The current password — required only when changing email, to prevent account takeover via stolen access tokens. Not needed for other updates (e.g. dailyGoal).
              * @example CurrentPass123!
              */
-            currentPassword: string;
+            currentPassword?: string;
         };
         OnboardingDto: {
             /**
@@ -834,9 +844,37 @@ export interface components {
             averageScore: number;
             recent: components["schemas"]["RecentTestDto"][];
         };
+        StreakStatsDto: {
+            /**
+             * @description Consecutive active days ending today (or yesterday if not yet reviewed today)
+             * @example 5
+             */
+            current: number;
+            /**
+             * @description Longest consecutive active-day run ever
+             * @example 12
+             */
+            longest: number;
+            /**
+             * @description Reviews completed today (UTC)
+             * @example 8
+             */
+            todayCount: number;
+            /**
+             * @description User's daily review goal
+             * @example 20
+             */
+            dailyGoal: number;
+            /**
+             * @description Whether todayCount has reached dailyGoal
+             * @example false
+             */
+            goalMet: boolean;
+        };
         ProgressResponseDto: {
             vocabulary: components["schemas"]["VocabularyStatsDto"];
             tests: components["schemas"]["TestStatsDto"];
+            streak: components["schemas"]["StreakStatsDto"];
         };
     };
     responses: never;

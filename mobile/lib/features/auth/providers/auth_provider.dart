@@ -157,6 +157,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Updates only the daily goal (no current password required). Persists and
+  /// syncs the refreshed user into state.
+  Future<UserModel> updateDailyGoal(int dailyGoal) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final updated = await _usersService.updateMe(
+        UpdateProfileRequest(dailyGoal: dailyGoal),
+      );
+      await _tokenStorage.saveUserData(jsonEncode(updated.toJson()));
+      state = state.copyWith(user: updated, isLoading: false);
+      return updated;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      rethrow;
+    }
+  }
+
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,

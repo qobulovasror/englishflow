@@ -1864,6 +1864,11 @@
             "nullable": true,
             "description": "Null until the user completes or skips onboarding"
           },
+          "dailyGoal": {
+            "type": "number",
+            "example": 20,
+            "description": "Daily review goal (1–200)"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string",
@@ -1878,6 +1883,7 @@
         "required": [
           "id",
           "email",
+          "dailyGoal",
           "createdAt",
           "updatedAt"
         ]
@@ -2010,15 +2016,19 @@
             "example": "new-email@example.com",
             "description": "New email address. Must be unique."
           },
+          "dailyGoal": {
+            "type": "number",
+            "example": 20,
+            "minimum": 1,
+            "maximum": 200,
+            "description": "Daily review goal (1–200). Editable without the current password."
+          },
           "currentPassword": {
             "type": "string",
             "example": "CurrentPass123!",
-            "description": "The current password — required when changing email to prevent account takeover via stolen access tokens. Ignored when no email change is requested."
+            "description": "The current password — required only when changing email, to prevent account takeover via stolen access tokens. Not needed for other updates (e.g. dailyGoal)."
           }
-        },
-        "required": [
-          "currentPassword"
-        ]
+        }
       },
       "OnboardingDto": {
         "type": "object",
@@ -2751,6 +2761,43 @@
           "recent"
         ]
       },
+      "StreakStatsDto": {
+        "type": "object",
+        "properties": {
+          "current": {
+            "type": "number",
+            "example": 5,
+            "description": "Consecutive active days ending today (or yesterday if not yet reviewed today)"
+          },
+          "longest": {
+            "type": "number",
+            "example": 12,
+            "description": "Longest consecutive active-day run ever"
+          },
+          "todayCount": {
+            "type": "number",
+            "example": 8,
+            "description": "Reviews completed today (UTC)"
+          },
+          "dailyGoal": {
+            "type": "number",
+            "example": 20,
+            "description": "User's daily review goal"
+          },
+          "goalMet": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether todayCount has reached dailyGoal"
+          }
+        },
+        "required": [
+          "current",
+          "longest",
+          "todayCount",
+          "dailyGoal",
+          "goalMet"
+        ]
+      },
       "ProgressResponseDto": {
         "type": "object",
         "properties": {
@@ -2759,11 +2806,15 @@
           },
           "tests": {
             "$ref": "#/components/schemas/TestStatsDto"
+          },
+          "streak": {
+            "$ref": "#/components/schemas/StreakStatsDto"
           }
         },
         "required": [
           "vocabulary",
-          "tests"
+          "tests",
+          "streak"
         ]
       }
     }

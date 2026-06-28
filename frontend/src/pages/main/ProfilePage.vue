@@ -89,6 +89,48 @@ function handleEmailReset() {
   emailSuccess.value = null
 }
 
+// ── Daily goal ──────────────────────────────────────────────────────────────
+const goalDraft = ref('')
+const goalError = ref<string | null>(null)
+const goalServerError = ref<string | null>(null)
+const goalSuccess = ref<string | null>(null)
+const goalSubmitting = ref(false)
+
+watch(
+  user,
+  (next) => {
+    goalDraft.value = String(next?.dailyGoal ?? 20)
+  },
+  { immediate: true },
+)
+
+const isGoalDirty = computed(
+  () => goalDraft.value.trim() !== '' && Number(goalDraft.value) !== user.value?.dailyGoal,
+)
+
+async function handleGoalSubmit() {
+  goalError.value = null
+  goalServerError.value = null
+  goalSuccess.value = null
+
+  const value = Number(goalDraft.value)
+  if (!Number.isInteger(value) || value < 1 || value > 200) {
+    goalError.value = 'Daily goal must be a whole number between 1 and 200'
+    return
+  }
+  if (value === user.value?.dailyGoal) return
+
+  goalSubmitting.value = true
+  try {
+    await authStore.updateProfile({ dailyGoal: value })
+    goalSuccess.value = 'Daily goal updated'
+  } catch (e) {
+    goalServerError.value = extractErrorMessage(e, 'Failed to update daily goal')
+  } finally {
+    goalSubmitting.value = false
+  }
+}
+
 // ── Password change ─────────────────────────────────────────────────────────
 const pwForm = reactive({
   currentPassword: '',
@@ -247,6 +289,43 @@ async function handlePasswordSubmit() {
               Cancel
             </AppButton>
           </div>
+        </form>
+      </AppCard>
+
+      <AppCard title="Daily goal" class="mb-6">
+        <form @submit.prevent="handleGoalSubmit" class="space-y-4">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            How many words you aim to review each day. Used for your streak and
+            dashboard progress.
+          </p>
+
+          <AppInput
+            v-model="goalDraft"
+            label="Reviews per day"
+            type="number"
+            placeholder="20"
+            :error="goalError ?? ''"
+            required
+          />
+
+          <p v-if="goalServerError" class="text-sm text-red-500">
+            {{ goalServerError }}
+          </p>
+
+          <p
+            v-if="goalSuccess"
+            class="text-sm text-green-600 dark:text-green-400"
+          >
+            {{ goalSuccess }}
+          </p>
+
+          <AppButton
+            type="submit"
+            :loading="goalSubmitting"
+            :disabled="!isGoalDirty || goalSubmitting"
+          >
+            Save goal
+          </AppButton>
         </form>
       </AppCard>
 

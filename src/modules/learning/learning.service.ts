@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { WordStatus } from '@prisma/client';
+import { ReviewRating, WordStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ReviewWordDto } from './dto/review-word.dto';
 import {
@@ -89,18 +89,34 @@ export class LearningService {
       new Date(),
     );
 
-    const updated = await this.prisma.userWord.update({
-      where: { id: userWord.id },
-      data: {
-        repetitionCount: next.repetitionCount,
-        easeFactor: next.easeFactor,
-        interval: next.interval,
-        lapses: next.lapses,
-        nextReviewAt: next.nextReviewAt,
-        status: this.statusFor(next.interval),
-        lastReviewedAt: new Date(),
-      },
-      include: { word: true },
+    // Update the card's SM-2 state and append a row to the review log in one
+    // atomic step — the daily count and streaks read from the log, so it must
+    // never drift from the card state.
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.userWord.update({
+        where: { id: userWord.id },
+        data: {
+          repetitionCount: next.repetitionCount,
+          easeFactor: next.easeFactor,
+          interval: next.interval,
+          lapses: next.lapses,
+          nextReviewAt: next.nextReviewAt,
+          status: this.statusFor(next.interval),
+          lastReviewedAt: new Date(),
+        },
+        include: { word: true },
+      });
+
+      await tx.review.create({
+        data: {
+          userId,
+          wordId: userWord.wordId,
+          // Rating (SM-2 util enum) is value-identical to ReviewRating (Prisma).
+          rating: dto.rating as unknown as ReviewRating,
+        },
+      });
+
+      return result;
     });
 
     return plainToInstance(

@@ -4,6 +4,8 @@ class UserModel extends Equatable {
   final String id;
   final String email;
   final String? level;
+  // Number of cards the user aims to review per day.
+  final int? dailyGoal;
   // Null until the user finishes or skips onboarding.
   final DateTime? onboardedAt;
   final DateTime? createdAt;
@@ -12,6 +14,7 @@ class UserModel extends Equatable {
     required this.id,
     required this.email,
     this.level,
+    this.dailyGoal,
     this.onboardedAt,
     this.createdAt,
   });
@@ -25,6 +28,7 @@ class UserModel extends Equatable {
       id: json['id']?.toString() ?? '',
       email: json['email'] ?? '',
       level: json['level']?.toString(),
+      dailyGoal: (json['dailyGoal'] as num?)?.toInt(),
       onboardedAt: json['onboardedAt'] != null
           ? DateTime.tryParse(json['onboardedAt'].toString())
           : null,
@@ -39,11 +43,13 @@ class UserModel extends Equatable {
       'id': id,
       'email': email,
       if (level != null) 'level': level,
+      if (dailyGoal != null) 'dailyGoal': dailyGoal,
       if (onboardedAt != null) 'onboardedAt': onboardedAt!.toIso8601String(),
       if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
     };
   }
 
   @override
-  List<Object?> get props => [id, email, level, onboardedAt, createdAt];
+  List<Object?> get props =>
+      [id, email, level, dailyGoal, onboardedAt, createdAt];
 }

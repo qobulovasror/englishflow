@@ -11,6 +11,9 @@ type MockedPrisma = {
     findFirst: jest.Mock;
     update: jest.Mock;
   };
+  review: {
+    create: jest.Mock;
+  };
   $transaction: jest.Mock;
 };
 
@@ -59,9 +62,17 @@ describe('LearningService', () => {
         findFirst: jest.fn(),
         update: jest.fn(),
       },
-      // The service batches the due + new queries in a $transaction; resolve it
-      // as Promise.all over the queued query promises.
-      $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
+      review: {
+        create: jest.fn().mockResolvedValue({ id: 'r1' }),
+      },
+      // Supports both forms: the array form (due + new daily queries) resolves
+      // via Promise.all; the interactive form (reviewWord) is called with the
+      // stub itself as the transaction client.
+      $transaction: jest.fn((input: unknown) =>
+        typeof input === 'function'
+          ? (input as (tx: MockedPrisma) => Promise<unknown>)(prisma)
+          : Promise.all(input as Promise<unknown>[]),
+      ),
     };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -209,6 +220,23 @@ describe('LearningService', () => {
       const ts = (data.lastReviewedAt as Date).getTime();
       expect(ts).toBeGreaterThanOrEqual(before);
       expect(ts).toBeLessThanOrEqual(after);
+    });
+
+    it('appends a review log row in the same transaction', async () => {
+      prisma.userWord.findFirst.mockResolvedValue(
+        makeUserWord({ wordId: 'w1' }),
+      );
+      captureUpdate();
+
+      await service.reviewWord({ userWordId: 'uw1', rating: Rating.GOOD }, 'u1');
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.$transaction.mock.calls[0][0]).toEqual(
+        expect.any(Function),
+      );
+      expect(prisma.review.create).toHaveBeenCalledWith({
+        data: { userId: 'u1', wordId: 'w1', rating: Rating.GOOD },
+      });
     });
 
     it('returns a ReviewResultDto with only the documented fields', async () => {

@@ -19,14 +19,17 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _emailFormKey = GlobalKey<FormState>();
   final _passwordFormKey = GlobalKey<FormState>();
+  final _goalFormKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _emailCurrentPwController = TextEditingController();
   final _currentPwController = TextEditingController();
   final _newPwController = TextEditingController();
   final _confirmPwController = TextEditingController();
+  final _goalController = TextEditingController();
 
   bool _emailSubmitting = false;
   bool _passwordSubmitting = false;
+  bool _goalSubmitting = false;
   bool _initialFetchAttempted = false;
 
   @override
@@ -42,6 +45,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _currentPwController.dispose();
     _newPwController.dispose();
     _confirmPwController.dispose();
+    _goalController.dispose();
     super.dispose();
   }
 
@@ -49,6 +53,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final cached = ref.read(authProvider).user;
     if (cached != null) {
       _emailController.text = cached.email;
+      _goalController.text = (cached.dailyGoal ?? 20).toString();
     }
     try {
       final fresh = await ref.read(authProvider.notifier).fetchMe();
@@ -56,6 +61,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (_emailController.text != fresh.email) {
         _emailController.text = fresh.email;
       }
+      _goalController.text = (fresh.dailyGoal ?? 20).toString();
     } catch (_) {
       // SnackbarUtils intentionally not shown for the silent load;
       // the cached user is still displayed.
@@ -119,6 +125,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  String? _validateGoal(String? v) {
+    if (v == null || v.trim().isEmpty) return 'Daily goal is required';
+    final n = int.tryParse(v.trim());
+    if (n == null) return 'Enter a whole number';
+    if (n < 1 || n > 200) return 'Goal must be between 1 and 200';
+    return null;
+  }
+
+  Future<void> _submitGoal() async {
+    if (!(_goalFormKey.currentState?.validate() ?? false)) return;
+    final goal = int.parse(_goalController.text.trim());
+    final current = ref.read(authProvider).user?.dailyGoal;
+    if (goal == current) {
+      SnackbarUtils.showInfo(context, 'Daily goal is unchanged');
+      return;
+    }
+
+    setState(() => _goalSubmitting = true);
+    try {
+      await ref.read(authProvider.notifier).updateDailyGoal(goal);
+      if (!mounted) return;
+      SnackbarUtils.showSuccess(context, 'Daily goal updated');
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      SnackbarUtils.showError(context, e.message);
+    } catch (e) {
+      if (!mounted) return;
+      SnackbarUtils.showError(context, 'Failed to update daily goal');
+    } finally {
+      if (mounted) setState(() => _goalSubmitting = false);
+    }
+  }
+
   Future<void> _confirmLogout() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -169,6 +208,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _AccountCard(user: user),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: 'Daily goal',
+                      child: Form(
+                        key: _goalFormKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Cards to review per day (1–200).',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: Colors.grey[600]),
+                            ),
+                            const SizedBox(height: 12),
+                            AppTextField(
+                              controller: _goalController,
+                              label: 'Daily goal',
+                              keyboardType: TextInputType.number,
+                              prefixIcon: Icons.flag_outlined,
+                              validator: _validateGoal,
+                            ),
+                            const SizedBox(height: 16),
+                            AppButton(
+                              text: 'Save goal',
+                              isLoading: _goalSubmitting,
+                              onPressed: _goalSubmitting ? null : _submitGoal,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     _SectionCard(
                       title: 'Update email',

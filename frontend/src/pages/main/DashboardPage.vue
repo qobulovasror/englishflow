@@ -1,11 +1,25 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { progressService } from '@/services/progress.service'
 import type { ProgressData } from '@/types'
 import AppCard from '@/components/AppCard.vue'
 
 const progress = ref<ProgressData | null>(null)
 const loading = ref(true)
+
+// ── Daily goal ring geometry ─────────────────────────────────────────────────
+const RING_RADIUS = 32
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
+
+const goalPercentage = computed(() => {
+  const streak = progress.value?.streak
+  if (!streak || streak.dailyGoal <= 0) return 0
+  return Math.min(100, Math.round((streak.todayCount / streak.dailyGoal) * 100))
+})
+
+const ringDashOffset = computed(
+  () => RING_CIRCUMFERENCE * (1 - goalPercentage.value / 100),
+)
 
 onMounted(async () => {
   try {
@@ -25,6 +39,93 @@ onMounted(async () => {
     <div v-if="loading" class="text-gray-500 dark:text-gray-400">Loading...</div>
 
     <div v-else-if="progress" class="space-y-6">
+      <!-- Streak + daily goal -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <AppCard>
+          <div class="flex items-center gap-4">
+            <div
+              class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full text-3xl"
+              :class="
+                progress.streak.current > 0
+                  ? 'bg-orange-100 dark:bg-orange-900/30'
+                  : 'bg-gray-100 dark:bg-gray-700/50 grayscale'
+              "
+            >
+              🔥
+            </div>
+            <div>
+              <p class="text-3xl font-bold text-orange-500">
+                {{ progress.streak.current }}
+                <span class="text-base font-medium text-gray-500 dark:text-gray-400">
+                  day{{ progress.streak.current === 1 ? '' : 's' }}
+                </span>
+              </p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Current streak · longest {{ progress.streak.longest }}
+              </p>
+            </div>
+          </div>
+        </AppCard>
+
+        <AppCard>
+          <div class="flex items-center gap-4">
+            <div class="relative flex-shrink-0">
+              <svg width="80" height="80" viewBox="0 0 80 80" class="-rotate-90">
+                <circle
+                  cx="40"
+                  cy="40"
+                  :r="RING_RADIUS"
+                  fill="none"
+                  stroke-width="8"
+                  class="stroke-gray-200 dark:stroke-gray-700"
+                />
+                <circle
+                  cx="40"
+                  cy="40"
+                  :r="RING_RADIUS"
+                  fill="none"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                  :stroke-dasharray="RING_CIRCUMFERENCE"
+                  :stroke-dashoffset="ringDashOffset"
+                  class="transition-all duration-700"
+                  :class="progress.streak.goalMet ? 'stroke-green-500' : 'stroke-primary-600'"
+                />
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span
+                  v-if="progress.streak.goalMet"
+                  class="text-2xl text-green-500"
+                >
+                  ✓
+                </span>
+                <span
+                  v-else
+                  class="text-sm font-bold text-gray-700 dark:text-gray-200"
+                >
+                  {{ goalPercentage }}%
+                </span>
+              </div>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Daily goal</p>
+              <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                {{ progress.streak.todayCount }}<span class="text-base font-medium text-gray-400">/{{ progress.streak.dailyGoal }}</span>
+              </p>
+              <p
+                v-if="progress.streak.goalMet"
+                class="text-sm font-medium text-green-600 dark:text-green-400"
+              >
+                Goal met today!
+              </p>
+              <p v-else class="text-sm text-gray-500 dark:text-gray-400">
+                {{ Math.max(0, progress.streak.dailyGoal - progress.streak.todayCount) }} reviews to go
+              </p>
+            </div>
+          </div>
+        </AppCard>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <AppCard>
           <div class="text-center">

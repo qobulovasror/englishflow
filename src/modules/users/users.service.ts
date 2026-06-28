@@ -49,30 +49,57 @@ export class UsersService {
   }
 
   async update(id: string, dto: UpdateUserDto) {
+    const wantsEmailChange = dto.email !== undefined;
+    const wantsGoalChange = dto.dailyGoal !== undefined;
+
     // Nothing to change — return the current row unmodified rather than
     // doing a no-op UPDATE.
-    if (dto.email === undefined) {
+    if (!wantsEmailChange && !wantsGoalChange) {
       return this.findByIdOrThrow(id);
     }
 
     const user = await this.findByIdOrThrow(id);
-    const isPasswordValid = await bcrypt.compare(dto.currentPassword, user.password);
+
+    // dailyGoal is not security-sensitive, so it can be changed without the
+    // current password. Email change is the only field that demands it.
+    if (!wantsEmailChange) {
+      return this.prisma.user.update({
+        where: { id },
+        data: { dailyGoal: dto.dailyGoal },
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      dto.currentPassword ?? '',
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Current password is incorrect');
     }
 
+    // Email unchanged: only a dailyGoal update (if any) remains to apply.
     if (dto.email === user.email) {
+      if (wantsGoalChange) {
+        return this.prisma.user.update({
+          where: { id },
+          data: { dailyGoal: dto.dailyGoal },
+        });
+      }
       return user;
     }
 
     try {
       // Email change is a security-sensitive event (account recovery uses email).
       // Bump `passwordChangedAt` and revoke refresh tokens so old sessions can't
-      // continue under the new identity.
+      // continue under the new identity. Fold in any dailyGoal change too.
       const [updated] = await this.prisma.$transaction([
         this.prisma.user.update({
           where: { id },
-          data: { email: dto.email, passwordChangedAt: new Date() },
+          data: {
+            email: dto.email,
+            passwordChangedAt: new Date(),
+            ...(wantsGoalChange ? { dailyGoal: dto.dailyGoal } : {}),
+          },
         }),
         this.prisma.refreshToken.deleteMany({ where: { userId: id } }),
       ]);

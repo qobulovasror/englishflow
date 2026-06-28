@@ -20,6 +20,9 @@ model User {
   // Null until the user finishes (or skips) onboarding. Clients use this to
   // decide whether to show the onboarding flow.
   onboardedAt       DateTime?
+  // How many reviews the user aims to complete each day; drives the streak's
+  // goalMet flag. Editable via PATCH /users/me without re-entering the password.
+  dailyGoal         Int      @default(20)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -29,8 +32,33 @@ model User {
   refreshTokens RefreshToken[]
   decks         Deck[]           @relation("UserDecks")
   enrollments   DeckEnrollment[]
+  reviews       Review[]
 
   @@map("users")
+}
+
+enum ReviewRating {
+  AGAIN
+  HARD
+  GOOD
+  EASY
+}
+
+// Append-only log of every grading action. Distinct from UserWord (the current
+// SM-2 state): this is the history that powers daily counts and streaks.
+model Review {
+  id        String       @id @default(uuid())
+  rating    ReviewRating
+  createdAt DateTime     @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  wordId String
+  word   Word   @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("reviews")
 }
 
 model RefreshToken {
@@ -69,6 +97,7 @@ model Word {
 
   userWords     UserWord[]
   testQuestions TestQuestion[]
+  reviews       Review[]
 
   @@index([createdById])
   @@index([deckId])

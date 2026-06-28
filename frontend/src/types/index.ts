@@ -6,6 +6,8 @@ export interface User {
   level?: CefrLevel | null
   // Null until the user finishes or skips onboarding.
   onboardedAt?: string | null
+  // Daily review goal (1–200).
+  dailyGoal: number
   createdAt?: string
 }
 
@@ -51,8 +53,10 @@ export interface OnboardingPayload {
 
 export interface UpdateProfilePayload {
   email?: string
-  // Required by the backend whenever `email` is being changed.
-  currentPassword: string
+  // Daily review goal (1–200). Editable without the current password.
+  dailyGoal?: number
+  // Required by the backend only when `email` is being changed.
+  currentPassword?: string
 }
 
 export interface ChangePasswordPayload {
@@ -173,5 +177,12 @@ export interface ProgressData {
       totalQuestions: number
       createdAt: string
     }[]
+  }
+  streak: {
+    current: number
+    longest: number
+    todayCount: number
+    dailyGoal: number
+    goalMet: boolean
   }
 }

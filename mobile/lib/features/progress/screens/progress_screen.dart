@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:englishflow/core/theme/app_colors.dart';
 import 'package:englishflow/core/theme/app_text_styles.dart';
+import 'package:englishflow/features/progress/models/progress_model.dart';
 import 'package:englishflow/features/progress/providers/progress_provider.dart';
 import 'package:englishflow/shared/widgets/loading_widget.dart';
 import 'package:englishflow/shared/widgets/error_widget.dart';
@@ -82,6 +83,19 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                 circularStrokeCap: CircularStrokeCap.round,
                 animation: true,
                 animationDuration: 1000,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Streak + daily goal
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: _StreakCard(streak: stats.streak)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _DailyGoalCard(streak: stats.streak)),
+                ],
               ),
             ),
             const SizedBox(height: 32),
@@ -172,6 +186,94 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _StreakCard extends StatelessWidget {
+  final StreakInfo streak;
+
+  const _StreakCard({required this.streak});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.orange.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.orange.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text('🔥', style: TextStyle(fontSize: 26)),
+              const SizedBox(width: 8),
+              Text(
+                '${streak.current}',
+                style: AppTextStyles.heading1.copyWith(color: AppColors.orange),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text('day streak', style: AppTextStyles.caption),
+          const SizedBox(height: 4),
+          Text('Longest: ${streak.longest}', style: AppTextStyles.label),
+        ],
+      ),
+    );
+  }
+}
+
+class _DailyGoalCard extends StatelessWidget {
+  final StreakInfo streak;
+
+  const _DailyGoalCard({required this.streak});
+
+  @override
+  Widget build(BuildContext context) {
+    final met = streak.goalMet;
+    final color = met ? AppColors.success : AppColors.primary;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircularPercentIndicator(
+            radius: 34,
+            lineWidth: 7,
+            percent: streak.goalProgress,
+            center: met
+                ? const Icon(Icons.check_rounded,
+                    color: AppColors.success, size: 26)
+                : Text(
+                    '${streak.todayCount}/${streak.dailyGoal}',
+                    style: AppTextStyles.caption.copyWith(color: color),
+                  ),
+            progressColor: color,
+            backgroundColor: AppColors.border,
+            circularStrokeCap: CircularStrokeCap.round,
+            animation: true,
+            animationDuration: 800,
+          ),
+          const SizedBox(height: 12),
+          Text('daily goal', style: AppTextStyles.caption),
+          const SizedBox(height: 4),
+          Text(
+            met ? 'Goal met! 🎉' : '${streak.todayCount} / ${streak.dailyGoal} today',
+            style: AppTextStyles.label,
+          ),
+        ],
       ),
     );
   }

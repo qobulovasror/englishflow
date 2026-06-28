@@ -10,13 +10,14 @@
  * Anything beyond these is a deliberate gap; add tests + extend together.
  */
 import { randomUUID } from 'node:crypto';
-import { CefrLevel, WordStatus } from '@prisma/client';
+import { CefrLevel, ReviewRating, WordStatus } from '@prisma/client';
 
 export interface StoredUser {
   id: string;
   email: string;
   password: string;
   passwordChangedAt: Date;
+  dailyGoal: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -88,6 +89,14 @@ export interface StoredRefreshToken {
   createdAt: Date;
 }
 
+export interface StoredReview {
+  id: string;
+  userId: string;
+  wordId: string;
+  rating: ReviewRating;
+  createdAt: Date;
+}
+
 interface Counters {
   user: number;
   word: number;
@@ -97,6 +106,7 @@ interface Counters {
   test: number;
   testQuestion: number;
   refreshToken: number;
+  review: number;
 }
 
 function uuid(_prefix: string, _n: number): string {
@@ -112,6 +122,7 @@ export function buildPrismaStub() {
   const tests = new Map<string, StoredTest>();
   const testQuestions = new Map<string, StoredTestQuestion>();
   const refreshTokens = new Map<string, StoredRefreshToken>();
+  const reviews = new Map<string, StoredReview>();
   const counters: Counters = {
     user: 0,
     word: 0,
@@ -121,6 +132,7 @@ export function buildPrismaStub() {
     test: 0,
     testQuestion: 0,
     refreshToken: 0,
+    review: 0,
   };
 
   async function unique(target: string[]): Promise<never> {
@@ -148,6 +160,7 @@ export function buildPrismaStub() {
         email: data.email,
         password: data.password,
         passwordChangedAt: now,
+        dailyGoal: data.dailyGoal ?? 20,
         createdAt: now,
         updatedAt: now,
       };
@@ -640,6 +653,40 @@ export function buildPrismaStub() {
     }),
   };
 
+  const review = {
+    create: jest.fn(async ({ data }: any) => {
+      counters.review += 1;
+      const r: StoredReview = {
+        id: uuid('review', counters.review),
+        userId: data.userId,
+        wordId: data.wordId,
+        rating: data.rating,
+        createdAt: data.createdAt ?? new Date(),
+      };
+      reviews.set(r.id, r);
+      return r;
+    }),
+    findMany: jest.fn(async (args: any = {}) => {
+      const where = args.where ?? {};
+      let list = [...reviews.values()];
+      if (where.userId) list = list.filter((r) => r.userId === where.userId);
+      if (where.createdAt?.gte) {
+        list = list.filter((r) => r.createdAt >= where.createdAt.gte);
+      }
+      if (args.select?.createdAt) return list.map((r) => ({ createdAt: r.createdAt }));
+      return list;
+    }),
+    count: jest.fn(async (args: any = {}) => {
+      const where = args.where ?? {};
+      let list = [...reviews.values()];
+      if (where.userId) list = list.filter((r) => r.userId === where.userId);
+      if (where.createdAt?.gte) {
+        list = list.filter((r) => r.createdAt >= where.createdAt.gte);
+      }
+      return list.length;
+    }),
+  };
+
   const stub: Record<string, unknown> = {
     onModuleInit: async () => undefined,
     onModuleDestroy: async () => undefined,
@@ -651,6 +698,7 @@ export function buildPrismaStub() {
     test,
     testQuestion,
     refreshToken,
+    review,
     _stores: {
       users,
       words,
@@ -660,6 +708,7 @@ export function buildPrismaStub() {
       tests,
       testQuestions,
       refreshTokens,
+      reviews,
     },
   };
 

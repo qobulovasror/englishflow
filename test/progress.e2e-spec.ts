@@ -47,7 +47,67 @@ describe('Progress (e2e)', () => {
         averageScore: 0,
         recent: [],
       },
+      streak: {
+        current: 0,
+        longest: 0,
+        todayCount: 0,
+        dailyGoal: 20,
+        goalMet: false,
+      },
     });
+  });
+
+  it('reflects reviews in the streak section and respects dailyGoal', async () => {
+    const { accessToken, userId } = await registerUser(app);
+
+    // Lower the goal so a couple of reviews meet it.
+    await request(app.getHttpServer())
+      .patch('/users/me')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ dailyGoal: 2 })
+      .expect(200);
+
+    // Seed 2 reviews dated today directly via the stub store.
+    const now = new Date();
+    prisma._stores.reviews.set('rev-1', {
+      id: 'rev-1',
+      userId,
+      wordId: 'w-x',
+      rating: 'GOOD',
+      createdAt: now,
+    });
+    prisma._stores.reviews.set('rev-2', {
+      id: 'rev-2',
+      userId,
+      wordId: 'w-y',
+      rating: 'EASY',
+      createdAt: now,
+    });
+
+    const res = await request(app.getHttpServer())
+      .get('/progress')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(res.body.data.streak).toMatchObject({
+      current: 1,
+      longest: 1,
+      todayCount: 2,
+      dailyGoal: 2,
+      goalMet: true,
+    });
+  });
+
+  it('PATCH /users/me updates dailyGoal without the current password', async () => {
+    const { accessToken } = await registerUser(app);
+
+    const res = await request(app.getHttpServer())
+      .patch('/users/me')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ dailyGoal: 50 })
+      .expect(200);
+
+    expect(res.body.data.dailyGoal).toBe(50);
   });
 
   it('aggregates vocabulary counts and test stats', async () => {

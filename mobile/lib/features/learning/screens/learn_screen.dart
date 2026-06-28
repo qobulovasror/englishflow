@@ -118,6 +118,24 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
                         minHeight: 10,
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        _GradientPill(
+                          emoji: '🔥',
+                          label:
+                              '${progress.stats?.streak.current ?? 0} day streak',
+                        ),
+                        const SizedBox(width: 12),
+                        _GradientPill(
+                          icon: (progress.stats?.streak.goalMet ?? false)
+                              ? Icons.check_circle
+                              : Icons.flag_outlined,
+                          label:
+                              '${progress.stats?.streak.todayCount ?? 0}/${progress.stats?.streak.dailyGoal ?? 0} today',
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -228,6 +246,39 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GradientPill extends StatelessWidget {
+  final String? emoji;
+  final IconData? icon;
+  final String label;
+
+  const _GradientPill({this.emoji, this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (emoji != null)
+            Text(emoji!, style: const TextStyle(fontSize: 14))
+          else if (icon != null)
+            Icon(icon, color: AppColors.gold, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTextStyles.label.copyWith(color: Colors.white),
           ),
         ],
       ),

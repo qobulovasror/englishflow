@@ -23,6 +23,10 @@ export class UserResponseDto {
   @Expose()
   onboardedAt?: Date | null;
 
+  @ApiProperty({ example: 20, description: 'Daily review goal (1–200)' })
+  @Expose()
+  dailyGoal: number;
+
   @ApiProperty({ example: '2026-05-11T12:00:00.000Z', format: 'date-time' })
   @Expose()
   createdAt: Date;

@@ -3,12 +3,20 @@ import { plainToInstance } from 'class-transformer';
 import { WordStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProgressResponseDto } from './dto/progress-response.dto';
+import { computeStreaks } from '../../common/utils/streak';
 
 @Injectable()
 export class ProgressService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getUserProgress(userId: string): Promise<ProgressResponseDto> {
+    // Start of the current UTC day — reviews on/after this count toward today.
+    const now = new Date();
+    const startOfTodayUtc = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const todayUtcString = now.toISOString().slice(0, 10);
+
     const [
       totalWords,
       newWords,
@@ -17,6 +25,9 @@ export class ProgressService {
       tests,
       totalTests,
       averageScoreAgg,
+      user,
+      todayCount,
+      reviewDays,
     ] = await Promise.all([
       this.prisma.userWord.count({ where: { userId } }),
       this.prisma.userWord.count({ where: { userId, status: WordStatus.NEW } }),
@@ -38,7 +49,23 @@ export class ProgressService {
         where: { userId },
         _avg: { score: true },
       }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { dailyGoal: true },
+      }),
+      this.prisma.review.count({
+        where: { userId, createdAt: { gte: startOfTodayUtc } },
+      }),
+      this.prisma.review.findMany({
+        where: { userId },
+        select: { createdAt: true },
+      }),
     ]);
+
+    const dailyGoal = user?.dailyGoal ?? 20;
+    const activeDays = reviewDays.map((r) => r.createdAt.toISOString().slice(0, 10));
+    const { current, longest } = computeStreaks(activeDays, todayUtcString);
+    const goalMet = todayCount >= dailyGoal;
 
     return plainToInstance(
       ProgressResponseDto,
@@ -60,6 +87,13 @@ export class ProgressService {
             totalQuestions: t._count.questions,
             createdAt: t.createdAt,
           })),
+        },
+        streak: {
+          current,
+          longest,
+          todayCount,
+          dailyGoal,
+          goalMet,
         },
       },
       { excludeExtraneousValues: true },
