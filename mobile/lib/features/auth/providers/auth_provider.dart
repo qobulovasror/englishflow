@@ -48,9 +48,38 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: user,
         isLoading: false,
       );
+
+      // Best-effort refresh so fields added after the cached copy (e.g.
+      // onboardedAt) are accurate. Stay logged in on failure (offline).
+      try {
+        final fresh = await _usersService.getMe();
+        await _tokenStorage.saveUserData(jsonEncode(fresh.toJson()));
+        state = state.copyWith(user: fresh);
+      } catch (_) {
+        /* keep cached user */
+      }
     } catch (_) {
       await _tokenStorage.clearAll();
       state = state.copyWith(isLoading: false, clearUser: true);
+    }
+  }
+
+  Future<UserModel> completeOnboarding({
+    String? level,
+    required List<String> deckIds,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final user = await _usersService.completeOnboarding(
+        level: level,
+        deckIds: deckIds,
+      );
+      await _tokenStorage.saveUserData(jsonEncode(user.toJson()));
+      state = state.copyWith(user: user, isLoading: false);
+      return user;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      rethrow;
     }
   }
 

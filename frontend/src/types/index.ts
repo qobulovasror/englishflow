@@ -1,7 +1,37 @@
+export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+
 export interface User {
   id: string
   email: string
+  level?: CefrLevel | null
+  // Null until the user finishes or skips onboarding.
+  onboardedAt?: string | null
   createdAt?: string
+}
+
+export interface Deck {
+  id: string
+  title: string
+  description?: string | null
+  level?: CefrLevel | null
+  isSystem: boolean
+  wordCount: number
+  isEnrolled: boolean
+  createdAt: string
+}
+
+export interface DeckDetail extends Deck {
+  words: Word[]
+}
+
+export interface EnrollResult {
+  message: string
+  enrolledCount: number
+}
+
+export interface OnboardingPayload {
+  level?: CefrLevel
+  deckIds: string[]
 }
 
 export interface UpdateProfilePayload {
@@ -55,9 +85,11 @@ export interface DailyWord {
   repetitionCount: number
 }
 
+export type Rating = 'AGAIN' | 'HARD' | 'GOOD' | 'EASY'
+
 export interface ReviewPayload {
   userWordId: string
-  correct: boolean
+  rating: Rating
 }
 
 export interface ReviewResponse {
@@ -65,6 +97,8 @@ export interface ReviewResponse {
   word: string
   status: WordStatus
   repetitionCount: number
+  interval: number
+  nextReviewAt: string
 }
 
 export interface TestQuestion {
@@ -74,6 +108,7 @@ export interface TestQuestion {
 }
 
 export interface TestStartResponse {
+  testId: string
   questions: TestQuestion[]
 }
 
@@ -83,6 +118,7 @@ export interface TestAnswer {
 }
 
 export interface TestSubmitPayload {
+  testId: string
   answers: TestAnswer[]
 }
 

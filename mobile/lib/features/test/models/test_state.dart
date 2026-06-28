@@ -3,6 +3,9 @@ import 'quiz_model.dart';
 
 class TestState extends Equatable {
   final List<QuizQuestion> questions;
+  // Server-issued id for the in-progress test; sent back on submit so the
+  // server grades against the exact challenge it persisted.
+  final String? testId;
   final int currentIndex;
   final List<QuizAnswer> answers;
   final bool isLoading;
@@ -15,6 +18,7 @@ class TestState extends Equatable {
 
   const TestState({
     this.questions = const [],
+    this.testId,
     this.currentIndex = 0,
     this.answers = const [],
     this.isLoading = false,
@@ -34,6 +38,7 @@ class TestState extends Equatable {
 
   TestState copyWith({
     List<QuizQuestion>? questions,
+    String? testId,
     int? currentIndex,
     List<QuizAnswer>? answers,
     bool? isLoading,
@@ -44,9 +49,11 @@ class TestState extends Equatable {
     bool clearError = false,
     bool clearSelection = false,
     bool clearScore = false,
+    bool clearTestId = false,
   }) {
     return TestState(
       questions: questions ?? this.questions,
+      testId: clearTestId ? null : (testId ?? this.testId),
       currentIndex: currentIndex ?? this.currentIndex,
       answers: answers ?? this.answers,
       isLoading: isLoading ?? this.isLoading,
@@ -61,6 +68,7 @@ class TestState extends Equatable {
   @override
   List<Object?> get props => [
         questions,
+        testId,
         currentIndex,
         answers,
         isLoading,

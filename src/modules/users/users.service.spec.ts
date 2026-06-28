@@ -9,6 +9,7 @@ import { Prisma, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { DecksService } from '../decks/decks.service';
 
 type MockedPrisma = {
   user: {
@@ -27,6 +28,8 @@ function buildUser(overrides: Partial<User> = {}): User {
     id: 'u1',
     email: 'a@b.c',
     password: 'hashed',
+    level: null,
+    onboardedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     passwordChangedAt: new Date(),
@@ -37,6 +40,7 @@ function buildUser(overrides: Partial<User> = {}): User {
 describe('UsersService', () => {
   let service: UsersService;
   let prisma: MockedPrisma;
+  let decks: { enroll: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -50,11 +54,13 @@ describe('UsersService', () => {
       },
       $transaction: jest.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
     };
+    decks = { enroll: jest.fn().mockResolvedValue({}) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: PrismaService, useValue: prisma },
+        { provide: DecksService, useValue: decks },
       ],
     }).compile();
 
@@ -72,6 +78,41 @@ describe('UsersService', () => {
       prisma.user.findUnique.mockResolvedValue(null);
       await expect(service.findByIdOrThrow('u1')).rejects.toBeInstanceOf(
         NotFoundException,
+      );
+    });
+  });
+
+  describe('completeOnboarding', () => {
+    it('enrolls in each deck, sets level, and stamps onboardedAt', async () => {
+      prisma.user.findUnique.mockResolvedValue(buildUser());
+      prisma.user.update.mockImplementation(async ({ data }) =>
+        buildUser({ ...data }),
+      );
+
+      const result = await service.completeOnboarding('u1', {
+        level: 'A2' as never,
+        deckIds: ['d1', 'd2'],
+      });
+
+      expect(decks.enroll).toHaveBeenCalledTimes(2);
+      expect(decks.enroll).toHaveBeenCalledWith('d1', 'u1');
+      const updateArg = prisma.user.update.mock.calls[0][0];
+      expect(updateArg.data.level).toBe('A2');
+      expect(updateArg.data.onboardedAt).toBeInstanceOf(Date);
+      expect(result.onboardedAt).toBeInstanceOf(Date);
+    });
+
+    it('skips enrollment when no decks are chosen', async () => {
+      prisma.user.findUnique.mockResolvedValue(buildUser());
+      prisma.user.update.mockImplementation(async ({ data }) =>
+        buildUser({ ...data }),
+      );
+
+      await service.completeOnboarding('u1', {});
+
+      expect(decks.enroll).not.toHaveBeenCalled();
+      expect(prisma.user.update.mock.calls[0][0].data.onboardedAt).toBeInstanceOf(
+        Date,
       );
     });
   });

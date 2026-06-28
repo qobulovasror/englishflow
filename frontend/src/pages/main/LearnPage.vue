@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useLearningStore } from '@/stores/learning'
+import type { Rating } from '@/types'
 import AppCard from '@/components/AppCard.vue'
 import AppButton from '@/components/AppButton.vue'
 
@@ -12,17 +13,33 @@ const feedback = ref<string | null>(null)
 const currentWord = computed(() => learningStore.dailyWords[currentIndex.value] ?? null)
 const isFinished = computed(() => learningStore.dailyWords.length === 0 && !learningStore.loading)
 
+// Four-button SM-2 grading. Colour goes red → green by recall confidence.
+const ratings: { value: Rating; label: string; classes: string }[] = [
+  { value: 'AGAIN', label: 'Again', classes: 'bg-red-500 hover:bg-red-600 text-white' },
+  { value: 'HARD', label: 'Hard', classes: 'bg-amber-500 hover:bg-amber-600 text-white' },
+  { value: 'GOOD', label: 'Good', classes: 'bg-green-500 hover:bg-green-600 text-white' },
+  { value: 'EASY', label: 'Easy', classes: 'bg-blue-500 hover:bg-blue-600 text-white' },
+]
+
 onMounted(() => {
   learningStore.fetchDailyWords()
 })
 
-async function handleReview(correct: boolean) {
+function formatInterval(days: number): string {
+  if (days <= 1) return 'tomorrow'
+  if (days < 30) return `in ${days} days`
+  const months = Math.round(days / 30)
+  return months <= 1 ? 'in 1 month' : `in ${months} months`
+}
+
+async function handleReview(rating: Rating) {
   if (!currentWord.value) return
 
-  const result = await learningStore.submitReview(currentWord.value.id, correct)
-  feedback.value = correct
-    ? `Correct! Status: ${result.status}`
-    : `Keep practicing! Status: ${result.status}`
+  const result = await learningStore.submitReview(currentWord.value.id, rating)
+  feedback.value =
+    rating === 'AGAIN'
+      ? 'Keep practicing! Back tomorrow.'
+      : `Next review ${formatInterval(result.interval)}`
 
   showTranslation.value = false
 
@@ -77,7 +94,10 @@ async function handleReview(correct: boolean) {
           </div>
 
           <div v-if="feedback" class="mt-4">
-            <p class="text-sm font-medium" :class="feedback.startsWith('Correct') ? 'text-green-500' : 'text-yellow-500'">
+            <p
+              class="text-sm font-medium"
+              :class="feedback.startsWith('Next') ? 'text-green-500' : 'text-yellow-500'"
+            >
               {{ feedback }}
             </p>
           </div>
@@ -93,13 +113,17 @@ async function handleReview(correct: boolean) {
             Show Translation
           </AppButton>
 
-          <div v-else class="flex gap-3">
-            <AppButton variant="danger" class="flex-1" @click="handleReview(false)">
-              Don't Know
-            </AppButton>
-            <AppButton variant="success" class="flex-1" @click="handleReview(true)">
-              I Know It!
-            </AppButton>
+          <div v-else class="grid grid-cols-4 gap-2">
+            <button
+              v-for="r in ratings"
+              :key="r.value"
+              type="button"
+              class="py-2 rounded-lg font-medium text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-primary-500"
+              :class="r.classes"
+              @click="handleReview(r.value)"
+            >
+              {{ r.label }}
+            </button>
           </div>
         </div>
       </AppCard>

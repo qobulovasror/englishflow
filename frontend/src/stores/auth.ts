@@ -3,7 +3,12 @@ import { ref, computed } from 'vue'
 import { authService } from '@/services/auth.service'
 import { usersService } from '@/services/users.service'
 import { extractErrorMessage, silentRefresh } from '@/services/api'
-import type { ChangePasswordPayload, UpdateProfilePayload, User } from '@/types'
+import type {
+  ChangePasswordPayload,
+  OnboardingPayload,
+  UpdateProfilePayload,
+  User,
+} from '@/types'
 import router from '@/router'
 
 const TOKEN_KEY = 'token'
@@ -130,6 +135,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function completeOnboarding(payload: OnboardingPayload) {
+    loading.value = true
+    error.value = null
+    try {
+      const updated = await usersService.completeOnboarding(payload)
+      persistUser(updated)
+      return updated
+    } catch (e) {
+      error.value = extractErrorMessage(e, 'Failed to finish onboarding')
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function changePassword(payload: ChangePasswordPayload) {
     loading.value = true
     error.value = null
@@ -165,6 +185,7 @@ export const useAuthStore = defineStore('auth', () => {
     fetchMe,
     updateProfile,
     changePassword,
+    completeOnboarding,
     tryRestore,
   }
 })

@@ -38,22 +38,25 @@ class LearningNotifier extends StateNotifier<LearningState> {
     state = state.copyWith(isFlipped: !state.isFlipped);
   }
 
-  Future<void> markWord(bool correct) async {
+  Future<void> markWord(ReviewRating rating) async {
     final currentWord = state.currentWord;
     if (currentWord == null) return;
 
     // Send review to backend (fire and forget)
     _learningService
-        .reviewWord(userWordId: currentWord.id, correct: correct)
+        .reviewWord(userWordId: currentWord.id, rating: rating)
         .catchError((_) {});
 
+    // AGAIN is the only "didn't recall" grade; the rest count as known for the
+    // session summary.
+    final known = rating != ReviewRating.again;
     final nextIndex = state.currentIndex + 1;
     final isCompleted = nextIndex >= state.dailyWords.length;
 
     state = state.copyWith(
       currentIndex: nextIndex,
-      knownCount: correct ? state.knownCount + 1 : null,
-      unknownCount: !correct ? state.unknownCount + 1 : null,
+      knownCount: known ? state.knownCount + 1 : null,
+      unknownCount: !known ? state.unknownCount + 1 : null,
       isFlipped: false,
       isCompleted: isCompleted,
     );

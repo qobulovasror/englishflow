@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { WordsModule } from './modules/words/words.module';
 import { LearningModule } from './modules/learning/learning.module';
+import { DecksModule } from './modules/decks/decks.module';
 import { TestsModule } from './modules/tests/tests.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { HealthModule } from './modules/health/health.module';
@@ -30,9 +31,11 @@ import { envValidationSchema } from './config/env.validation';
     // or opt out with @SkipThrottle(). Auth endpoints attach a stricter
     // policy directly in AuthController.
     //
-    // `getTracker` prefers X-Forwarded-For so a single reverse proxy (e.g.
-    // nginx, Cloudflare) doesn't collapse every client onto one IP. This
-    // requires `app.set('trust proxy', ...)` in production — see main.ts.
+    // The tracker keys on `req.ip`, which Express resolves from X-Forwarded-For
+    // ONLY up to the configured `trust proxy` hop count (see TRUST_PROXY /
+    // main.ts). We deliberately do NOT parse the raw XFF header ourselves: its
+    // leftmost entry is fully client-controlled, so trusting it would let any
+    // caller mint a fresh rate-limit bucket per request and bypass throttling.
     ThrottlerModule.forRoot({
       throttlers: [
         {
@@ -41,18 +44,15 @@ import { envValidationSchema } from './config/env.validation';
           limit: 120, // 120 req/min/IP — generous for normal API traffic
         },
       ],
-      getTracker: (req: Record<string, unknown>) => {
-        const xff = req.headers as Record<string, string | string[]> | undefined;
-        const raw = xff?.['x-forwarded-for'];
-        const first = Array.isArray(raw) ? raw[0] : raw?.split(',')[0]?.trim();
-        return first || ((req as { ip?: string }).ip ?? 'unknown');
-      },
+      getTracker: (req: Record<string, unknown>) =>
+        (req as { ip?: string }).ip ?? 'unknown',
     }),
     PrismaModule,
     AuthModule,
     UsersModule,
     WordsModule,
     LearningModule,
+    DecksModule,
     TestsModule,
     ProgressModule,
     HealthModule,

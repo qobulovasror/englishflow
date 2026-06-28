@@ -16,6 +16,13 @@ export class TestQuestionDto {
 }
 
 export class StartTestResponseDto {
+  @ApiProperty({
+    format: 'uuid',
+    description: 'Pass this back to POST /tests/submit when finished',
+  })
+  @Expose()
+  testId: string;
+
   @ApiProperty({ type: [TestQuestionDto] })
   @Expose()
   @Type(() => TestQuestionDto)
@@ -31,9 +38,9 @@ export class TestQuestionResultDto {
   @Expose()
   wordId: string;
 
-  @ApiProperty()
+  @ApiProperty({ nullable: true, description: 'Null if the question was left unanswered' })
   @Expose()
-  selectedAnswer: string;
+  selectedAnswer: string | null;
 
   @ApiProperty()
   @Expose()

@@ -40,4 +40,9 @@ export const envValidationSchema = Joi.object({
   JWT_EXPIRES_IN: Joi.string().default('15m'),
   REFRESH_TOKEN_EXPIRES_IN_DAYS: Joi.number().integer().min(1).default(30),
   CORS_ORIGIN: corsOriginSchema,
+  // Number of trusted reverse-proxy hops in front of the app. Express uses this
+  // to resolve `req.ip` from the RIGHT of the X-Forwarded-For chain, so a
+  // client cannot forge it. 0 (default) = no proxy: XFF is ignored entirely and
+  // `req.ip` is the raw socket address. Behind one nginx/Cloudflare set this to 1.
+  TRUST_PROXY: Joi.number().integer().min(0).default(0),
 });

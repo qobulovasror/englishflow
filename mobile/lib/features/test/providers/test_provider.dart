@@ -20,10 +20,15 @@ class TestNotifier extends StateNotifier<TestState> {
       answers: [],
       clearSelection: true,
       clearScore: true,
+      clearTestId: true,
     );
     try {
-      final questions = await _testService.startQuiz();
-      state = state.copyWith(questions: questions, isLoading: false);
+      final start = await _testService.startQuiz();
+      state = state.copyWith(
+        questions: start.questions,
+        testId: start.testId,
+        isLoading: false,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -53,7 +58,9 @@ class TestNotifier extends StateNotifier<TestState> {
   /// The client no longer knows which option is correct — `/tests/start` does
   /// not return `correctAnswer`, so grading is server-only.
   Future<int> submitQuiz() async {
-    if (state.selectedOption == null || state.currentQuestion == null) {
+    if (state.selectedOption == null ||
+        state.currentQuestion == null ||
+        state.testId == null) {
       return state.score ?? 0;
     }
 
@@ -67,7 +74,7 @@ class TestNotifier extends StateNotifier<TestState> {
     state = state.copyWith(isSubmitting: true, answers: allAnswers);
 
     try {
-      final result = await _testService.submitQuiz(allAnswers);
+      final result = await _testService.submitQuiz(state.testId!, allAnswers);
       final raw = result['score'];
       final serverScore = raw is num ? raw.toInt() : 0;
       state = state.copyWith(isSubmitting: false, score: serverScore);

@@ -15,6 +15,11 @@ model User {
   // Tracks the moment of the last password change; any JWT issued before this
   // is considered invalid by `JwtStrategy.validate`.
   passwordChangedAt DateTime @default(now())
+  // Self-reported CEFR level chosen during onboarding; drives deck suggestions.
+  level             CefrLevel?
+  // Null until the user finishes (or skips) onboarding. Clients use this to
+  // decide whether to show the onboarding flow.
+  onboardedAt       DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -22,6 +27,8 @@ model User {
   userWords     UserWord[]
   tests         Test[]
   refreshTokens RefreshToken[]
+  decks         Deck[]           @relation("UserDecks")
+  enrollments   DeckEnrollment[]
 
   @@map("users")
 }
@@ -50,13 +57,21 @@ model Word {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  // Null for words that belong to a curated/system deck (no individual owner).
+  // User-created words still set this.
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  // Words sourced from a deck reference it here. Personal words created via
+  // POST /words have a null deckId until Phase C introduces a personal deck.
+  deckId String?
+  deck   Deck?   @relation(fields: [deckId], references: [id], onDelete: Cascade)
 
   userWords     UserWord[]
   testQuestions TestQuestion[]
 
   @@index([createdById])
+  @@index([deckId])
   @@map("words")
 }
 
@@ -66,13 +81,75 @@ enum WordStatus {
   LEARNED
 }
 
+enum CefrLevel {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+model Deck {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  level       CefrLevel?
+  // Curated content shipped with the app (createdById is null). User-built
+  // decks set createdById and default to private.
+  isSystem    Boolean    @default(false)
+  isPublic    Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  createdById String?
+  createdBy   User?      @relation("UserDecks", fields: [createdById], references: [id], onDelete: Cascade)
+
+  words       Word[]
+  enrollments DeckEnrollment[]
+
+  @@index([isSystem])
+  @@index([level])
+  @@index([createdById])
+  @@map("decks")
+}
+
+// Tracks which decks a user has joined. Distinct from UserWord, which holds the
+// per-word learning progress; enrollment is for organisation and re-sync.
+model DeckEnrollment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deckId String
+  deck   Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deckId])
+  @@index([deckId])
+  @@map("deck_enrollments")
+}
+
 model UserWord {
-  id              String     @id @default(uuid())
-  status          WordStatus @default(NEW)
-  repetitionCount Int        @default(0)
+  id     String     @id @default(uuid())
+  status WordStatus @default(NEW)
+
+  // --- SM-2 spaced-repetition state ---
+  // repetitionCount = SM-2 `n`: consecutive successful reviews. Resets to 0 on a
+  // failed (AGAIN) review. easeFactor starts at 2.5 and is clamped to >= 1.3.
+  // interval is the current scheduling gap in whole days; nextReviewAt is when
+  // the card is next due (null = brand new, due immediately). lapses counts how
+  // many times the card was failed after graduating to a >=1 day interval.
+  repetitionCount Int       @default(0)
+  easeFactor      Float     @default(2.5)
+  interval        Int       @default(0)
+  nextReviewAt    DateTime?
+  lapses          Int       @default(0)
   lastReviewedAt  DateTime?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -83,12 +160,17 @@ model UserWord {
   @@unique([userId, wordId])
   @@index([wordId])
   @@index([status])
+  @@index([userId, nextReviewAt])
   @@map("user_words")
 }
 
 model Test {
   id        String   @id @default(uuid())
   score     Int      @default(0)
+  // Null while the quiz is in progress. `submitTest` sets it once and refuses
+  // to grade a test that already has it — a test can be submitted exactly once,
+  // so a client can't replay or fabricate scores.
+  submittedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -102,8 +184,11 @@ model Test {
 }
 
 model TestQuestion {
-  id             String @id @default(uuid())
-  selectedAnswer String
+  id             String  @id @default(uuid())
+  // Null until the test is submitted. The server writes `correctAnswer` at
+  // start time (the answer key the client never sees); `selectedAnswer` is
+  // filled in only when the user submits their choice.
+  selectedAnswer String?
   correctAnswer  String
 
   testId String

@@ -2,6 +2,7 @@ import { NestFactory, HttpAdapterHost, Reflector } from '@nestjs/core';
 import { ClassSerializerInterceptor, Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { AppConfig } from './config/configuration';
@@ -11,12 +12,19 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
 
   const configService = app.get(ConfigService);
   const appConfig = configService.getOrThrow<AppConfig>('app');
+
+  // Trust exactly `trustProxy` reverse-proxy hops so Express resolves `req.ip`
+  // from the right of the X-Forwarded-For chain. Without this, the rate-limiter's
+  // tracker would read a client-forgeable XFF header and every spoofed value
+  // would mint a fresh bucket — defeating the throttler entirely. 0 = no proxy
+  // (XFF ignored); behind one nginx/Cloudflare set TRUST_PROXY=1.
+  app.set('trust proxy', appConfig.trustProxy);
 
   // Required so `@Req() req.cookies.refresh_token` is populated for the
   // web client. Mobile sends the token via JSON body and ignores cookies.

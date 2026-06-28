@@ -37,6 +37,24 @@ class UsersService {
     }
   }
 
+  Future<UserModel> completeOnboarding({
+    String? level,
+    required List<String> deckIds,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        ApiEndpoints.onboarding,
+        data: {
+          if (level != null) 'level': level,
+          'deckIds': deckIds,
+        },
+      );
+      return UserModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _toApiException(e, 'Failed to finish onboarding');
+    }
+  }
+
   Future<void> changePassword(ChangePasswordRequest request) async {
     try {
       await _dio.post(

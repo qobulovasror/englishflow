@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.service';
 import { shuffle } from '../../common/utils/shuffle';
@@ -15,10 +19,15 @@ export class TestsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async startTest(userId: string): Promise<StartTestResponseDto> {
-    const words = await this.prisma.word.findMany({
-      where: { createdById: userId },
+    // Draw from the user's learning list (UserWord), not words they authored —
+    // so words added by enrolling in a deck are testable too. We pull a wider
+    // pool than we need so the wrong-answer distractors have variety.
+    const userWords = await this.prisma.userWord.findMany({
+      where: { userId },
       take: this.TEST_QUESTION_COUNT * 2,
+      include: { word: true },
     });
+    const words = userWords.map((uw) => uw.word);
 
     if (words.length < this.TEST_QUESTION_COUNT) {
       throw new BadRequestException(
@@ -27,6 +36,23 @@ export class TestsService {
     }
 
     const testWords = shuffle(words).slice(0, this.TEST_QUESTION_COUNT);
+
+    // Persist the test as a server-owned challenge: which words were asked and
+    // their correct answers are committed now, before the client sees anything.
+    // Grading later reads from these rows, so the client cannot change the
+    // question set or the answer key — it can only report which option it
+    // picked. `selectedAnswer` stays null until submit.
+    const test = await this.prisma.test.create({
+      data: {
+        userId,
+        questions: {
+          create: testWords.map((word) => ({
+            wordId: word.id,
+            correctAnswer: word.translation,
+          })),
+        },
+      },
+    });
 
     const questions = testWords.map((word) => {
       const otherWords = words.filter((w) => w.id !== word.id);
@@ -48,7 +74,7 @@ export class TestsService {
 
     return plainToInstance(
       StartTestResponseDto,
-      { questions },
+      { testId: test.id, questions },
       { excludeExtraneousValues: true },
     );
   }
@@ -57,55 +83,61 @@ export class TestsService {
     dto: SubmitTestDto,
     userId: string,
   ): Promise<SubmitTestResponseDto> {
-    // Single bulk query (was N+1 in the loop) AND scope it to words owned by
-    // this user — otherwise a caller could submit another user's wordId and
-    // have it graded against that user's vocabulary.
-    const wordIds = dto.answers.map((a) => a.wordId);
-    const words = await this.prisma.word.findMany({
-      where: { id: { in: wordIds }, createdById: userId },
-    });
-    const byId = new Map(words.map((w) => [w.id, w]));
-
-    let score = 0;
-    const questionsData: Array<{
-      wordId: string;
-      selectedAnswer: string;
-      correctAnswer: string;
-    }> = [];
-
-    for (const answer of dto.answers) {
-      const word = byId.get(answer.wordId);
-      if (!word) continue; // unknown or not owned — skipped silently
-
-      const isCorrect = answer.selectedAnswer === word.translation;
-      if (isCorrect) score++;
-
-      questionsData.push({
-        wordId: answer.wordId,
-        selectedAnswer: answer.selectedAnswer,
-        correctAnswer: word.translation,
-      });
-    }
-
-    const test = await this.prisma.test.create({
-      data: {
-        userId,
-        score,
-        questions: {
-          create: questionsData,
-        },
-      },
+    // Load the server-owned challenge. Scoping to userId means a caller can't
+    // grade someone else's test, and `submittedAt` enforces submit-once so a
+    // score can't be replayed or rewritten.
+    const test = await this.prisma.test.findFirst({
+      where: { id: dto.testId, userId },
       include: { questions: true },
     });
+
+    if (!test) {
+      throw new NotFoundException('Test not found');
+    }
+    if (test.submittedAt) {
+      throw new BadRequestException('This test has already been submitted');
+    }
+
+    // The client's picks, keyed by wordId. Answers for words that aren't part
+    // of this test are ignored; questions with no answer count as unanswered.
+    const selectedByWordId = new Map(
+      dto.answers.map((a) => [a.wordId, a.selectedAnswer]),
+    );
+
+    let score = 0;
+    const graded = test.questions.map((q) => {
+      const selectedAnswer = selectedByWordId.get(q.wordId) ?? null;
+      const isCorrect =
+        selectedAnswer !== null && selectedAnswer === q.correctAnswer;
+      if (isCorrect) score++;
+      return { id: q.id, wordId: q.wordId, selectedAnswer, correctAnswer: q.correctAnswer };
+    });
+
+    // Persist the picks and the final score atomically, stamping submittedAt so
+    // the test can never be graded twice.
+    await this.prisma.$transaction([
+      ...graded.map((g) =>
+        this.prisma.testQuestion.update({
+          where: { id: g.id },
+          data: { selectedAnswer: g.selectedAnswer },
+        }),
+      ),
+      this.prisma.test.update({
+        where: { id: test.id },
+        data: { score, submittedAt: new Date() },
+      }),
+    ]);
+
+    const total = test.questions.length;
 
     return plainToInstance(
       SubmitTestResponseDto,
       {
         testId: test.id,
         score,
-        total: dto.answers.length,
-        percentage: Math.round((score / dto.answers.length) * 100),
-        questions: test.questions,
+        total,
+        percentage: total > 0 ? Math.round((score / total) * 100) : 0,
+        questions: graded,
       },
       { excludeExtraneousValues: true },
     );

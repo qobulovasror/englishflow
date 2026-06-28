@@ -11,12 +11,17 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { OnboardingDto } from './dto/onboarding.dto';
+import { DecksService } from '../decks/decks.service';
 
 @Injectable()
 export class UsersService {
   private static readonly BCRYPT_ROUNDS = 12;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly decksService: DecksService,
+  ) {}
 
   async create(dto: CreateUserDto) {
     return this.prisma.user.create({
@@ -81,6 +86,28 @@ export class UsersService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Completes (or skips) onboarding: records the chosen level, enrolls the user
+   * in the selected decks, and stamps `onboardedAt` so clients stop showing the
+   * flow. Enrolling first means an invalid deckId fails before the user is
+   * marked onboarded, avoiding a half-finished state.
+   */
+  async completeOnboarding(id: string, dto: OnboardingDto) {
+    await this.findByIdOrThrow(id);
+
+    for (const deckId of dto.deckIds ?? []) {
+      await this.decksService.enroll(deckId, id);
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        level: dto.level ?? undefined,
+        onboardedAt: new Date(),
+      },
+    });
   }
 
   async changePassword(id: string, dto: ChangePasswordDto): Promise<void> {

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsString } from 'class-validator';
+import { IsEnum, IsString } from 'class-validator';
+import { Rating } from '../../../common/utils/sm2';
 
 export class ReviewWordDto {
   @ApiProperty({
@@ -11,9 +12,11 @@ export class ReviewWordDto {
   userWordId: string;
 
   @ApiProperty({
-    example: true,
-    description: 'Whether the user answered correctly',
+    enum: Rating,
+    example: Rating.GOOD,
+    description:
+      'Recall quality. AGAIN = failed (re-learn), HARD/GOOD/EASY = successful recall feeding the SM-2 schedule.',
   })
-  @IsBoolean()
-  correct: boolean;
+  @IsEnum(Rating)
+  rating: Rating;
 }
