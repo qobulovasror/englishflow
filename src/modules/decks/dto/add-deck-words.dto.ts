@@ -5,6 +5,8 @@ import {
   IsArray,
   IsOptional,
   IsString,
+  IsUrl,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 
@@ -23,6 +25,14 @@ export class DeckWordItemDto {
   @IsString()
   @IsOptional()
   example?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://cdn.example.com/audio/serendipity.mp3',
+  })
+  @IsUrl()
+  @MaxLength(2048)
+  @IsOptional()
+  audioUrl?: string;
 }
 
 export class AddDeckWordsDto {

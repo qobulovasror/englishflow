@@ -75,6 +75,8 @@ export interface Word {
   word: string
   translation: string
   example?: string
+  // Optional pronunciation audio; falls back to Web Speech API when absent.
+  audioUrl?: string
   createdAt: string
 }
 
@@ -106,6 +108,8 @@ export interface DailyWord {
   word: string
   translation: string
   example?: string
+  // Optional pronunciation audio; falls back to Web Speech API when absent.
+  audioUrl?: string
   status: WordStatus
   repetitionCount: number
 }

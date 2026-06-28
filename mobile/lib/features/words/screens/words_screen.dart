@@ -8,6 +8,7 @@ import 'package:englishflow/features/words/providers/words_provider.dart';
 import 'package:englishflow/shared/widgets/loading_widget.dart';
 import 'package:englishflow/shared/widgets/error_widget.dart';
 import 'package:englishflow/shared/widgets/empty_state_widget.dart';
+import 'package:englishflow/shared/widgets/speak_button.dart';
 
 class WordsScreen extends ConsumerStatefulWidget {
   const WordsScreen({super.key});
@@ -193,13 +194,19 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                   ],
                 ),
                 onTap: () => context.push('/edit-word', extra: word),
-                trailing: IconButton(
-                  icon: const Icon(
-                    Icons.edit_outlined,
-                    color: AppColors.textHint,
-                  ),
-                  tooltip: 'Edit word',
-                  onPressed: () => context.push('/edit-word', extra: word),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SpeakButton(word: word.word, audioUrl: word.audioUrl),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        color: AppColors.textHint,
+                      ),
+                      tooltip: 'Edit word',
+                      onPressed: () => context.push('/edit-word', extra: word),
+                    ),
+                  ],
                 ),
               ),
             ),

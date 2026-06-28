@@ -256,11 +256,12 @@ describe('DecksService', () => {
       );
       prisma.word.count.mockResolvedValue(2);
 
+      const audioUrl = 'https://cdn.example.com/audio/a.mp3';
       const result = await service.addWords(
         'd1',
         {
           words: [
-            { word: 'a', translation: 'A' },
+            { word: 'a', translation: 'A', audioUrl },
             { word: 'b', translation: 'B' },
           ],
         } as never,
@@ -270,7 +271,12 @@ describe('DecksService', () => {
       expect(prisma.word.createMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: [
-            expect.objectContaining({ word: 'a', deckId: 'd1', createdById: 'u1' }),
+            expect.objectContaining({
+              word: 'a',
+              deckId: 'd1',
+              createdById: 'u1',
+              audioUrl,
+            }),
             expect.objectContaining({ word: 'b', deckId: 'd1', createdById: 'u1' }),
           ],
         }),

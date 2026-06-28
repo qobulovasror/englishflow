@@ -13,6 +13,7 @@ import 'package:englishflow/shared/widgets/app_text_field.dart';
 import 'package:englishflow/shared/widgets/loading_widget.dart';
 import 'package:englishflow/shared/widgets/error_widget.dart';
 import 'package:englishflow/shared/widgets/empty_state_widget.dart';
+import 'package:englishflow/shared/widgets/speak_button.dart';
 
 class DeckDetailScreen extends ConsumerStatefulWidget {
   final DeckModel deck;
@@ -162,8 +163,12 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
                   ],
                 ],
               ),
-              trailing: _canEdit
-                  ? IconButton(
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SpeakButton(word: word.word, audioUrl: word.audioUrl),
+                  if (_canEdit)
+                    IconButton(
                       icon: const Icon(
                         Icons.delete_outline,
                         color: AppColors.textHint,
@@ -172,8 +177,9 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
                       onPressed: state.isMutatingWords
                           ? null
                           : () => _removeWord(word),
-                    )
-                  : null,
+                    ),
+                ],
+              ),
             ),
           );
         },

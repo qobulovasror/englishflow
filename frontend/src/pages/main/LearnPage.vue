@@ -4,6 +4,7 @@ import { useLearningStore } from '@/stores/learning'
 import type { Rating } from '@/types'
 import AppCard from '@/components/AppCard.vue'
 import AppButton from '@/components/AppButton.vue'
+import SpeakButton from '@/components/SpeakButton.vue'
 
 const learningStore = useLearningStore()
 const currentIndex = ref(0)
@@ -83,7 +84,10 @@ async function handleReview(rating: Rating) {
             {{ currentWord.status }}
           </span>
 
-          <h3 class="text-3xl font-bold text-gray-800 dark:text-gray-100">{{ currentWord.word }}</h3>
+          <div class="flex items-center justify-center gap-2">
+            <h3 class="text-3xl font-bold text-gray-800 dark:text-gray-100">{{ currentWord.word }}</h3>
+            <SpeakButton :word="currentWord.word" :audio-url="currentWord.audioUrl" />
+          </div>
 
           <p v-if="currentWord.example" class="text-gray-400 dark:text-gray-500 mt-3 italic text-sm">
             "{{ currentWord.example }}"

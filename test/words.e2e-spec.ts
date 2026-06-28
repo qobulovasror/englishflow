@@ -69,6 +69,43 @@ describe('Words (e2e)', () => {
       expect(linkExists).toBe(true);
     });
 
+    it('POST /words stores an optional audioUrl and returns it', async () => {
+      const audioUrl = 'https://cdn.example.com/audio/pronounce.mp3';
+      const res = await request(app.getHttpServer())
+        .post('/words')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ word: 'pronounce', translation: 'talaffuz qilmoq', audioUrl })
+        .expect(201);
+
+      expect(res.body.data.audioUrl).toBe(audioUrl);
+    });
+
+    it('POST /words rejects an invalid audioUrl', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/words')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ word: 'bad', translation: 'yomon', audioUrl: 'not-a-url' })
+        .expect(400);
+      expect(res.body.errors.join(' ')).toMatch(/audioUrl/i);
+    });
+
+    it('PATCH /words/:id updates the audioUrl', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/words')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ word: 'speak', translation: 'gapirmoq' })
+        .expect(201);
+
+      const audioUrl = 'https://cdn.example.com/audio/speak.mp3';
+      const res = await request(app.getHttpServer())
+        .patch(`/words/${created.body.data.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ audioUrl })
+        .expect(200);
+
+      expect(res.body.data.audioUrl).toBe(audioUrl);
+    });
+
     it('POST /words rejects missing required fields', async () => {
       const res = await request(app.getHttpServer())
         .post('/words')

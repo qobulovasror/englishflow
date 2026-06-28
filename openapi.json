@@ -2345,6 +2345,10 @@
             "type": "object",
             "example": "Finding that book was pure serendipity."
           },
+          "audioUrl": {
+            "type": "object",
+            "example": "https://cdn.example.com/audio/serendipity.mp3"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -2508,6 +2512,10 @@
           "example": {
             "type": "string",
             "example": "Finding that book was pure serendipity."
+          },
+          "audioUrl": {
+            "type": "string",
+            "example": "https://cdn.example.com/audio/serendipity.mp3"
           }
         },
         "required": [
@@ -2543,6 +2551,10 @@
           "example": {
             "type": "string",
             "example": "Finding that book was pure serendipity."
+          },
+          "audioUrl": {
+            "type": "string",
+            "example": "https://cdn.example.com/audio/serendipity.mp3"
           }
         },
         "required": [
@@ -2564,6 +2576,10 @@
           "example": {
             "type": "string",
             "example": "Finding that book was pure serendipity."
+          },
+          "audioUrl": {
+            "type": "string",
+            "example": "https://cdn.example.com/audio/serendipity.mp3"
           }
         }
       },

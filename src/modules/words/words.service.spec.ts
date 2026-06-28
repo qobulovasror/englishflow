@@ -6,11 +6,13 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 type MockedPrisma = {
   word: {
+    create: jest.Mock;
     findUnique: jest.Mock;
     update: jest.Mock;
     findMany: jest.Mock;
     count: jest.Mock;
   };
+  userWord: { create: jest.Mock };
   $transaction: jest.Mock;
 };
 
@@ -20,6 +22,7 @@ function makeWord(overrides: Record<string, unknown> = {}) {
     word: 'serendipity',
     translation: 'kutilmagan kashfiyot',
     example: null,
+    audioUrl: null,
     createdById: 'u1',
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-01-01'),
@@ -34,19 +37,44 @@ describe('WordsService', () => {
   beforeEach(async () => {
     prisma = {
       word: {
+        create: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
         findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn().mockResolvedValue(0),
       },
-      $transaction: jest.fn((ops: unknown[]) =>
-        Promise.all(ops as Promise<unknown>[]),
+      userWord: { create: jest.fn().mockResolvedValue({}) },
+      $transaction: jest.fn((input: unknown) =>
+        typeof input === 'function'
+          ? (input as (tx: unknown) => unknown)(prisma)
+          : Promise.all(input as Promise<unknown>[]),
       ),
     };
     const module: TestingModule = await Test.createTestingModule({
       providers: [WordsService, { provide: PrismaService, useValue: prisma }],
     }).compile();
     service = module.get(WordsService);
+  });
+
+  describe('create', () => {
+    it('persists audioUrl when provided and returns it in the dto', async () => {
+      const audioUrl = 'https://cdn.example.com/audio/serendipity.mp3';
+      prisma.word.create.mockResolvedValue(makeWord({ audioUrl }));
+
+      const result = await service.create(
+        {
+          word: 'serendipity',
+          translation: 'kutilmagan kashfiyot',
+          audioUrl,
+        },
+        'u1',
+      );
+
+      expect(prisma.word.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ audioUrl, createdById: 'u1' }),
+      });
+      expect(result.audioUrl).toBe(audioUrl);
+    });
   });
 
   describe('update', () => {

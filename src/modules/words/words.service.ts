@@ -21,6 +21,7 @@ export class WordsService {
           word: dto.word,
           translation: dto.translation,
           example: dto.example,
+          audioUrl: dto.audioUrl,
           createdById: userId,
         },
       });
@@ -79,6 +80,7 @@ export class WordsService {
         ...(dto.word !== undefined && { word: dto.word }),
         ...(dto.translation !== undefined && { translation: dto.translation }),
         ...(dto.example !== undefined && { example: dto.example }),
+        ...(dto.audioUrl !== undefined && { audioUrl: dto.audioUrl }),
       },
     });
 

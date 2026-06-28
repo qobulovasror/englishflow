@@ -4,6 +4,7 @@ import { useWordsStore } from '@/stores/words'
 import AppCard from '@/components/AppCard.vue'
 import AppInput from '@/components/AppInput.vue'
 import AppButton from '@/components/AppButton.vue'
+import SpeakButton from '@/components/SpeakButton.vue'
 import type { WordStatus } from '@/types'
 
 const wordsStore = useWordsStore()
@@ -173,6 +174,7 @@ async function handleDelete(id: string) {
             </p>
           </div>
           <div class="flex items-center">
+            <SpeakButton :word="word.word" :audio-url="word.audioUrl" />
             <button
               @click="startEdit(word.id, word.word, word.translation, word.example)"
               class="text-gray-400 hover:text-primary-500 transition-colors p-2"

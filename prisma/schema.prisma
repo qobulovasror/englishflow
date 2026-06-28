@@ -82,6 +82,8 @@ model Word {
   word        String
   translation String
   example     String?
+  // Optional URL to a pronunciation audio clip for the word.
+  audioUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

@@ -219,6 +219,7 @@ export class DecksService {
           word: w.word,
           translation: w.translation,
           example: w.example,
+          audioUrl: w.audioUrl,
           deckId: id,
           createdById: userId,
         })),

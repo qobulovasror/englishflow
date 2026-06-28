@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 
 export class CreateWordDto {
   @ApiProperty({ example: 'serendipity' })
@@ -16,4 +16,12 @@ export class CreateWordDto {
   @IsString()
   @IsOptional()
   example?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://cdn.example.com/audio/serendipity.mp3',
+  })
+  @IsUrl()
+  @MaxLength(2048)
+  @IsOptional()
+  audioUrl?: string;
 }

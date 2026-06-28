@@ -648,6 +648,8 @@ export interface components {
             translation: string;
             /** @example Finding that book was pure serendipity. */
             example?: Record<string, never>;
+            /** @example https://cdn.example.com/audio/serendipity.mp3 */
+            audioUrl?: Record<string, never>;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -721,6 +723,8 @@ export interface components {
             translation: string;
             /** @example Finding that book was pure serendipity. */
             example?: string;
+            /** @example https://cdn.example.com/audio/serendipity.mp3 */
+            audioUrl?: string;
         };
         AddDeckWordsDto: {
             words: components["schemas"]["DeckWordItemDto"][];
@@ -732,6 +736,8 @@ export interface components {
             translation: string;
             /** @example Finding that book was pure serendipity. */
             example?: string;
+            /** @example https://cdn.example.com/audio/serendipity.mp3 */
+            audioUrl?: string;
         };
         UpdateWordDto: {
             /** @example serendipity */
@@ -740,6 +746,8 @@ export interface components {
             translation?: string;
             /** @example Finding that book was pure serendipity. */
             example?: string;
+            /** @example https://cdn.example.com/audio/serendipity.mp3 */
+            audioUrl?: string;
         };
         DailyWordResponseDto: {
             /**

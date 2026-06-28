@@ -5,6 +5,7 @@ class WordModel extends Equatable {
   final String word;
   final String translation;
   final String? example;
+  final String? audioUrl;
   final DateTime? createdAt;
 
   const WordModel({
@@ -12,6 +13,7 @@ class WordModel extends Equatable {
     required this.word,
     required this.translation,
     this.example,
+    this.audioUrl,
     this.createdAt,
   });
 
@@ -21,6 +23,7 @@ class WordModel extends Equatable {
       word: json['word'] ?? '',
       translation: json['translation'] ?? '',
       example: json['example'],
+      audioUrl: json['audioUrl']?.toString(),
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'])
           : null,
@@ -36,5 +39,6 @@ class WordModel extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, word, translation, example, createdAt];
+  List<Object?> get props =>
+      [id, word, translation, example, audioUrl, createdAt];
 }

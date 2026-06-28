@@ -27,6 +27,7 @@ export interface StoredWord {
   word: string;
   translation: string;
   example: string | null;
+  audioUrl: string | null;
   createdById: string;
   deckId: string | null;
   createdAt: Date;
@@ -204,6 +205,7 @@ export function buildPrismaStub() {
         word: data.word,
         translation: data.translation,
         example: data.example ?? null,
+        audioUrl: data.audioUrl ?? null,
         createdById: data.createdById,
         deckId: data.deckId ?? null,
         createdAt: now,
@@ -222,6 +224,7 @@ export function buildPrismaStub() {
           word: d.word,
           translation: d.translation,
           example: d.example ?? null,
+          audioUrl: d.audioUrl ?? null,
           createdById: d.createdById,
           deckId: d.deckId ?? null,
           createdAt: now,
