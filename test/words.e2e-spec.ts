@@ -5,6 +5,7 @@ process.env.DATABASE_URL ??=
 process.env.CORS_ORIGIN ??= 'http://localhost';
 
 import { INestApplication } from '@nestjs/common';
+import { WordStatus } from '@prisma/client';
 import * as request from 'supertest';
 import { createTestApp, registerUser } from './helpers/test-app';
 import type { PrismaStub } from './helpers/prisma-stub';
@@ -66,6 +67,43 @@ describe('Words (e2e)', () => {
         (uw) => uw.userId === userId && uw.wordId === res.body.data.id,
       );
       expect(linkExists).toBe(true);
+    });
+
+    it('POST /words stores an optional audioUrl and returns it', async () => {
+      const audioUrl = 'https://cdn.example.com/audio/pronounce.mp3';
+      const res = await request(app.getHttpServer())
+        .post('/words')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ word: 'pronounce', translation: 'talaffuz qilmoq', audioUrl })
+        .expect(201);
+
+      expect(res.body.data.audioUrl).toBe(audioUrl);
+    });
+
+    it('POST /words rejects an invalid audioUrl', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/words')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ word: 'bad', translation: 'yomon', audioUrl: 'not-a-url' })
+        .expect(400);
+      expect(res.body.errors.join(' ')).toMatch(/audioUrl/i);
+    });
+
+    it('PATCH /words/:id updates the audioUrl', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/words')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ word: 'speak', translation: 'gapirmoq' })
+        .expect(201);
+
+      const audioUrl = 'https://cdn.example.com/audio/speak.mp3';
+      const res = await request(app.getHttpServer())
+        .patch(`/words/${created.body.data.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ audioUrl })
+        .expect(200);
+
+      expect(res.body.data.audioUrl).toBe(audioUrl);
     });
 
     it('POST /words rejects missing required fields', async () => {
@@ -158,6 +196,94 @@ describe('Words (e2e)', () => {
     it('DELETE /words/:id rejects a non-UUID id with 400', async () => {
       await request(app.getHttpServer())
         .delete('/words/not-a-uuid')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(400);
+    });
+
+    it('PATCH /words/:id edits a word the user owns', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/words')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ word: 'mutable', translation: 'eski tarjima' })
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .patch(`/words/${created.body.data.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ translation: 'yangi tarjima' })
+        .expect(200);
+
+      expect(res.body.data).toMatchObject({
+        id: created.body.data.id,
+        word: 'mutable',
+        translation: 'yangi tarjima',
+      });
+    });
+
+    it('PATCH /words/:id returns 404 for an unknown id', async () => {
+      await request(app.getHttpServer())
+        .patch('/words/00000000-0000-0000-0000-000000000000')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ translation: 'x' })
+        .expect(404);
+    });
+
+    it("PATCH /words/:id of another user's word returns 403", async () => {
+      const a = await registerUser(app);
+      const created = await request(app.getHttpServer())
+        .post('/words')
+        .set('Authorization', `Bearer ${a.accessToken}`)
+        .send({ word: 'guarded', translation: 'himoyalangan' })
+        .expect(201);
+
+      const b = await registerUser(app);
+      await request(app.getHttpServer())
+        .patch(`/words/${created.body.data.id}`)
+        .set('Authorization', `Bearer ${b.accessToken}`)
+        .send({ translation: 'hack' })
+        .expect(403);
+
+      // Original translation is untouched.
+      expect(prisma._stores.words.get(created.body.data.id)?.translation).toBe(
+        'himoyalangan',
+      );
+    });
+
+    it('GET /words?status=NEW returns only words with that learning status', async () => {
+      const u = await registerUser(app);
+
+      const newWord = await request(app.getHttpServer())
+        .post('/words')
+        .set('Authorization', `Bearer ${u.accessToken}`)
+        .send({ word: 'fresh', translation: 'yangi' })
+        .expect(201);
+
+      const learnedWord = await request(app.getHttpServer())
+        .post('/words')
+        .set('Authorization', `Bearer ${u.accessToken}`)
+        .send({ word: 'known', translation: 'bilingan' })
+        .expect(201);
+
+      // Promote one of the user's words to LEARNED in the store.
+      for (const uw of prisma._stores.userWords.values()) {
+        if (uw.userId === u.userId && uw.wordId === learnedWord.body.data.id) {
+          uw.status = WordStatus.LEARNED;
+        }
+      }
+
+      const res = await request(app.getHttpServer())
+        .get('/words?status=NEW')
+        .set('Authorization', `Bearer ${u.accessToken}`)
+        .expect(200);
+
+      const ids = res.body.data.items.map((w: { id: string }) => w.id);
+      expect(ids).toContain(newWord.body.data.id);
+      expect(ids).not.toContain(learnedWord.body.data.id);
+    });
+
+    it('GET /words rejects an invalid status value with 400', async () => {
+      await request(app.getHttpServer())
+        .get('/words?status=BOGUS')
         .set('Authorization', `Bearer ${token}`)
         .expect(400);
     });

@@ -1,11 +1,19 @@
 export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
 
+export type UserRole = 'USER' | 'ADMIN'
+
 export interface User {
   id: string
   email: string
   level?: CefrLevel | null
   // Null until the user finishes or skips onboarding.
   onboardedAt?: string | null
+  // Daily review goal (1–200).
+  dailyGoal: number
+  // Access role. Absent on older stored profiles → treated as 'USER'.
+  role?: UserRole
+  // Timestamp the email was verified; null/undefined when still unverified.
+  emailVerifiedAt?: string | null
   createdAt?: string
 }
 
@@ -15,6 +23,10 @@ export interface Deck {
   description?: string | null
   level?: CefrLevel | null
   isSystem: boolean
+  // Whether the deck is shared publicly. Always false for system decks.
+  isPublic: boolean
+  // Whether the current user created (and can edit) this deck.
+  isOwner: boolean
   wordCount: number
   isEnrolled: boolean
   createdAt: string
@@ -29,6 +41,21 @@ export interface EnrollResult {
   enrolledCount: number
 }
 
+export interface CreateDeckPayload {
+  title: string
+  description?: string
+  level?: CefrLevel
+  isPublic?: boolean
+}
+
+export type UpdateDeckPayload = Partial<CreateDeckPayload>
+
+export interface AddDeckWordsResult {
+  message: string
+  addedCount: number
+  wordCount: number
+}
+
 export interface OnboardingPayload {
   level?: CefrLevel
   deckIds: string[]
@@ -36,8 +63,10 @@ export interface OnboardingPayload {
 
 export interface UpdateProfilePayload {
   email?: string
-  // Required by the backend whenever `email` is being changed.
-  currentPassword: string
+  // Daily review goal (1–200). Editable without the current password.
+  dailyGoal?: number
+  // Required by the backend only when `email` is being changed.
+  currentPassword?: string
 }
 
 export interface ChangePasswordPayload {
@@ -56,12 +85,20 @@ export interface Word {
   word: string
   translation: string
   example?: string
+  // Optional pronunciation audio; falls back to Web Speech API when absent.
+  audioUrl?: string
   createdAt: string
 }
 
 export interface CreateWordPayload {
   word: string
   translation: string
+  example?: string
+}
+
+export interface UpdateWordPayload {
+  word?: string
+  translation?: string
   example?: string
 }
 
@@ -81,6 +118,8 @@ export interface DailyWord {
   word: string
   translation: string
   example?: string
+  // Optional pronunciation audio; falls back to Web Speech API when absent.
+  audioUrl?: string
   status: WordStatus
   repetitionCount: number
 }
@@ -153,4 +192,40 @@ export interface ProgressData {
       createdAt: string
     }[]
   }
+  streak: {
+    current: number
+    longest: number
+    todayCount: number
+    dailyGoal: number
+    goalMet: boolean
+  }
+}
+
+// One day of review activity (dense, oldest→newest).
+export interface TrendPoint {
+  date: string
+  count: number
+}
+
+// Per-deck learning progress for the current user.
+export interface DeckProgress {
+  id: string
+  title: string
+  level: CefrLevel | null
+  isSystem: boolean
+  total: number
+  new: number
+  learning: number
+  learned: number
+  progressPercentage: number
+}
+
+// A high-lapse "leech" word the user keeps failing.
+export interface LeechWord {
+  wordId: string
+  word: string
+  translation: string
+  lapses: number
+  status: WordStatus
+  lastReviewedAt: string | null
 }

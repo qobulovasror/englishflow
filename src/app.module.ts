@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -10,6 +11,7 @@ import { DecksModule } from './modules/decks/decks.module';
 import { TestsModule } from './modules/tests/tests.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { HealthModule } from './modules/health/health.module';
+import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
@@ -47,6 +49,8 @@ import { envValidationSchema } from './config/env.validation';
       getTracker: (req: Record<string, unknown>) =>
         (req as { ip?: string }).ip ?? 'unknown',
     }),
+    // Registers the cron scheduler used by MaintenanceModule's CleanupService.
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -56,6 +60,7 @@ import { envValidationSchema } from './config/env.validation';
     TestsModule,
     ProgressModule,
     HealthModule,
+    MaintenanceModule,
   ],
   providers: [
     {

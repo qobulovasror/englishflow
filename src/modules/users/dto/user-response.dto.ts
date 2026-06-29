@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
-import { CefrLevel } from '@prisma/client';
+import { CefrLevel, Role } from '@prisma/client';
 
 export class UserResponseDto {
   @ApiProperty({ example: '8c5f4e64-1c39-4a55-9c8e-1e1b9c41a0a2', format: 'uuid' })
@@ -22,6 +22,22 @@ export class UserResponseDto {
   })
   @Expose()
   onboardedAt?: Date | null;
+
+  @ApiProperty({ example: 20, description: 'Daily review goal (1–200)' })
+  @Expose()
+  dailyGoal: number;
+
+  @ApiProperty({ enum: Role, example: Role.USER })
+  @Expose()
+  role: Role;
+
+  @ApiPropertyOptional({
+    format: 'date-time',
+    nullable: true,
+    description: 'Null until the user verifies their email',
+  })
+  @Expose()
+  emailVerifiedAt?: Date | null;
 
   @ApiProperty({ example: '2026-05-11T12:00:00.000Z', format: 'date-time' })
   @Expose()

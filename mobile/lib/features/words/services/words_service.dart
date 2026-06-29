@@ -18,11 +18,16 @@ class WordsService {
   Future<PaginatedResponse<WordModel>> getWordsPage({
     int page = 1,
     int limit = 100,
+    String? status,
   }) async {
     try {
       final response = await _dio.get(
         ApiEndpoints.words,
-        queryParameters: {'page': page, 'limit': limit},
+        queryParameters: {
+          'page': page,
+          'limit': limit,
+          if (status != null) 'status': status,
+        },
       );
       return PaginatedResponse<WordModel>.fromJson(
         response.data as Map<String, dynamic>,
@@ -35,8 +40,9 @@ class WordsService {
 
   /// Convenience wrapper that returns just the items of the first page.
   /// Backend caps `limit` at 100, so this exposes up to 100 words today.
-  Future<List<WordModel>> getWords() async {
-    final page = await getWordsPage();
+  /// Pass [status] (NEW|LEARNING|LEARNED) to filter; null returns all.
+  Future<List<WordModel>> getWords({String? status}) async {
+    final page = await getWordsPage(status: status);
     return page.items;
   }
 
@@ -57,6 +63,27 @@ class WordsService {
       return WordModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _toApiException(e, 'Failed to add word');
+    }
+  }
+
+  Future<WordModel> updateWord(
+    String id, {
+    String? word,
+    String? translation,
+    String? example,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        ApiEndpoints.wordById(id),
+        data: {
+          if (word != null) 'word': word,
+          if (translation != null) 'translation': translation,
+          if (example != null) 'example': example,
+        },
+      );
+      return WordModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _toApiException(e, 'Failed to update word');
     }
   }
 

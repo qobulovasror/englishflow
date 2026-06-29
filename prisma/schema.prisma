@@ -8,10 +8,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Coarse-grained authorization role. Most accounts are USER; ADMIN unlocks the
+// curated-content management endpoints under /admin (see RolesGuard).
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
+  // Authorization role. Defaults to USER; elevate to ADMIN to manage system decks.
+  role      Role     @default(USER)
   // Tracks the moment of the last password change; any JWT issued before this
   // is considered invalid by `JwtStrategy.validate`.
   passwordChangedAt DateTime @default(now())
@@ -20,6 +29,12 @@ model User {
   // Null until the user finishes (or skips) onboarding. Clients use this to
   // decide whether to show the onboarding flow.
   onboardedAt       DateTime?
+  // Null until the user confirms ownership of their email via the
+  // verify-email flow. Stamped when an EMAIL_VERIFY token is consumed.
+  emailVerifiedAt   DateTime?
+  // How many reviews the user aims to complete each day; drives the streak's
+  // goalMet flag. Editable via PATCH /users/me without re-entering the password.
+  dailyGoal         Int      @default(20)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -27,10 +42,62 @@ model User {
   userWords     UserWord[]
   tests         Test[]
   refreshTokens RefreshToken[]
+  authTokens    AuthToken[]
   decks         Deck[]           @relation("UserDecks")
   enrollments   DeckEnrollment[]
+  reviews       Review[]
 
   @@map("users")
+}
+
+// One-time, single-use tokens for email-based account flows (password reset
+// and email verification). Like RefreshToken, only the SHA-256 hash is stored —
+// the plaintext lives in the user's inbox and the issuing return value.
+enum AuthTokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
+model AuthToken {
+  id        String        @id @default(uuid())
+  type      AuthTokenType
+  // SHA-256 of the opaque token string. We never persist the plaintext.
+  tokenHash String        @unique
+  expiresAt DateTime
+  // Stamped the moment the token is consumed; a non-null value means the token
+  // is spent and can never be replayed.
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("auth_tokens")
+}
+
+enum ReviewRating {
+  AGAIN
+  HARD
+  GOOD
+  EASY
+}
+
+// Append-only log of every grading action. Distinct from UserWord (the current
+// SM-2 state): this is the history that powers daily counts and streaks.
+model Review {
+  id        String       @id @default(uuid())
+  rating    ReviewRating
+  createdAt DateTime     @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  wordId String
+  word   Word   @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("reviews")
 }
 
 model RefreshToken {
@@ -54,6 +121,8 @@ model Word {
   word        String
   translation String
   example     String?
+  // Optional URL to a pronunciation audio clip for the word.
+  audioUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -69,6 +138,7 @@ model Word {
 
   userWords     UserWord[]
   testQuestions TestQuestion[]
+  reviews       Review[]
 
   @@index([createdById])
   @@index([deckId])

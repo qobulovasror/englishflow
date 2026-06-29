@@ -1,16 +1,26 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { AuthTokenType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { RefreshTokensService } from './refresh-tokens.service';
+import { AuthTokensService } from './auth-tokens.service';
+import { MailerService } from '../../common/mailer/mailer.service';
 
 describe('AuthService', () => {
   let service: AuthService;
   let usersService: jest.Mocked<UsersService>;
   let jwtService: jest.Mocked<JwtService>;
   let refreshTokens: jest.Mocked<RefreshTokensService>;
+  let authTokens: jest.Mocked<AuthTokensService>;
+  let mailer: jest.Mocked<MailerService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -22,6 +32,8 @@ describe('AuthService', () => {
             findByEmail: jest.fn(),
             create: jest.fn(),
             findByIdOrThrow: jest.fn(),
+            resetPassword: jest.fn(),
+            markEmailVerified: jest.fn(),
           },
         },
         {
@@ -39,6 +51,25 @@ describe('AuthService', () => {
             revokeAllForUser: jest.fn(),
           },
         },
+        {
+          provide: AuthTokensService,
+          useValue: {
+            issue: jest
+              .fn()
+              .mockResolvedValue({ token: 'opaque-token', expiresAt: new Date() }),
+            consume: jest.fn(),
+          },
+        },
+        {
+          provide: MailerService,
+          useValue: { send: jest.fn().mockResolvedValue(undefined) },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            getOrThrow: jest.fn(() => ({ frontendUrl: 'http://localhost:5173' })),
+          },
+        },
       ],
     }).compile();
 
@@ -46,6 +77,8 @@ describe('AuthService', () => {
     usersService = module.get(UsersService);
     jwtService = module.get(JwtService);
     refreshTokens = module.get(RefreshTokensService);
+    authTokens = module.get(AuthTokensService);
+    mailer = module.get(MailerService);
   });
 
   describe('register', () => {
@@ -180,6 +213,106 @@ describe('AuthService', () => {
         .catch((e) => e);
 
       expect(err1.message).toBe(err2.message);
+    });
+  });
+
+  describe('forgotPassword', () => {
+    const buildUser = () => ({
+      id: 'u1',
+      email: 'a@b.c',
+      password: 'hash',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      passwordChangedAt: new Date(),
+    });
+
+    it('issues a reset token and emails a link when the user exists', async () => {
+      usersService.findByEmail.mockResolvedValue(buildUser() as never);
+
+      await service.forgotPassword('a@b.c');
+
+      expect(authTokens.issue).toHaveBeenCalledWith(
+        'u1',
+        AuthTokenType.PASSWORD_RESET,
+        expect.any(Number),
+      );
+      expect(mailer.send).toHaveBeenCalledTimes(1);
+      const msg = mailer.send.mock.calls[0][0];
+      expect(msg.to).toBe('a@b.c');
+      expect(msg.text).toContain('opaque-token');
+    });
+
+    it('is a silent no-op for an unknown email (no enumeration)', async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+
+      await expect(service.forgotPassword('nobody@x.y')).resolves.toBeUndefined();
+
+      expect(authTokens.issue).not.toHaveBeenCalled();
+      expect(mailer.send).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('consumes a PASSWORD_RESET token and delegates the new password', async () => {
+      authTokens.consume.mockResolvedValue('u1');
+
+      await service.resetPassword('the-token', 'NewStrongPass123');
+
+      expect(authTokens.consume).toHaveBeenCalledWith(
+        'the-token',
+        AuthTokenType.PASSWORD_RESET,
+      );
+      expect(usersService.resetPassword).toHaveBeenCalledWith(
+        'u1',
+        'NewStrongPass123',
+      );
+    });
+
+    it('propagates a bad token and never touches the password', async () => {
+      authTokens.consume.mockRejectedValue(new BadRequestException());
+
+      await expect(
+        service.resetPassword('bad', 'NewStrongPass123'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(usersService.resetPassword).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('email verification', () => {
+    const buildUser = () => ({
+      id: 'u1',
+      email: 'a@b.c',
+      password: 'hash',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      passwordChangedAt: new Date(),
+    });
+
+    it('requestEmailVerification issues an EMAIL_VERIFY token and emails a link', async () => {
+      usersService.findByIdOrThrow.mockResolvedValue(buildUser() as never);
+
+      await service.requestEmailVerification('u1');
+
+      expect(authTokens.issue).toHaveBeenCalledWith(
+        'u1',
+        AuthTokenType.EMAIL_VERIFY,
+        expect.any(Number),
+      );
+      const msg = mailer.send.mock.calls[0][0];
+      expect(msg.to).toBe('a@b.c');
+      expect(msg.text).toContain('opaque-token');
+    });
+
+    it('verifyEmail consumes the token and marks the email verified', async () => {
+      authTokens.consume.mockResolvedValue('u1');
+
+      await service.verifyEmail('the-token');
+
+      expect(authTokens.consume).toHaveBeenCalledWith(
+        'the-token',
+        AuthTokenType.EMAIL_VERIFY,
+      );
+      expect(usersService.markEmailVerified).toHaveBeenCalledWith('u1');
     });
   });
 });

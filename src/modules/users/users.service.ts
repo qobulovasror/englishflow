@@ -49,30 +49,57 @@ export class UsersService {
   }
 
   async update(id: string, dto: UpdateUserDto) {
+    const wantsEmailChange = dto.email !== undefined;
+    const wantsGoalChange = dto.dailyGoal !== undefined;
+
     // Nothing to change — return the current row unmodified rather than
     // doing a no-op UPDATE.
-    if (dto.email === undefined) {
+    if (!wantsEmailChange && !wantsGoalChange) {
       return this.findByIdOrThrow(id);
     }
 
     const user = await this.findByIdOrThrow(id);
-    const isPasswordValid = await bcrypt.compare(dto.currentPassword, user.password);
+
+    // dailyGoal is not security-sensitive, so it can be changed without the
+    // current password. Email change is the only field that demands it.
+    if (!wantsEmailChange) {
+      return this.prisma.user.update({
+        where: { id },
+        data: { dailyGoal: dto.dailyGoal },
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      dto.currentPassword ?? '',
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Current password is incorrect');
     }
 
+    // Email unchanged: only a dailyGoal update (if any) remains to apply.
     if (dto.email === user.email) {
+      if (wantsGoalChange) {
+        return this.prisma.user.update({
+          where: { id },
+          data: { dailyGoal: dto.dailyGoal },
+        });
+      }
       return user;
     }
 
     try {
       // Email change is a security-sensitive event (account recovery uses email).
       // Bump `passwordChangedAt` and revoke refresh tokens so old sessions can't
-      // continue under the new identity.
+      // continue under the new identity. Fold in any dailyGoal change too.
       const [updated] = await this.prisma.$transaction([
         this.prisma.user.update({
           where: { id },
-          data: { email: dto.email, passwordChangedAt: new Date() },
+          data: {
+            email: dto.email,
+            passwordChangedAt: new Date(),
+            ...(wantsGoalChange ? { dailyGoal: dto.dailyGoal } : {}),
+          },
         }),
         this.prisma.refreshToken.deleteMany({ where: { userId: id } }),
       ]);
@@ -91,14 +118,41 @@ export class UsersService {
   /**
    * Completes (or skips) onboarding: records the chosen level, enrolls the user
    * in the selected decks, and stamps `onboardedAt` so clients stop showing the
-   * flow. Enrolling first means an invalid deckId fails before the user is
-   * marked onboarded, avoiding a half-finished state.
+   * flow. Every deckId is validated for visibility up front — a single bad id
+   * rejects the whole request before any enrollment runs, so we never commit a
+   * partial enrollment without marking the user onboarded.
    */
   async completeOnboarding(id: string, dto: OnboardingDto) {
     await this.findByIdOrThrow(id);
 
-    for (const deckId of dto.deckIds ?? []) {
-      await this.decksService.enroll(deckId, id);
+    const deckIds = dto.deckIds ?? [];
+    if (deckIds.length > 0) {
+      // A deck is visible if it's a curated system deck, a public deck, or one
+      // the user owns (mirrors DecksService.visibleWhere). Reject if any id
+      // isn't visible before enrolling in any of them.
+      const visible = await this.prisma.deck.findMany({
+        where: {
+          AND: [
+            { id: { in: deckIds } },
+            {
+              OR: [
+                { isSystem: true },
+                { isPublic: true },
+                { createdById: id },
+              ],
+            },
+          ],
+        },
+        select: { id: true },
+      });
+      const visibleIds = new Set(visible.map((d) => d.id));
+      if (deckIds.some((deckId) => !visibleIds.has(deckId))) {
+        throw new NotFoundException('Deck not found');
+      }
+
+      for (const deckId of deckIds) {
+        await this.decksService.enroll(deckId, id);
+      }
     }
 
     return this.prisma.user.update({
@@ -138,5 +192,49 @@ export class UsersService {
       }),
       this.prisma.refreshToken.deleteMany({ where: { userId: id } }),
     ]);
+  }
+
+  /**
+   * Sets a new password from the account-recovery flow (no current-password
+   * check — the caller already proved ownership by consuming a reset token).
+   * Reuses the same invalidation path as `changePassword`: bump
+   * `passwordChangedAt` and drop every refresh token so old sessions die.
+   */
+  async resetPassword(id: string, newPassword: string): Promise<void> {
+    await this.findByIdOrThrow(id);
+
+    const hashed = await bcrypt.hash(newPassword, UsersService.BCRYPT_ROUNDS);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id },
+        data: { password: hashed, passwordChangedAt: new Date() },
+      }),
+      this.prisma.refreshToken.deleteMany({ where: { userId: id } }),
+    ]);
+  }
+
+  /** Stamps the email as verified. Idempotent — re-verifying is harmless. */
+  async markEmailVerified(id: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: { emailVerifiedAt: new Date() },
+    });
+  }
+
+  /**
+   * Permanently deletes the account after re-verifying the current password.
+   * The schema's `onDelete: Cascade` relations remove all owned rows (words,
+   * progress, tokens, enrollments, reviews).
+   */
+  async deleteAccount(id: string, currentPassword: string): Promise<void> {
+    const user = await this.findByIdOrThrow(id);
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    await this.prisma.user.delete({ where: { id } });
   }
 }

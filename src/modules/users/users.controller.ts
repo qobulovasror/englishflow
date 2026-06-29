@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -17,6 +18,7 @@ import { plainToInstance } from 'class-transformer';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import { OnboardingDto } from './dto/onboarding.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -122,5 +124,30 @@ export class UsersController {
   ): Promise<{ message: string }> {
     await this.usersService.changePassword(current.id, dto);
     return { message: 'Password updated successfully' };
+  }
+
+  @Delete('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Permanently delete the current authenticated account',
+    description:
+      'Requires the current password. Cascades to all owned data ' +
+      '(words, progress, tokens, enrollments, reviews). Irreversible.',
+  })
+  @ApiSuccessPrimitiveResponse({
+    description: 'Account deleted',
+    example: { message: 'Account deleted' },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Current password is incorrect',
+    type: ApiErrorResponseDto,
+  })
+  async deleteMe(
+    @CurrentUser() current: { id: string },
+    @Body() dto: DeleteAccountDto,
+  ): Promise<{ message: string }> {
+    await this.usersService.deleteAccount(current.id, dto.currentPassword);
+    return { message: 'Account deleted' };
   }
 }

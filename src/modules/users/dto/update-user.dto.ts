@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class UpdateUserDto {
   @ApiPropertyOptional({
@@ -10,12 +10,27 @@ export class UpdateUserDto {
   @IsEmail()
   email?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
+    example: 20,
+    minimum: 1,
+    maximum: 200,
+    description:
+      'Daily review goal (1–200). Editable without the current password.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  dailyGoal?: number;
+
+  @ApiPropertyOptional({
     example: 'CurrentPass123!',
     description:
-      'The current password — required when changing email to prevent account ' +
-      'takeover via stolen access tokens. Ignored when no email change is requested.',
+      'The current password — required only when changing email, to prevent ' +
+      'account takeover via stolen access tokens. Not needed for other updates ' +
+      '(e.g. dailyGoal).',
   })
+  @IsOptional()
   @IsString()
-  currentPassword: string;
+  currentPassword?: string;
 }

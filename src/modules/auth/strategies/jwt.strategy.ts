@@ -38,6 +38,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Token issued before last password change');
     }
 
-    return { id: user.id, email: user.email };
+    return { id: user.id, email: user.email, role: user.role };
   }
 }

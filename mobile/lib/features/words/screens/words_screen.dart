@@ -8,6 +8,7 @@ import 'package:englishflow/features/words/providers/words_provider.dart';
 import 'package:englishflow/shared/widgets/loading_widget.dart';
 import 'package:englishflow/shared/widgets/error_widget.dart';
 import 'package:englishflow/shared/widgets/empty_state_widget.dart';
+import 'package:englishflow/shared/widgets/speak_button.dart';
 
 class WordsScreen extends ConsumerStatefulWidget {
   const WordsScreen({super.key});
@@ -49,7 +50,42 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
           ),
         ],
       ),
-      body: _buildBody(state),
+      body: Column(
+        children: [
+          _buildFilterBar(state),
+          Expanded(child: _buildBody(state)),
+        ],
+      ),
+    );
+  }
+
+  static const _filters = <(String, String?)>[
+    ('All', null),
+    ('New', 'NEW'),
+    ('Learning', 'LEARNING'),
+    ('Learned', 'LEARNED'),
+  ];
+
+  Widget _buildFilterBar(state) {
+    return SizedBox(
+      height: 56,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        children: [
+          for (final (label, value) in _filters)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(label),
+                selected: state.statusFilter == value,
+                onSelected: (_) =>
+                    ref.read(wordsProvider.notifier).setStatusFilter(value),
+                selectedColor: AppColors.primaryLight,
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -157,9 +193,20 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
                     ],
                   ],
                 ),
-                trailing: const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.textHint,
+                onTap: () => context.push('/edit-word', extra: word),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SpeakButton(word: word.word, audioUrl: word.audioUrl),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        color: AppColors.textHint,
+                      ),
+                      tooltip: 'Edit word',
+                      onPressed: () => context.push('/edit-word', extra: word),
+                    ),
+                  ],
                 ),
               ),
             ),

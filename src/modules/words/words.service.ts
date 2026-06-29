@@ -2,8 +2,9 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWordDto } from './dto/create-word.dto';
+import { UpdateWordDto } from './dto/update-word.dto';
 import { WordResponseDto } from './dto/word-response.dto';
-import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { WordQueryDto } from './dto/word-query.dto';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { paginate } from '../../common/utils/pagination.helper';
 
@@ -20,6 +21,7 @@ export class WordsService {
           word: dto.word,
           translation: dto.translation,
           example: dto.example,
+          audioUrl: dto.audioUrl,
           createdById: userId,
         },
       });
@@ -32,9 +34,14 @@ export class WordsService {
 
   async findAllByUser(
     userId: string,
-    query: PaginationQueryDto,
+    query: WordQueryDto,
   ): Promise<PaginatedResponseDto<WordResponseDto>> {
-    const where = { createdById: userId };
+    const where = query.status
+      ? {
+          createdById: userId,
+          userWords: { some: { userId, status: query.status } },
+        }
+      : { createdById: userId };
     const [words, total] = await this.prisma.$transaction([
       this.prisma.word.findMany({
         where,
@@ -50,6 +57,34 @@ export class WordsService {
       total,
       query,
     );
+  }
+
+  async update(
+    id: string,
+    dto: UpdateWordDto,
+    userId: string,
+  ): Promise<WordResponseDto> {
+    const word = await this.prisma.word.findUnique({ where: { id } });
+
+    if (!word) {
+      throw new NotFoundException('Word not found');
+    }
+
+    if (word.createdById !== userId) {
+      throw new ForbiddenException('You can only edit your own words');
+    }
+
+    const updated = await this.prisma.word.update({
+      where: { id },
+      data: {
+        ...(dto.word !== undefined && { word: dto.word }),
+        ...(dto.translation !== undefined && { translation: dto.translation }),
+        ...(dto.example !== undefined && { example: dto.example }),
+        ...(dto.audioUrl !== undefined && { audioUrl: dto.audioUrl }),
+      },
+    });
+
+    return this.toDto(updated);
   }
 
   async remove(id: string, userId: string): Promise<{ message: string }> {

@@ -81,6 +81,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request a password-reset link
+         * @description Always responds 200 regardless of whether the email is registered, so the endpoint cannot be used to discover which emails have accounts. A reset link is emailed only when the account exists.
+         */
+        post: operations["AuthController_forgotPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset a password using an emailed token
+         * @description Consumes a single-use reset token, sets the new password, and invalidates every existing session (access + refresh tokens).
+         */
+        post: operations["AuthController_resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/verify-email/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send an email-verification link to the current user */
+        post: operations["AuthController_requestEmailVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify an email address using an emailed token */
+        post: operations["AuthController_verifyEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/me": {
         parameters: {
             query?: never;
@@ -92,7 +166,11 @@ export interface paths {
         get: operations["UsersController_me"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Permanently delete the current authenticated account
+         * @description Requires the current password. Cascades to all owned data (words, progress, tokens, enrollments, reviews). Irreversible.
+         */
+        delete: operations["UsersController_deleteMe"];
         options?: never;
         head?: never;
         /** Update current authenticated user */
@@ -149,7 +227,8 @@ export interface paths {
         /** Browse system and public decks (paginated) */
         get: operations["DecksController_findAll"];
         put?: never;
-        post?: never;
+        /** Create a personal deck */
+        post: operations["DecksController_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -184,10 +263,12 @@ export interface paths {
         get: operations["DecksController_findOne"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete a deck the current user created */
+        delete: operations["DecksController_remove"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Edit a deck the current user created */
+        patch: operations["DecksController_update"];
         trace?: never;
     };
     "/decks/{id}/enroll": {
@@ -202,6 +283,91 @@ export interface paths {
         /** Join a deck — adds its words to your learning list */
         post: operations["DecksController_enroll"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decks/{id}/words": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add words to a deck the current user created */
+        post: operations["DecksController_addWords"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decks/{id}/words/{wordId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a word from a deck the current user created */
+        delete: operations["DecksController_removeWord"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/decks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a curated system deck (admin) */
+        post: operations["AdminDecksController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/decks/{id}/words": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add words to any deck (admin) */
+        post: operations["AdminDecksController_addWords"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/decks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete any deck (admin) */
+        delete: operations["AdminDecksController_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -239,7 +405,8 @@ export interface paths {
         delete: operations["WordsController_remove"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Edit a word owned by the current user */
+        patch: operations["WordsController_update"];
         trace?: never;
     };
     "/learning/daily": {
@@ -327,6 +494,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/progress/trends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daily review activity over a trailing window (zero-filled) */
+        get: operations["ProgressController_getTrends"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/progress/decks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Per-deck learning progress for joined/created decks */
+        get: operations["ProgressController_getDeckProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/progress/leeches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Troublesome words with a high lapse count */
+        get: operations["ProgressController_getLeeches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -386,6 +604,21 @@ export interface components {
              * @description Null until the user completes or skips onboarding
              */
             onboardedAt?: Record<string, never> | null;
+            /**
+             * @description Daily review goal (1–200)
+             * @example 20
+             */
+            dailyGoal: number;
+            /**
+             * @example USER
+             * @enum {string}
+             */
+            role: "USER" | "ADMIN";
+            /**
+             * Format: date-time
+             * @description Null until the user verifies their email
+             */
+            emailVerifiedAt?: Record<string, never> | null;
             /**
              * Format: date-time
              * @example 2026-05-11T12:00:00.000Z
@@ -462,6 +695,32 @@ export interface components {
              */
             refreshToken?: string;
         };
+        ForgotPasswordDto: {
+            /**
+             * Format: email
+             * @example student@example.com
+             */
+            email: string;
+        };
+        ResetPasswordDto: {
+            /**
+             * @description The opaque password-reset token delivered by email.
+             * @example h6XdR3pK8c-NlYvQ3jKz2hYW9bP5MZeT7vL_8nXrSc
+             */
+            token: string;
+            /**
+             * @description The new password. Must contain at least one letter and one digit.
+             * @example NewStrongerPass456!
+             */
+            newPassword: string;
+        };
+        VerifyEmailDto: {
+            /**
+             * @description The opaque email-verification token delivered by email.
+             * @example h6XdR3pK8c-NlYvQ3jKz2hYW9bP5MZeT7vL_8nXrSc
+             */
+            token: string;
+        };
         UpdateUserDto: {
             /**
              * @description New email address. Must be unique.
@@ -469,10 +728,15 @@ export interface components {
              */
             email?: string;
             /**
-             * @description The current password — required when changing email to prevent account takeover via stolen access tokens. Ignored when no email change is requested.
+             * @description Daily review goal (1–200). Editable without the current password.
+             * @example 20
+             */
+            dailyGoal?: number;
+            /**
+             * @description The current password — required only when changing email, to prevent account takeover via stolen access tokens. Not needed for other updates (e.g. dailyGoal).
              * @example CurrentPass123!
              */
-            currentPassword: string;
+            currentPassword?: string;
         };
         OnboardingDto: {
             /**
@@ -500,6 +764,13 @@ export interface components {
              */
             newPassword: string;
         };
+        DeleteAccountDto: {
+            /**
+             * @description The current password — required to confirm account deletion and prevent takeover-then-delete via a stolen access token.
+             * @example CurrentPass123!
+             */
+            currentPassword: string;
+        };
         DeckResponseDto: {
             /** Format: uuid */
             id: string;
@@ -514,6 +785,10 @@ export interface components {
             level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
             /** @description True for curated decks shipped with the app */
             isSystem: boolean;
+            /** @description Whether the deck is shared publicly. Always false for system decks. */
+            isPublic: boolean;
+            /** @description Whether the current user created (and can edit) this deck */
+            isOwner: boolean;
             /**
              * @description Number of words in the deck
              * @example 40
@@ -524,6 +799,22 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        CreateDeckDto: {
+            /** @example My Travel Words */
+            title: string;
+            /** @example Words I picked up on my trips abroad. */
+            description?: string;
+            /**
+             * @example A2
+             * @enum {string}
+             */
+            level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+            /**
+             * @description Make the deck visible to other users
+             * @default false
+             */
+            isPublic: boolean;
+        };
         WordResponseDto: {
             /** Format: uuid */
             id: string;
@@ -533,6 +824,8 @@ export interface components {
             translation: string;
             /** @example Finding that book was pure serendipity. */
             example?: Record<string, never>;
+            /** @example https://cdn.example.com/audio/serendipity.mp3 */
+            audioUrl?: Record<string, never>;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -552,6 +845,10 @@ export interface components {
             level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
             /** @description True for curated decks shipped with the app */
             isSystem: boolean;
+            /** @description Whether the deck is shared publicly. Always false for system decks. */
+            isPublic: boolean;
+            /** @description Whether the current user created (and can edit) this deck */
+            isOwner: boolean;
             /**
              * @description Number of words in the deck
              * @example 40
@@ -572,6 +869,46 @@ export interface components {
              */
             enrolledCount: number;
         };
+        UpdateDeckDto: {
+            /** @example My Travel Words */
+            title?: string;
+            /** @example Words I picked up on my trips abroad. */
+            description?: string;
+            /**
+             * @example A2
+             * @enum {string}
+             */
+            level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+            /** @description Make the deck visible to other users */
+            isPublic?: boolean;
+        };
+        AddDeckWordsResponseDto: {
+            /** @example Added 3 words to "My Travel Words" */
+            message: string;
+            /**
+             * @description Words added by this request
+             * @example 3
+             */
+            addedCount: number;
+            /**
+             * @description Total words in the deck now
+             * @example 12
+             */
+            wordCount: number;
+        };
+        DeckWordItemDto: {
+            /** @example serendipity */
+            word: string;
+            /** @example kutilmagan yoqimli kashfiyot */
+            translation: string;
+            /** @example Finding that book was pure serendipity. */
+            example?: string;
+            /** @example https://cdn.example.com/audio/serendipity.mp3 */
+            audioUrl?: string;
+        };
+        AddDeckWordsDto: {
+            words: components["schemas"]["DeckWordItemDto"][];
+        };
         CreateWordDto: {
             /** @example serendipity */
             word: string;
@@ -579,6 +916,18 @@ export interface components {
             translation: string;
             /** @example Finding that book was pure serendipity. */
             example?: string;
+            /** @example https://cdn.example.com/audio/serendipity.mp3 */
+            audioUrl?: string;
+        };
+        UpdateWordDto: {
+            /** @example serendipity */
+            word?: string;
+            /** @example kutilmagan yoqimli kashfiyot */
+            translation?: string;
+            /** @example Finding that book was pure serendipity. */
+            example?: string;
+            /** @example https://cdn.example.com/audio/serendipity.mp3 */
+            audioUrl?: string;
         };
         DailyWordResponseDto: {
             /**
@@ -734,9 +1083,98 @@ export interface components {
             averageScore: number;
             recent: components["schemas"]["RecentTestDto"][];
         };
+        StreakStatsDto: {
+            /**
+             * @description Consecutive active days ending today (or yesterday if not yet reviewed today)
+             * @example 5
+             */
+            current: number;
+            /**
+             * @description Longest consecutive active-day run ever
+             * @example 12
+             */
+            longest: number;
+            /**
+             * @description Reviews completed today (UTC)
+             * @example 8
+             */
+            todayCount: number;
+            /**
+             * @description User's daily review goal
+             * @example 20
+             */
+            dailyGoal: number;
+            /**
+             * @description Whether todayCount has reached dailyGoal
+             * @example false
+             */
+            goalMet: boolean;
+        };
         ProgressResponseDto: {
             vocabulary: components["schemas"]["VocabularyStatsDto"];
             tests: components["schemas"]["TestStatsDto"];
+            streak: components["schemas"]["StreakStatsDto"];
+        };
+        TrendPointDto: {
+            /**
+             * @description UTC calendar day
+             * @example 2026-06-29
+             */
+            date: string;
+            /**
+             * @description Reviews completed on this day
+             * @example 12
+             */
+            count: number;
+        };
+        DeckProgressDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Travel Essentials */
+            title: string;
+            /**
+             * @example A2
+             * @enum {string|null}
+             */
+            level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2" | null;
+            /**
+             * @description Curated system deck
+             * @example true
+             */
+            isSystem: boolean;
+            /**
+             * @description Words in the deck the user is tracking
+             * @example 40
+             */
+            total: number;
+            /** @example 10 */
+            new: number;
+            /** @example 22 */
+            learning: number;
+            /** @example 8 */
+            learned: number;
+            /**
+             * @description Percentage of learned words (0–100)
+             * @example 20
+             */
+            progressPercentage: number;
+        };
+        LeechWordDto: {
+            /** Format: uuid */
+            wordId: string;
+            /** @example ubiquitous */
+            word: string;
+            /** @example hamma joyda mavjud */
+            translation: string;
+            /**
+             * @description Times the card was failed after graduating
+             * @example 6
+             */
+            lapses: number;
+            /** @enum {string} */
+            status: "NEW" | "LEARNING" | "LEARNED";
+            /** Format: date-time */
+            lastReviewedAt: Record<string, never> | null;
         };
     };
     responses: never;
@@ -919,6 +1357,176 @@ export interface operations {
             };
         };
     };
+    AuthController_forgotPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordDto"];
+            };
+        };
+        responses: {
+            /** @description Reset link sent if the account exists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "If that email is registered, a reset link has been sent"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_resetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordDto"];
+            };
+        };
+        responses: {
+            /** @description Password reset */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "Password has been reset"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description Token is invalid, expired, or already used */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_requestEmailVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Verification email sent */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "Verification email sent"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_verifyEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailDto"];
+            };
+        };
+        responses: {
+            /** @description Email verified */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "Email verified"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description Token is invalid, expired, or already used */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
     UsersController_me: {
         parameters: {
             query?: never;
@@ -944,6 +1552,50 @@ export interface operations {
                 };
             };
             /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    UsersController_deleteMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteAccountDto"];
+            };
+        };
+        responses: {
+            /** @description Account deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "Account deleted"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description Current password is incorrect */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1129,6 +1781,36 @@ export interface operations {
             };
         };
     };
+    DecksController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDeckDto"];
+            };
+        };
+        responses: {
+            /** @description Deck created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["DeckResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
     DecksController_findMine: {
         parameters: {
             query?: never;
@@ -1190,6 +1872,107 @@ export interface operations {
             };
         };
     };
+    DecksController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deck deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "Deck deleted successfully"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description You can only edit your own decks */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    DecksController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDeckDto"];
+            };
+        };
+        responses: {
+            /** @description Deck updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["DeckResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description You can only edit your own decks */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
     DecksController_enroll: {
         parameters: {
             query?: never;
@@ -1226,6 +2009,248 @@ export interface operations {
             };
         };
     };
+    DecksController_addWords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddDeckWordsDto"];
+            };
+        };
+        responses: {
+            /** @description Words added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["AddDeckWordsResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description You can only edit your own decks */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    DecksController_removeWord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                wordId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Word removed from deck */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "Word removed from deck"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description You can only edit your own decks */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description Deck or word not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDecksController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDeckDto"];
+            };
+        };
+        responses: {
+            /** @description System deck created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["DeckResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Requires the ADMIN role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDecksController_addWords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddDeckWordsDto"];
+            };
+        };
+        responses: {
+            /** @description Words added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["AddDeckWordsResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Requires the ADMIN role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDecksController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deck deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "Deck deleted successfully"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description Requires the ADMIN role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
     WordsController_findAll: {
         parameters: {
             query?: {
@@ -1233,6 +2258,8 @@ export interface operations {
                 page?: number;
                 /** @description Items per page (capped at 100) */
                 limit?: number;
+                /** @description Filter by the learning status of the word */
+                status?: "NEW" | "LEARNING" | "LEARNED";
             };
             header?: never;
             path?: never;
@@ -1324,6 +2351,56 @@ export interface operations {
                         data?: unknown;
                         /** Format: date-time */
                         timestamp?: string;
+                    };
+                };
+            };
+            /** @description Word belongs to another user */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+            /** @description Word not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    WordsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWordDto"];
+            };
+        };
+        responses: {
+            /** @description Word updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["WordResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
                     };
                 };
             };
@@ -1491,6 +2568,84 @@ export interface operations {
                         /** @example true */
                         success: boolean;
                         data: components["schemas"]["ProgressResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    ProgressController_getTrends: {
+        parameters: {
+            query?: {
+                /** @description Size of the trailing window in days (ending today, UTC) */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["TrendPointDto"][];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    ProgressController_getDeckProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["DeckProgressDto"][];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    ProgressController_getLeeches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["LeechWordDto"][];
                         /** Format: date-time */
                         timestamp: string;
                     };

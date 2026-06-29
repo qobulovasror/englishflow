@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useDecksStore } from '@/stores/decks'
 import AppCard from '@/components/AppCard.vue'
 import AppButton from '@/components/AppButton.vue'
@@ -24,6 +24,18 @@ function filterByLevel(level: CefrLevel | null) {
   activeLevel.value = level
   load()
 }
+
+// Debounce search so the list refetches as the user types (~300ms) rather than
+// only on Enter.
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+watch(search, () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(load, 300)
+})
+
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+})
 
 async function enroll(id: string, title: string) {
   enrollingId.value = id
@@ -68,7 +80,6 @@ onMounted(load)
         type="text"
         placeholder="Search decks…"
         class="ml-auto px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-100"
-        @keyup.enter="load"
       />
     </div>
 

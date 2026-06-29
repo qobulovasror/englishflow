@@ -24,6 +24,19 @@ export class DeckResponseDto {
   @Expose()
   isSystem: boolean;
 
+  @ApiProperty({
+    description:
+      'Whether the deck is shared publicly. Always false for system decks.',
+  })
+  @Expose()
+  isPublic: boolean;
+
+  @ApiProperty({
+    description: 'Whether the current user created (and can edit) this deck',
+  })
+  @Expose()
+  isOwner: boolean;
+
   @ApiProperty({ example: 40, description: 'Number of words in the deck' })
   @Expose()
   wordCount: number;
@@ -52,4 +65,18 @@ export class EnrollResponseDto {
   @ApiProperty({ example: 40, description: 'Words now in your learning list' })
   @Expose()
   enrolledCount: number;
+}
+
+export class AddDeckWordsResponseDto {
+  @ApiProperty({ example: 'Added 3 words to "My Travel Words"' })
+  @Expose()
+  message: string;
+
+  @ApiProperty({ example: 3, description: 'Words added by this request' })
+  @Expose()
+  addedCount: number;
+
+  @ApiProperty({ example: 12, description: 'Total words in the deck now' })
+  @Expose()
+  wordCount: number;
 }

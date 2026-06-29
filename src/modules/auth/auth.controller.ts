@@ -6,10 +6,16 @@ import {
   Post,
   Req,
   Res,
+  SetMetadata,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -17,6 +23,9 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 import {
   REFRESH_COOKIE_NAME,
   clearRefreshCookie,
@@ -28,7 +37,8 @@ import {
   ApiSuccessResponse,
 } from '../../common/swagger/api-response.decorator';
 import { ApiErrorResponseDto } from '../../common/swagger/api-error-response.dto';
-import { Public } from '../../common/decorators/public.decorator';
+import { IS_PUBLIC_KEY, Public } from '../../common/decorators/public.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 const AUTH_THROTTLE = { default: { ttl: 60_000, limit: 10 } };
 
@@ -131,6 +141,91 @@ export class AuthController {
     }
     clearRefreshCookie(res);
     return { message: 'Logged out' };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Request a password-reset link',
+    description:
+      'Always responds 200 regardless of whether the email is registered, ' +
+      'so the endpoint cannot be used to discover which emails have accounts. ' +
+      'A reset link is emailed only when the account exists.',
+  })
+  @ApiSuccessPrimitiveResponse({
+    description: 'Reset link sent if the account exists',
+    example: { message: 'If that email is registered, a reset link has been sent' },
+  })
+  @ApiResponse({ status: HttpStatus.TOO_MANY_REQUESTS, type: ApiErrorResponseDto })
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+  ): Promise<{ message: string }> {
+    await this.authService.forgotPassword(dto.email);
+    return {
+      message: 'If that email is registered, a reset link has been sent',
+    };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reset a password using an emailed token',
+    description:
+      'Consumes a single-use reset token, sets the new password, and ' +
+      'invalidates every existing session (access + refresh tokens).',
+  })
+  @ApiSuccessPrimitiveResponse({
+    description: 'Password reset',
+    example: { message: 'Password has been reset' },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Token is invalid, expired, or already used',
+    type: ApiErrorResponseDto,
+  })
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+  ): Promise<{ message: string }> {
+    await this.authService.resetPassword(dto.token, dto.newPassword);
+    return { message: 'Password has been reset' };
+  }
+
+  @Post('verify-email/request')
+  // Override the controller-level @Public(): this route needs a valid JWT so
+  // we know which account to verify.
+  @SetMetadata(IS_PUBLIC_KEY, false)
+  @ApiBearerAuth('JWT')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send an email-verification link to the current user' })
+  @ApiSuccessPrimitiveResponse({
+    description: 'Verification email sent',
+    example: { message: 'Verification email sent' },
+  })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, type: ApiErrorResponseDto })
+  async requestEmailVerification(
+    @CurrentUser() current: { id: string },
+  ): Promise<{ message: string }> {
+    await this.authService.requestEmailVerification(current.id);
+    return { message: 'Verification email sent' };
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verify an email address using an emailed token',
+  })
+  @ApiSuccessPrimitiveResponse({
+    description: 'Email verified',
+    example: { message: 'Email verified' },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Token is invalid, expired, or already used',
+    type: ApiErrorResponseDto,
+  })
+  async verifyEmail(@Body() dto: VerifyEmailDto): Promise<{ message: string }> {
+    await this.authService.verifyEmail(dto.token);
+    return { message: 'Email verified' };
   }
 
   // ── helpers ────────────────────────────────────────────────────────────────

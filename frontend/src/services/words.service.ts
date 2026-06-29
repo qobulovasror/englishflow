@@ -1,9 +1,16 @@
 import api from './api'
-import type { Word, CreateWordPayload, PaginatedResponse } from '@/types'
+import type {
+  Word,
+  WordStatus,
+  CreateWordPayload,
+  UpdateWordPayload,
+  PaginatedResponse,
+} from '@/types'
 
 export interface ListWordsParams {
   page?: number
   limit?: number
+  status?: WordStatus
 }
 
 export const wordsService = {
@@ -14,6 +21,11 @@ export const wordsService = {
 
   async create(payload: CreateWordPayload): Promise<Word> {
     const { data } = await api.post<Word>('/words', payload)
+    return data
+  },
+
+  async update(id: string, payload: UpdateWordPayload): Promise<Word> {
+    const { data } = await api.patch<Word>(`/words/${id}`, payload)
     return data
   },
 

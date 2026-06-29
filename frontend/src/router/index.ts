@@ -20,6 +20,18 @@ const routes: RouteRecordRaw[] = [
     meta: { guest: true },
   },
   {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('@/pages/auth/ForgotPasswordPage.vue'),
+    meta: { guest: true },
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('@/pages/auth/ResetPasswordPage.vue'),
+    meta: { guest: true },
+  },
+  {
     path: '/onboarding',
     name: 'Onboarding',
     component: () => import('@/pages/OnboardingPage.vue'),
@@ -46,6 +58,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/main/LibraryPage.vue'),
       },
       {
+        path: 'my-decks',
+        name: 'MyDecks',
+        component: () => import('@/pages/main/MyDecksPage.vue'),
+      },
+      {
+        path: 'my-decks/:id',
+        name: 'DeckDetail',
+        component: () => import('@/pages/main/DeckDetailPage.vue'),
+      },
+      {
         path: 'learn',
         name: 'Learn',
         component: () => import('@/pages/main/LearnPage.vue'),
@@ -64,6 +86,12 @@ const routes: RouteRecordRaw[] = [
         path: 'profile',
         name: 'Profile',
         component: () => import('@/pages/main/ProfilePage.vue'),
+      },
+      {
+        path: 'admin/decks',
+        name: 'AdminDecks',
+        component: () => import('@/pages/admin/AdminDecksPage.vue'),
+        meta: { requiresAdmin: true },
       },
     ],
   },
@@ -85,6 +113,13 @@ router.beforeEach((to, _from, next) => {
     return
   }
   if (to.meta.guest && isAuthenticated) {
+    next('/dashboard')
+    return
+  }
+
+  // Admin-only routes: non-admins are bounced to the dashboard. The backend
+  // also enforces role ADMIN (403), this is just UX.
+  if (to.meta.requiresAdmin && user?.role !== 'ADMIN') {
     next('/dashboard')
     return
   }

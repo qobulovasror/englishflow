@@ -4,8 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:englishflow/features/auth/providers/auth_provider.dart';
 import 'package:englishflow/features/auth/screens/login_screen.dart';
 import 'package:englishflow/features/auth/screens/register_screen.dart';
+import 'package:englishflow/features/auth/screens/forgot_password_screen.dart';
+import 'package:englishflow/features/auth/screens/reset_password_screen.dart';
+import 'package:englishflow/features/words/models/word_model.dart';
 import 'package:englishflow/features/words/screens/words_screen.dart';
 import 'package:englishflow/features/words/screens/add_word_screen.dart';
+import 'package:englishflow/features/words/screens/edit_word_screen.dart';
 import 'package:englishflow/features/learning/screens/learn_screen.dart';
 import 'package:englishflow/features/learning/screens/flashcard_screen.dart';
 import 'package:englishflow/features/test/screens/test_screen.dart';
@@ -14,7 +18,11 @@ import 'package:englishflow/features/test/screens/quiz_result_screen.dart';
 import 'package:englishflow/features/progress/screens/progress_screen.dart';
 import 'package:englishflow/features/users/screens/profile_screen.dart';
 import 'package:englishflow/features/onboarding/screens/onboarding_screen.dart';
+import 'package:englishflow/features/decks/models/deck_model.dart';
 import 'package:englishflow/features/decks/screens/library_screen.dart';
+import 'package:englishflow/features/decks/screens/my_decks_screen.dart';
+import 'package:englishflow/features/decks/screens/deck_form_screen.dart';
+import 'package:englishflow/features/decks/screens/deck_detail_screen.dart';
 import 'package:englishflow/shared/widgets/main_scaffold.dart';
 import 'package:englishflow/features/auth/screens/splash_screen.dart';
 
@@ -30,7 +38,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
+          state.matchedLocation == '/register' ||
+          state.matchedLocation == '/forgot-password' ||
+          state.matchedLocation == '/reset-password';
       final isSplash = state.matchedLocation == '/splash';
       final isOnboarding = state.matchedLocation == '/onboarding';
 
@@ -68,6 +78,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) => const ResetPasswordScreen(),
       ),
       GoRoute(
         path: '/onboarding',
@@ -142,9 +160,32 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AddWordScreen(),
       ),
       GoRoute(
+        path: '/edit-word',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) =>
+            EditWordScreen(word: state.extra as WordModel),
+      ),
+      GoRoute(
         path: '/library',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const LibraryScreen(),
+      ),
+      GoRoute(
+        path: '/my-decks',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const MyDecksScreen(),
+      ),
+      GoRoute(
+        path: '/deck-form',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) =>
+            DeckFormScreen(deck: state.extra as DeckModel?),
+      ),
+      GoRoute(
+        path: '/deck-detail',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) =>
+            DeckDetailScreen(deck: state.extra as DeckModel),
       ),
     ],
   );

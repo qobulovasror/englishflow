@@ -157,6 +157,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Updates only the daily goal (no current password required). Persists and
+  /// syncs the refreshed user into state.
+  Future<UserModel> updateDailyGoal(int dailyGoal) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final updated = await _usersService.updateMe(
+        UpdateProfileRequest(dailyGoal: dailyGoal),
+      );
+      await _tokenStorage.saveUserData(jsonEncode(updated.toJson()));
+      state = state.copyWith(user: updated, isLoading: false);
+      return updated;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      rethrow;
+    }
+  }
+
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -174,6 +191,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: false, error: e.toString());
       rethrow;
     }
+  }
+
+  /// Requests a password-reset email. Errors are re-thrown so the caller can
+  /// decide how to surface them (the screen shows a neutral message on success).
+  Future<void> forgotPassword(String email) async {
+    await _authService.forgotPassword(email);
+  }
+
+  /// Completes a password reset with a token pasted from the email.
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    await _authService.resetPassword(token: token, newPassword: newPassword);
+  }
+
+  /// Sends a verification email to the currently authenticated user.
+  Future<void> requestEmailVerification() async {
+    await _authService.requestEmailVerification();
+  }
+
+  /// Permanently deletes the account, then clears the local session.
+  Future<void> deleteAccount(String currentPassword) async {
+    await _usersService.deleteMe(currentPassword);
+    await _tokenStorage.clearAll();
+    state = const AuthState();
   }
 
   Future<void> logout() async {

@@ -3,6 +3,9 @@ export interface AppConfig {
   port: number;
   corsOrigin: string;
   trustProxy: number;
+  // Base URL of the web client, used to build email links (password reset,
+  // email verification). Defaults to the first CORS_ORIGIN entry.
+  frontendUrl: string;
 }
 
 export interface JwtConfig {
@@ -27,6 +30,11 @@ export default (): Configuration => ({
     port: parseInt(process.env.PORT ?? '3000', 10),
     corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
     trustProxy: parseInt(process.env.TRUST_PROXY ?? '0', 10),
+    frontendUrl:
+      process.env.FRONTEND_URL ??
+      (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
+        .split(',')[0]
+        .trim(),
   },
   jwt: {
     secret: process.env.JWT_SECRET!,

@@ -8,6 +8,7 @@ import 'package:englishflow/features/learning/providers/learning_provider.dart';
 import 'package:englishflow/features/learning/services/learning_service.dart';
 import 'package:englishflow/shared/widgets/loading_widget.dart';
 import 'package:englishflow/shared/widgets/error_widget.dart';
+import 'package:englishflow/shared/widgets/speak_button.dart';
 
 class FlashcardScreen extends ConsumerStatefulWidget {
   const FlashcardScreen({super.key});
@@ -146,7 +147,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
                       ..setEntry(3, 2, 0.001)
                       ..rotateY(angle),
                     child: isFront
-                        ? _buildCardFront(word.word)
+                        ? _buildCardFront(word.word, word.audioUrl)
                         : Transform(
                             alignment: Alignment.center,
                             transform: Matrix4.identity()..rotateY(math.pi),
@@ -210,7 +211,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     );
   }
 
-  Widget _buildCardFront(String word) {
+  Widget _buildCardFront(String word, String? audioUrl) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -230,7 +231,19 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
         children: [
           const Icon(Icons.translate, size: 48, color: AppColors.secondary),
           const SizedBox(height: 24),
-          Text(word, style: AppTextStyles.heading1),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  word,
+                  style: AppTextStyles.heading1,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              SpeakButton(word: word, audioUrl: audioUrl, size: 28),
+            ],
+          ),
           const SizedBox(height: 12),
           Text('Tap to flip', style: AppTextStyles.caption),
         ],

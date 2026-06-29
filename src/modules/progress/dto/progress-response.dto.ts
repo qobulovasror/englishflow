@@ -56,6 +56,28 @@ export class TestStatsDto {
   recent: RecentTestDto[];
 }
 
+export class StreakStatsDto {
+  @ApiProperty({ example: 5, description: 'Consecutive active days ending today (or yesterday if not yet reviewed today)' })
+  @Expose()
+  current: number;
+
+  @ApiProperty({ example: 12, description: 'Longest consecutive active-day run ever' })
+  @Expose()
+  longest: number;
+
+  @ApiProperty({ example: 8, description: 'Reviews completed today (UTC)' })
+  @Expose()
+  todayCount: number;
+
+  @ApiProperty({ example: 20, description: "User's daily review goal" })
+  @Expose()
+  dailyGoal: number;
+
+  @ApiProperty({ example: false, description: 'Whether todayCount has reached dailyGoal' })
+  @Expose()
+  goalMet: boolean;
+}
+
 export class ProgressResponseDto {
   @ApiProperty({ type: VocabularyStatsDto })
   @Expose()
@@ -66,4 +88,9 @@ export class ProgressResponseDto {
   @Expose()
   @Type(() => TestStatsDto)
   tests: TestStatsDto;
+
+  @ApiProperty({ type: StreakStatsDto })
+  @Expose()
+  @Type(() => StreakStatsDto)
+  streak: StreakStatsDto;
 }

@@ -16,9 +16,13 @@ type MockedPrisma = {
     create: jest.Mock;
     findUnique: jest.Mock;
     update: jest.Mock;
+    delete: jest.Mock;
   };
   refreshToken: {
     deleteMany: jest.Mock;
+  };
+  deck: {
+    findMany: jest.Mock;
   };
   $transaction: jest.Mock;
 };
@@ -30,6 +34,8 @@ function buildUser(overrides: Partial<User> = {}): User {
     password: 'hashed',
     level: null,
     onboardedAt: null,
+    emailVerifiedAt: null,
+    dailyGoal: 20,
     createdAt: new Date(),
     updatedAt: new Date(),
     passwordChangedAt: new Date(),
@@ -48,9 +54,13 @@ describe('UsersService', () => {
         create: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
+        delete: jest.fn(),
       },
       refreshToken: {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      deck: {
+        findMany: jest.fn().mockResolvedValue([]),
       },
       $transaction: jest.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
     };
@@ -85,6 +95,7 @@ describe('UsersService', () => {
   describe('completeOnboarding', () => {
     it('enrolls in each deck, sets level, and stamps onboardedAt', async () => {
       prisma.user.findUnique.mockResolvedValue(buildUser());
+      prisma.deck.findMany.mockResolvedValue([{ id: 'd1' }, { id: 'd2' }]);
       prisma.user.update.mockImplementation(async ({ data }) =>
         buildUser({ ...data }),
       );
@@ -102,6 +113,19 @@ describe('UsersService', () => {
       expect(result.onboardedAt).toBeInstanceOf(Date);
     });
 
+    it('rejects an invalid deckId before enrolling or stamping onboardedAt', async () => {
+      prisma.user.findUnique.mockResolvedValue(buildUser());
+      // Only d1 is visible; d2 is missing/invisible.
+      prisma.deck.findMany.mockResolvedValue([{ id: 'd1' }]);
+
+      await expect(
+        service.completeOnboarding('u1', { deckIds: ['d1', 'd2'] }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(decks.enroll).not.toHaveBeenCalled();
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
     it('skips enrollment when no decks are chosen', async () => {
       prisma.user.findUnique.mockResolvedValue(buildUser());
       prisma.user.update.mockImplementation(async ({ data }) =>
@@ -111,6 +135,7 @@ describe('UsersService', () => {
       await service.completeOnboarding('u1', {});
 
       expect(decks.enroll).not.toHaveBeenCalled();
+      expect(prisma.deck.findMany).not.toHaveBeenCalled();
       expect(prisma.user.update.mock.calls[0][0].data.onboardedAt).toBeInstanceOf(
         Date,
       );
@@ -284,6 +309,43 @@ describe('UsersService', () => {
           newPassword: NEW,
         }),
       ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('deleteAccount', () => {
+    const CURRENT = 'CurrentPass123!';
+
+    async function userWithPassword(plain: string): Promise<User> {
+      return buildUser({ password: await bcrypt.hash(plain, 10) });
+    }
+
+    it('throws Unauthorized when the password is incorrect and does not delete', async () => {
+      prisma.user.findUnique.mockResolvedValue(await userWithPassword(CURRENT));
+
+      await expect(
+        service.deleteAccount('u1', 'wrong'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(prisma.user.delete).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFound when the user is missing', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.deleteAccount('u1', CURRENT),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(prisma.user.delete).not.toHaveBeenCalled();
+    });
+
+    it('deletes the account when the password is correct', async () => {
+      prisma.user.findUnique.mockResolvedValue(await userWithPassword(CURRENT));
+      prisma.user.delete.mockResolvedValue(buildUser());
+
+      await expect(service.deleteAccount('u1', CURRENT)).resolves.toBeUndefined();
+
+      expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: 'u1' } });
     });
   });
 });

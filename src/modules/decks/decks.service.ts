@@ -1,13 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { Prisma } from '@prisma/client';
+import { Deck, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WordResponseDto } from '../words/dto/word-response.dto';
+import { CreateDeckDto } from './dto/create-deck.dto';
+import { UpdateDeckDto } from './dto/update-deck.dto';
+import { AddDeckWordsDto } from './dto/add-deck-words.dto';
 import { DeckQueryDto } from './dto/deck-query.dto';
 import {
   DeckResponseDto,
   DeckDetailResponseDto,
   EnrollResponseDto,
+  AddDeckWordsResponseDto,
 } from './dto/deck-response.dto';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { paginate } from '../../common/utils/pagination.helper';
@@ -56,7 +64,7 @@ export class DecksService {
     );
 
     return paginate(
-      decks.map((d) => this.toDto(d, enrolledIds.has(d.id))),
+      decks.map((d) => this.toDto(d, enrolledIds.has(d.id), userId)),
       total,
       query,
     );
@@ -79,7 +87,7 @@ export class DecksService {
       decks.map((d) => d.id),
     );
 
-    return decks.map((d) => this.toDto(d, enrolledIds.has(d.id)));
+    return decks.map((d) => this.toDto(d, enrolledIds.has(d.id), userId));
   }
 
   async findOne(id: string, userId: string): Promise<DeckDetailResponseDto> {
@@ -100,7 +108,7 @@ export class DecksService {
     return plainToInstance(
       DeckDetailResponseDto,
       {
-        ...this.plainDeck(deck, isEnrolled),
+        ...this.plainDeck(deck, isEnrolled, userId),
         words: deck.words.map((w) =>
           plainToInstance(WordResponseDto, w, {
             excludeExtraneousValues: true,
@@ -149,6 +157,194 @@ export class DecksService {
     );
   }
 
+  async create(dto: CreateDeckDto, userId: string): Promise<DeckResponseDto> {
+    const deck = await this.prisma.deck.create({
+      data: {
+        title: dto.title,
+        description: dto.description,
+        level: dto.level,
+        isPublic: dto.isPublic ?? false,
+        isSystem: false,
+        createdById: userId,
+      },
+    });
+
+    // A freshly created deck has no words and the owner hasn't "enrolled" — it's
+    // theirs to edit, not a learning list they joined.
+    return this.toDto({ ...deck, _count: { words: 0 } }, false, userId);
+  }
+
+  async update(
+    id: string,
+    dto: UpdateDeckDto,
+    userId: string,
+  ): Promise<DeckResponseDto> {
+    await this.loadOwnedDeck(id, userId);
+
+    const deck = await this.prisma.deck.update({
+      where: { id },
+      data: {
+        ...(dto.title !== undefined && { title: dto.title }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.level !== undefined && { level: dto.level }),
+        ...(dto.isPublic !== undefined && { isPublic: dto.isPublic }),
+      },
+      include: { _count: { select: { words: true } } },
+    });
+
+    const isEnrolled = await this.isEnrolled(userId, id);
+    return this.toDto(deck, isEnrolled, userId);
+  }
+
+  async remove(id: string, userId: string): Promise<{ message: string }> {
+    await this.loadOwnedDeck(id, userId);
+
+    // Cascades remove the deck's words (and their UserWord/testQuestion rows)
+    // plus any enrollments via the schema's onDelete: Cascade relations.
+    await this.prisma.deck.delete({ where: { id } });
+
+    return { message: 'Deck deleted successfully' };
+  }
+
+  async addWords(
+    id: string,
+    dto: AddDeckWordsDto,
+    userId: string,
+  ): Promise<AddDeckWordsResponseDto> {
+    const deck = await this.loadOwnedDeck(id, userId);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.word.createMany({
+        data: dto.words.map((w) => ({
+          word: w.word,
+          translation: w.translation,
+          example: w.example,
+          audioUrl: w.audioUrl,
+          deckId: id,
+          createdById: userId,
+        })),
+      });
+    });
+
+    const wordCount = await this.prisma.word.count({ where: { deckId: id } });
+
+    return plainToInstance(
+      AddDeckWordsResponseDto,
+      {
+        message: `Added ${dto.words.length} words to "${deck.title}"`,
+        addedCount: dto.words.length,
+        wordCount,
+      },
+      { excludeExtraneousValues: true },
+    );
+  }
+
+  async removeWord(
+    id: string,
+    wordId: string,
+    userId: string,
+  ): Promise<{ message: string }> {
+    await this.loadOwnedDeck(id, userId);
+
+    const word = await this.prisma.word.findUnique({ where: { id: wordId } });
+    if (!word || word.deckId !== id) {
+      throw new NotFoundException('Word not found in this deck');
+    }
+
+    // Cascades remove the word's UserWord and testQuestion rows.
+    await this.prisma.word.delete({ where: { id: wordId } });
+
+    return { message: 'Word removed from deck' };
+  }
+
+  // --- Admin scope ---------------------------------------------------------
+  // These methods back the /admin/decks endpoints (RolesGuard + @Roles(ADMIN)).
+  // They deliberately skip the per-user ownership checks above: an admin curates
+  // shared/system content, so access is gated by role at the controller layer.
+
+  /** Creates a curated SYSTEM deck (no individual owner, visible to everyone). */
+  async adminCreate(dto: CreateDeckDto): Promise<DeckResponseDto> {
+    const deck = await this.prisma.deck.create({
+      data: {
+        title: dto.title,
+        description: dto.description,
+        level: dto.level,
+        isPublic: true,
+        isSystem: true,
+        createdById: null,
+      },
+    });
+
+    // No current user in admin scope, and a system deck has no individual owner
+    // (createdById is null), so isOwner resolves to false for everyone.
+    return this.toDto({ ...deck, _count: { words: 0 } }, false, '');
+  }
+
+  /** Adds words to ANY deck, bypassing the owner check. */
+  async adminAddWords(
+    id: string,
+    dto: AddDeckWordsDto,
+  ): Promise<AddDeckWordsResponseDto> {
+    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    if (!deck) {
+      throw new NotFoundException('Deck not found');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.word.createMany({
+        data: dto.words.map((w) => ({
+          word: w.word,
+          translation: w.translation,
+          example: w.example,
+          audioUrl: w.audioUrl,
+          deckId: id,
+          createdById: null,
+        })),
+      });
+    });
+
+    const wordCount = await this.prisma.word.count({ where: { deckId: id } });
+
+    return plainToInstance(
+      AddDeckWordsResponseDto,
+      {
+        message: `Added ${dto.words.length} words to "${deck.title}"`,
+        addedCount: dto.words.length,
+        wordCount,
+      },
+      { excludeExtraneousValues: true },
+    );
+  }
+
+  /** Deletes ANY deck. Cascades remove its words and enrollments. */
+  async adminRemove(id: string): Promise<{ message: string }> {
+    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    if (!deck) {
+      throw new NotFoundException('Deck not found');
+    }
+
+    await this.prisma.deck.delete({ where: { id } });
+
+    return { message: 'Deck deleted successfully' };
+  }
+
+  // Loads a deck the user is allowed to mutate. The same 404/403 guard backs
+  // every write path so the ownership rule lives in one place: system decks and
+  // other users' decks are off-limits.
+  private async loadOwnedDeck(id: string, userId: string): Promise<Deck> {
+    const deck = await this.prisma.deck.findUnique({ where: { id } });
+
+    if (!deck) {
+      throw new NotFoundException('Deck not found');
+    }
+
+    if (deck.isSystem || deck.createdById !== userId) {
+      throw new ForbiddenException('You can only edit your own decks');
+    }
+
+    return deck;
+  }
+
   private async enrolledDeckIds(
     userId: string,
     deckIds: string[],
@@ -172,6 +368,7 @@ export class DecksService {
   private plainDeck(
     deck: { _count?: { words: number } } & Record<string, unknown>,
     isEnrolled: boolean,
+    userId: string,
   ) {
     return {
       id: deck.id,
@@ -179,6 +376,10 @@ export class DecksService {
       description: deck.description,
       level: deck.level,
       isSystem: deck.isSystem,
+      // System decks are curated content with no individual owner, so they're
+      // never "public" in the user-sharing sense; keep isPublic real otherwise.
+      isPublic: deck.isSystem ? false : Boolean(deck.isPublic),
+      isOwner: deck.createdById === userId,
       wordCount: deck._count?.words ?? 0,
       isEnrolled,
       createdAt: deck.createdAt,
@@ -188,9 +389,12 @@ export class DecksService {
   private toDto(
     deck: { _count?: { words: number } } & Record<string, unknown>,
     isEnrolled: boolean,
+    userId: string,
   ): DeckResponseDto {
-    return plainToInstance(DeckResponseDto, this.plainDeck(deck, isEnrolled), {
-      excludeExtraneousValues: true,
-    });
+    return plainToInstance(
+      DeckResponseDto,
+      this.plainDeck(deck, isEnrolled, userId),
+      { excludeExtraneousValues: true },
+    );
   }
 }

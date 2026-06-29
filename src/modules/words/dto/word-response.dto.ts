@@ -18,6 +18,12 @@ export class WordResponseDto {
   @Expose()
   example?: string | null;
 
+  @ApiPropertyOptional({
+    example: 'https://cdn.example.com/audio/serendipity.mp3',
+  })
+  @Expose()
+  audioUrl?: string | null;
+
   @ApiProperty({ format: 'date-time' })
   @Expose()
   createdAt: Date;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import AppInput from '@/components/AppInput.vue'
@@ -8,8 +9,12 @@ import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const authStore = useAuthStore()
 useThemeStore()
+const route = useRoute()
 const email = ref('')
 const password = ref('')
+
+// Shown after a successful password reset redirect.
+const resetNotice = computed(() => route.query.notice === 'password-reset')
 
 async function handleSubmit() {
   await authStore.login(email.value, password.value)
@@ -29,6 +34,13 @@ async function handleSubmit() {
       </div>
 
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+        <p
+          v-if="resetNotice"
+          class="text-sm text-green-600 dark:text-green-400 mb-4"
+        >
+          Your password has been reset. You can now sign in.
+        </p>
+
         <form @submit.prevent="handleSubmit" class="space-y-5">
           <AppInput
             v-model="email"
@@ -45,6 +57,15 @@ async function handleSubmit() {
             placeholder="Enter your password"
             required
           />
+
+          <div class="text-right">
+            <router-link
+              to="/forgot-password"
+              class="text-sm text-primary-600 hover:underline font-medium"
+            >
+              Forgot password?
+            </router-link>
+          </div>
 
           <p v-if="authStore.error" class="text-sm text-red-500">{{ authStore.error }}</p>
 
