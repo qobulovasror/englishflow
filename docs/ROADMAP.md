@@ -138,3 +138,16 @@ Bu ishlar buzuvchi yoki keng refactor xavfi tug'dirgani uchun qoldirildi — alo
 - **Mobile router refactori** — `routerProvider` har auth emissiyasida `GoRouter`ni qayta yaratadi; `refreshListenable`ga o'tkazish navigatsiya holatiga ta'sir qilishi mumkin, qurilmada sinash kerak.
 - **Per-email throttle (forgot/verify)** — IP-throttle bor; email-bombingga qarshi per-akkaunt cooldown qo'shilishi mumkin (Low).
 - **Shared-deck so'z o'chirilganda cascade** — public/system deckdan so'z o'chirilsa boshqa foydalanuvchilar progressi ham o'chadi; ataylab shunday, lekin soft-detach yaxshiroq bo'lardi.
+
+---
+
+## 6. Kelajak g'oyalari (rejadan tashqari / backlog)
+
+Bu g'oyalar dastlabki 7 bosqich rejasida yo'q edi — ular kengaytirish uchun nomzodlar. Hali baholanmagan/ustuvorlashtirilmagan.
+
+- **Offline rejim + sync (mobile)** — kartalarni internetsiz takrorlash va keyin serverga sinxronlash. Eng yirik ish; alohida arxitektura (lokal DB, conflict resolution) talab qiladi.
+- **Ijtimoiy / leaderboard** — do'stlar, reyting, deck ulashish/tavsiya, raqobat.
+- **Ma'lumot import/eksport** — lug'atni CSV/Anki formatida import/eksport qilish; deck ulashish havolasi.
+- **Adaptiv testlar** — qiyinlikni foydalanuvchi natijasiga moslash; test natijasini SM-2 jadvaliga qaytarish (item analysis asosida).
+- **Boyitilgan kontent** — so'zlarga rasm, sinonim/antonim, talaffuz transkripsiyasi (IPA); deck bo'yicha namunaviy matnlar.
+- **Gamifikatsiya** — XP/darajalar, nishonlar (badges), kunlik streak mukofotlari.
