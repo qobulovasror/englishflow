@@ -21,29 +21,32 @@ Foydalanuvchi yo'li:
 
 Belgilar: ✅ tugallangan · ⚠️ qisman/yaxshilash kerak · ❌ yo'q
 
+> **Yangilangan (2026-06-29):** quyidagi jadval **ishlar bajarilgandan keyingi** holatni ko'rsatadi. Bosqichma-bosqich kim nima qilgani §5'da. `(★)` — shu branchda qo'shilgan.
+
 | Domen | Backend | Web | Mobile | Izoh |
 |-------|:---:|:---:|:---:|------|
 | **Auth** (register/login/refresh rotation/logout) | ✅ | ✅ | ✅ | Token rotation + reuse detection mustahkam |
-| **Parolni tiklash / email tasdiqlash** | ❌ | ❌ | ❌ | Recovery flow yo'q |
+| **Parolni tiklash / email tasdiqlash** | ✅ | ✅ | ✅ | (★) Recovery flow tayyor. Email yetkazish uchun real SMTP transport ulanishi kerak (mailer dev'da loglaydi) |
 | **Onboarding** (CEFR daraja + deck tanlash) | ✅ | ✅ | ✅ | To'liq, enforce qilingan |
-| **Shaxsiy so'zlar (Words CRUD)** | ⚠️ | ⚠️ | ✅ | Backend: edit yo'q, faqat create/delete. Web: pagination UI yo'q, status filtri yo'q |
+| **Shaxsiy so'zlar (Words CRUD)** | ✅ | ✅ | ✅ | (★) `PATCH /words/:id` edit, status filtri, web pagination/edit UI qo'shildi |
 | **Decklar — browse + enroll** | ✅ | ✅ | ✅ | Faqat o'qish + yozilish |
-| **Deck yaratish/tahrirlash (user/admin)** | ❌ | ❌ | ❌ | Schema tayyor (`createdById`, `isPublic`), API yo'q. "Phase C" izohi schema'da bor |
-| **Learning — SM-2 SRS** | ✅ | ✅ | ✅ | Kunlik due + 20 yangi karta cap, 4-tugma grading |
+| **Deck yaratish/tahrirlash (user)** | ✅ | ✅ | ✅ | (★) Deck CRUD + so'z boshqaruvi, `isOwner`/`isPublic` gate |
+| **Learning — SM-2 SRS** | ✅ | ✅ | ✅ | Kunlik due + 20 yangi karta cap, 4-tugma grading; (★) har review log qilinadi |
 | **Tests (MCQ quiz)** | ✅ | ✅ | ✅ | Server-authoritative, submit-once |
-| **Progress / analitika** | ⚠️ | ⚠️ | ⚠️ | Faqat global stats. Per-deck, streak, trend yo'q |
-| **Profil** (email/parol o'zgartirish) | ✅ | ✅ | ✅ | Akkaunt o'chirish yo'q |
-| **RBAC / admin panel** | ❌ | ❌ | ❌ | `RolesGuard` bor, `User.roles` ustuni yo'q |
-| **Audio / talaffuz (TTS)** | ❌ | ❌ | ❌ | So'zlar faqat matn |
-| **Streak / kunlik maqsad / bildirishnoma** | ❌ | ❌ | ❌ | Engagement mexanizmi yo'q |
-| **Offline rejim (mobile)** | ❌ | — | ❌ | Sync yo'q |
+| **Progress / analitika** | ✅ | ✅ | ✅ | (★) streak, daily-goal, trend grafiklar, per-deck breakdown, leeches |
+| **Profil** (email/parol/akkaunt o'chirish) | ✅ | ✅ | ✅ | (★) `DELETE /users/me` (parol bilan) qo'shildi |
+| **RBAC / admin panel** | ✅ | ✅ | — | (★) `Role` + `RolesGuard` + `/admin/decks`; admin UI faqat web'da |
+| **Audio / talaffuz** | ✅ | ✅ | ✅ | (★) `Word.audioUrl`; Web Speech API (web) + `flutter_tts` (mobile) |
+| **Streak / kunlik maqsad** | ✅ | ✅ | ✅ | (★) Review log asosida streak + goal ring |
+| **Push / local bildirishnoma** | ❌ | — | ❌ | Qurilma + FCM/local-notif sozlamasi kerak — qoldirildi |
+| **Offline rejim (mobile)** | ❌ | — | ❌ | Sync yo'q — qoldirildi |
 
-### Texnik/infra ochiq ishlar
-- ⚠️ Refresh-token cleanup cron (eskirgan satrlar yig'ilib qoladi; `expiresAt` indeks tayyor).
-- ⚠️ Soft-delete / audit log yo'q (User/Word hard-delete cascade).
-- ⚠️ Backend test coverage ~32% (hot path'lar 90–100%, lekin kengaytirish kerak).
-- ⚠️ Mobile: widget/provider testlari yo'q (faqat model/parser testlari).
-- ⚠️ Dual type system (web): qo'lda yozilgan `types/index.ts` + generatsiya `types/api.ts`.
+### Texnik/infra holati
+- ✅ (★) Refresh-token cleanup cron (`@nestjs/schedule`, har kuni 3:00; expired refresh + expired/used auth tokenlar).
+- ✅ (★) Backend test coverage **32% → 83%** (statements); mobile provider/widget testlari qo'shildi (83 test).
+- ❌ Soft-delete / audit log — hali hard-delete cascade (qoldirildi, alohida PR).
+- ⚠️ Dual type system (web): qo'lda `types/index.ts` + generatsiya `types/api.ts` — birlashtirilmagan (qoldirildi).
+- ⚠️ Mobile router `routerProvider` har auth o'zgarishida `GoRouter`ni qayta yaratadi — `refreshListenable`ga refactor kutilmoqda.
 
 ---
 
@@ -51,7 +54,7 @@ Belgilar: ✅ tugallangan · ⚠️ qisman/yaxshilash kerak · ❌ yo'q
 
 Tartib **qiymat × xarajat** bo'yicha. Har bosqich mustaqil yetkazib beriladigan (shippable) bo'lakcha.
 
-### Bosqich 1 — Polish & mavjud bo'shliqlarni yopish (kam xarajat, tez g'alaba)
+### ✅ Bosqich 1 — Polish & mavjud bo'shliqlarni yopish (kam xarajat, tez g'alaba) — BAJARILDI
 Maqsad: hozirgi MVP'ni "tugallangan" his qildirish.
 - **Web:** Words sahifasiga pagination/"load more" UI (store'da `loadMore` bor, ulanmagan).
 - **Web:** Words'ga status filtri (NEW/LEARNING/LEARNED) va saralash.
@@ -60,38 +63,39 @@ Maqsad: hozirgi MVP'ni "tugallangan" his qildirish.
 - **Backend:** `PATCH /words/:id` — so'zni tahrirlash.
 - **Learning UX (3 client):** kartada "keyingi takror N kundan keyin" ko'rsatish.
 
-### Bosqich 2 — Foydalanuvchi decklari (schema'dagi "Phase C")
+### ✅ Bosqich 2 — Foydalanuvchi decklari (schema'dagi "Phase C") — BAJARILDI
+> Eslatma: shaxsiy so'zlar uchun "personal deck backfill" qilinmadi (schema kerak emas edi); deck CRUD to'liq ishlaydi.
 Maqsad: foydalanuvchi o'z to'plamlarini yaratsin/ulashsin.
 - **Backend:** `POST/PATCH/DELETE /decks` + decklarga so'z qo'shish/olib tashlash. Shaxsiy so'zlarni "personal deck"ka bog'lash (`Word.deckId`).
 - **Backend:** `isPublic` decklarni ulashish (havola/ko'rinish nazorati).
 - **Web + Mobile:** deck yaratish/tahrirlash ekranlari, "mening decklarim"ni boshqarish.
 - **Migration:** mavjud shaxsiy so'zlar uchun personal deck backfill.
 
-### Bosqich 3 — Engagement (streak, maqsad, bildirishnoma)
+### ✅ Bosqich 3 — Engagement (streak, maqsad) — BAJARILDI (push/local bildirishnoma ❌ qoldirildi)
 Maqsad: kundalik qaytib kelishni oshirish.
 - **Backend:** streak hisoblash (`UserWord`/review log asosida), kunlik maqsad (kartalar soni), `GET /progress`ga qo'shish.
 - **Web + Mobile:** dashboard'da streak + kunlik maqsad halqasi.
 - **Mobile:** push/local bildirishnoma ("bugun N karta tayyor").
 - (Ixtiyoriy) review log jadvali — keyingi analitika uchun poydevor.
 
-### Bosqich 4 — Analitika chuqurligi
+### ✅ Bosqich 4 — Analitika chuqurligi — BAJARILDI (test→SRS qaytarish ❌ qilinmadi, ixtiyoriy edi)
 Maqsad: foydalanuvchi va kontent sifati haqida ko'proq tushuncha.
 - **Backend:** per-deck progress, haftalik/oylik trend, leech (ko'p `lapses`) aniqlash.
 - **Web + Mobile:** trend grafiklari (heatmap/chart), per-deck breakdown.
 - **Tests:** so'z bo'yicha xato darajasi (item analysis), test natijasini SRS'ga qaytarish (ixtiyoriy).
 
-### Bosqich 5 — Audio / talaffuz
+### ✅ Bosqich 5 — Audio / talaffuz — BAJARILDI
 Maqsad: eshitish orqali o'rganish.
 - **Backend/Content:** so'zlarga audio URL yoki TTS integratsiyasi.
 - **Web + Mobile:** flashcard va so'z ro'yxatida "tinglash" tugmasi.
 
-### Bosqich 6 — Akkaunt va xavfsizlik yetukligi
+### ✅ Bosqich 6 — Akkaunt va xavfsizlik yetukligi — BAJARILDI (real SMTP transport ulanishi kerak)
 Maqsad: production-grade akkaunt boshqaruvi.
 - **Backend:** email tasdiqlash, parolni tiklash (ikkalasi `passwordChangedAt`ni qayta ishlatadi), akkaunt o'chirish.
 - **Backend:** RBAC — `User.roles` ustuni + admin endpointlar (deck/so'z moderatsiyasi). `RolesGuard` allaqachon tayyor.
 - **Admin panel (web):** kontent boshqaruvi.
 
-### Bosqich 7 — Infra & sifat (cross-cutting, davomli)
+### ⚠️ Bosqich 7 — Infra & sifat (cross-cutting, davomli) — QISMAN: ✅ cleanup cron + ✅ coverage; ❌ soft-delete/audit + ❌ web type birlashtiruvi qoldirildi
 Maqsad: barqarorlik va ishonch.
 - **Backend:** eskirgan refresh-tokenlar uchun kunlik cleanup cron.
 - **Backend:** soft-delete + audit log (kerakli joylarda).
