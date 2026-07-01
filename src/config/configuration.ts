@@ -18,10 +18,23 @@ export interface DatabaseConfig {
   url: string;
 }
 
+export interface MailConfig {
+  // SMTP host of the transactional provider (e.g. smtp.resend.com). Unset
+  // means "no transport wired up" — the mailer falls back to console-logging
+  // in dev and warning in prod, so the app runs without email configured.
+  host?: string;
+  port: number;
+  user?: string;
+  pass?: string;
+  // RFC 5322 From header, e.g. "EnglishFlow <no-reply@englishflow.app>".
+  from: string;
+}
+
 export interface Configuration {
   app: AppConfig;
   jwt: JwtConfig;
   database: DatabaseConfig;
+  mail: MailConfig;
 }
 
 export default (): Configuration => ({
@@ -46,5 +59,12 @@ export default (): Configuration => ({
   },
   database: {
     url: process.env.DATABASE_URL!,
+  },
+  mail: {
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT ?? '587', 10),
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+    from: process.env.MAIL_FROM ?? 'EnglishFlow <no-reply@englishflow.app>',
   },
 });

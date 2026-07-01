@@ -48,4 +48,19 @@ export const envValidationSchema = Joi.object({
   // client cannot forge it. 0 (default) = no proxy: XFF is ignored entirely and
   // `req.ip` is the raw socket address. Behind one nginx/Cloudflare set this to 1.
   TRUST_PROXY: Joi.number().integer().min(0).default(0),
+  // SMTP transport for transactional email (password reset, email verify).
+  // All optional: with SMTP_HOST unset the mailer logs in dev / warns in prod.
+  // Once a host is given, credentials become required so a half-configured
+  // transport can't fail silently at send time.
+  SMTP_HOST: Joi.string().hostname().optional(),
+  SMTP_PORT: Joi.number().port().default(587),
+  SMTP_USER: Joi.string().when('SMTP_HOST', {
+    is: Joi.exist(),
+    then: Joi.required(),
+  }),
+  SMTP_PASS: Joi.string().when('SMTP_HOST', {
+    is: Joi.exist(),
+    then: Joi.required(),
+  }),
+  MAIL_FROM: Joi.string().default('EnglishFlow <no-reply@englishflow.app>'),
 });
