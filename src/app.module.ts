@@ -12,6 +12,7 @@ import { TestsModule } from './modules/tests/tests.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { HealthModule } from './modules/health/health.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
@@ -61,6 +62,7 @@ import { envValidationSchema } from './config/env.validation';
     ProgressModule,
     HealthModule,
     MaintenanceModule,
+    AdminModule,
   ],
   providers: [
     {

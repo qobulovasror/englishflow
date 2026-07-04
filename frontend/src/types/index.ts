@@ -229,3 +229,106 @@ export interface LeechWord {
   status: WordStatus
   lastReviewedAt: string | null
 }
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+
+export interface AdminUserCounts {
+  words: number
+  decks: number
+  enrollments: number
+  reviews: number
+  tests: number
+}
+
+export interface AdminUser {
+  id: string
+  email: string
+  role: UserRole
+  level?: CefrLevel | null
+  dailyGoal: number
+  onboardedAt?: string | null
+  emailVerifiedAt?: string | null
+  createdAt: string
+  updatedAt: string
+  counts: AdminUserCounts
+}
+
+export interface AdminWord {
+  id: string
+  word: string
+  translation: string
+  example?: string | null
+  audioUrl?: string | null
+  deckId?: string | null
+  deckTitle?: string | null
+  createdById?: string | null
+  ownerEmail?: string | null
+  // True when the word has no individual owner (curated/system content).
+  isSystem: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminDeckRow {
+  id: string
+  title: string
+  description?: string | null
+  level?: CefrLevel | null
+  isSystem: boolean
+  isPublic: boolean
+  wordCount: number
+  createdById?: string | null
+  ownerEmail?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminDeckDetail extends AdminDeckRow {
+  words: Word[]
+}
+
+export interface AdminStatsOverview {
+  users: {
+    total: number
+    admins: number
+    verified: number
+    onboarded: number
+    newToday: number
+    newThisWeek: number
+  }
+  decks: { total: number; system: number }
+  words: { total: number }
+  reviews: { total: number; today: number }
+  tests: { total: number }
+}
+
+// One day of the signup trend (dense, oldest→newest).
+export interface SignupPoint {
+  date: string
+  count: number
+}
+
+export interface CreateAdminWordPayload {
+  word: string
+  translation: string
+  example?: string
+  audioUrl?: string
+  deckId?: string
+}
+
+export interface UpdateAdminWordPayload {
+  word?: string
+  translation?: string
+  // `null` clears the field; `undefined` leaves it unchanged.
+  example?: string | null
+  audioUrl?: string | null
+}
+
+// A word to add to a deck. Like CreateWordPayload but also carries audioUrl,
+// which the deck-words endpoint accepts.
+export interface DeckWordInput {
+  word: string
+  translation: string
+  example?: string
+  audioUrl?: string
+}

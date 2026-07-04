@@ -17,8 +17,20 @@ import {
   EnrollResponseDto,
   AddDeckWordsResponseDto,
 } from './dto/deck-response.dto';
+import {
+  AdminDeckRowDto,
+  AdminDeckDetailDto,
+} from './dto/admin-deck-response.dto';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { paginate } from '../../common/utils/pagination.helper';
+
+/** A deck row loaded with the metadata the admin table needs. */
+type DeckWithAdminMeta = Prisma.DeckGetPayload<{
+  include: {
+    _count: { select: { words: true } };
+    createdBy: { select: { email: true } };
+  };
+}>;
 
 @Injectable()
 export class DecksService {
@@ -326,6 +338,138 @@ export class DecksService {
     await this.prisma.deck.delete({ where: { id } });
 
     return { message: 'Deck deleted successfully' };
+  }
+
+  /**
+   * Lists EVERY deck (system + user-owned) with owner context, for the admin
+   * management table. Unlike `findAll`, there is no per-user visibility filter.
+   */
+  async adminList(
+    query: DeckQueryDto,
+  ): Promise<PaginatedResponseDto<AdminDeckRowDto>> {
+    const where: Prisma.DeckWhereInput = {
+      AND: [
+        query.level ? { level: query.level } : {},
+        query.search
+          ? { title: { contains: query.search, mode: 'insensitive' } }
+          : {},
+      ],
+    };
+
+    const [decks, total] = await this.prisma.$transaction([
+      this.prisma.deck.findMany({
+        where,
+        skip: query.skip,
+        take: query.take,
+        orderBy: [{ isSystem: 'desc' }, { createdAt: 'desc' }],
+        include: {
+          _count: { select: { words: true } },
+          createdBy: { select: { email: true } },
+        },
+      }),
+      this.prisma.deck.count({ where }),
+    ]);
+
+    return paginate(
+      decks.map((d) => this.toAdminRow(d)),
+      total,
+      query,
+    );
+  }
+
+  /** Deck detail for admin management: any deck plus its full word list. */
+  async adminFindOne(id: string): Promise<AdminDeckDetailDto> {
+    const deck = await this.prisma.deck.findUnique({
+      where: { id },
+      include: {
+        words: { orderBy: { createdAt: 'asc' } },
+        _count: { select: { words: true } },
+        createdBy: { select: { email: true } },
+      },
+    });
+    if (!deck) {
+      throw new NotFoundException('Deck not found');
+    }
+
+    return plainToInstance(
+      AdminDeckDetailDto,
+      {
+        ...this.adminRowPlain(deck),
+        words: deck.words.map((w) =>
+          plainToInstance(WordResponseDto, w, {
+            excludeExtraneousValues: true,
+          }),
+        ),
+      },
+      { excludeExtraneousValues: true },
+    );
+  }
+
+  /** Updates ANY deck's metadata, bypassing the owner check. */
+  async adminUpdate(id: string, dto: UpdateDeckDto): Promise<AdminDeckRowDto> {
+    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    if (!deck) {
+      throw new NotFoundException('Deck not found');
+    }
+
+    const updated = await this.prisma.deck.update({
+      where: { id },
+      data: {
+        ...(dto.title !== undefined && { title: dto.title }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.level !== undefined && { level: dto.level }),
+        ...(dto.isPublic !== undefined && { isPublic: dto.isPublic }),
+      },
+      include: {
+        _count: { select: { words: true } },
+        createdBy: { select: { email: true } },
+      },
+    });
+
+    return this.toAdminRow(updated);
+  }
+
+  /** Removes a single word from ANY deck. */
+  async adminRemoveWord(
+    id: string,
+    wordId: string,
+  ): Promise<{ message: string }> {
+    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    if (!deck) {
+      throw new NotFoundException('Deck not found');
+    }
+
+    const word = await this.prisma.word.findUnique({ where: { id: wordId } });
+    if (!word || word.deckId !== id) {
+      throw new NotFoundException('Word not found in this deck');
+    }
+
+    await this.prisma.word.delete({ where: { id: wordId } });
+
+    return { message: 'Word removed from deck' };
+  }
+
+  private adminRowPlain(deck: DeckWithAdminMeta) {
+    return {
+      id: deck.id,
+      title: deck.title,
+      description: deck.description,
+      level: deck.level,
+      isSystem: deck.isSystem,
+      // System decks are curated content with no owner-sharing semantics.
+      isPublic: deck.isSystem ? false : Boolean(deck.isPublic),
+      wordCount: deck._count.words,
+      createdById: deck.createdById,
+      ownerEmail: deck.createdBy?.email ?? null,
+      createdAt: deck.createdAt,
+      updatedAt: deck.updatedAt,
+    };
+  }
+
+  private toAdminRow(deck: DeckWithAdminMeta): AdminDeckRowDto {
+    return plainToInstance(AdminDeckRowDto, this.adminRowPlain(deck), {
+      excludeExtraneousValues: true,
+    });
   }
 
   // Loads a deck the user is allowed to mutate. The same 404/403 guard backs
