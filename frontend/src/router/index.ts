@@ -32,6 +32,14 @@ const routes: RouteRecordRaw[] = [
     meta: { guest: true },
   },
   {
+    // Reachable whether signed in or out: the verify endpoint is public, and a
+    // logged-in user (the common case) must NOT be bounced away before it runs.
+    // Deliberately no `guest`/`requiresAuth` meta.
+    path: '/verify-email',
+    name: 'VerifyEmail',
+    component: () => import('@/pages/auth/VerifyEmailPage.vue'),
+  },
+  {
     path: '/onboarding',
     name: 'Onboarding',
     component: () => import('@/pages/OnboardingPage.vue'),
@@ -172,7 +180,8 @@ router.beforeEach((to, _from, next) => {
   // predates the field (undefined) are left alone — the backend backfilled them
   // as onboarded already.
   const needsOnboarding = isAuthenticated && user?.onboardedAt === null
-  if (needsOnboarding && to.name !== 'Onboarding') {
+  // Let the verify-email flow complete even for a not-yet-onboarded user.
+  if (needsOnboarding && to.name !== 'Onboarding' && to.name !== 'VerifyEmail') {
     next('/onboarding')
     return
   }

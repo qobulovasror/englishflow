@@ -4,11 +4,11 @@ import Sidebar from '@/components/Sidebar.vue'
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
     <Navbar />
-    <div class="flex">
+    <div class="flex flex-1 min-h-0">
       <Sidebar />
-      <main class="flex-1 p-8">
+      <main class="flex-1 overflow-y-auto p-8">
         <RouterView />
       </main>
     </div>

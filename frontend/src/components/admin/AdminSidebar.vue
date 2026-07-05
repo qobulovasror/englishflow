@@ -17,7 +17,7 @@ function isActive(path: string): boolean {
 </script>
 
 <template>
-  <aside class="w-64 shrink-0 bg-gray-900 text-gray-300 min-h-screen flex flex-col">
+  <aside class="w-64 shrink-0 bg-gray-900 text-gray-300 h-full flex flex-col">
     <div class="h-16 flex items-center gap-2 px-6 border-b border-gray-800">
       <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary-600 text-white font-bold">E</span>
       <div class="leading-tight">
@@ -26,7 +26,7 @@ function isActive(path: string): boolean {
       </div>
     </div>
 
-    <nav class="flex-1 p-4 space-y-1">
+    <nav class="flex-1 overflow-y-auto p-4 space-y-1">
       <router-link
         v-for="item in navItems"
         :key="item.path"
