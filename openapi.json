@@ -1480,228 +1480,6 @@
         ]
       }
     },
-    "/admin/decks": {
-      "post": {
-        "operationId": "AdminDecksController_create",
-        "summary": "Create a curated system deck (admin)",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDeckDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "System deck created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "data",
-                    "timestamp"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/DeckResponseDto"
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Requires the ADMIN role",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Admin"
-        ],
-        "security": [
-          {
-            "JWT": []
-          }
-        ]
-      }
-    },
-    "/admin/decks/{id}/words": {
-      "post": {
-        "operationId": "AdminDecksController_addWords",
-        "summary": "Add words to any deck (admin)",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddDeckWordsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Words added",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "data",
-                    "timestamp"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/AddDeckWordsResponseDto"
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Requires the ADMIN role",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponseDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Deck not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Admin"
-        ],
-        "security": [
-          {
-            "JWT": []
-          }
-        ]
-      }
-    },
-    "/admin/decks/{id}": {
-      "delete": {
-        "operationId": "AdminDecksController_remove",
-        "summary": "Delete any deck (admin)",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Deck deleted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "example": {
-                        "message": "Deck deleted successfully"
-                      }
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Requires the ADMIN role",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponseDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Deck not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Admin"
-        ],
-        "security": [
-          {
-            "JWT": []
-          }
-        ]
-      }
-    },
     "/words": {
       "post": {
         "operationId": "WordsController_create",
@@ -2476,6 +2254,1339 @@
         },
         "tags": [
           "Health"
+        ]
+      }
+    },
+    "/admin/stats/overview": {
+      "get": {
+        "operationId": "AdminDashboardController_overview",
+        "summary": "Aggregate platform metrics (admin)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Overview counts for users, decks, words, reviews and tests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminStatsOverviewDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/admin/stats/signups": {
+      "get": {
+        "operationId": "AdminDashboardController_signups",
+        "summary": "Daily signup trend (admin)",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "description": "Length of the trailing daily window",
+            "schema": {
+              "minimum": 1,
+              "maximum": 365,
+              "default": 30,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dense daily signup series, oldest→newest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SignupPointDto"
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "operationId": "AdminUsersController_list",
+        "summary": "List users with search, role filter and paging (admin)",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "1-based page number",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (capped at 100)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive email search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Filter by role",
+            "schema": {
+              "enum": [
+                "USER",
+                "ADMIN"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "total",
+                        "page",
+                        "limit",
+                        "hasMore"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AdminUserResponseDto"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "example": 137
+                        },
+                        "page": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "example": 20
+                        },
+                        "hasMore": {
+                          "type": "boolean",
+                          "example": true
+                        }
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/admin/users/{id}": {
+      "get": {
+        "operationId": "AdminUsersController_getOne",
+        "summary": "Get a single user with relation counts (admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminUserResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "AdminUsersController_remove",
+        "summary": "Permanently delete a user (admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "example": {
+                        "message": "User deleted"
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Deleting own account, or the last remaining admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/admin/users/{id}/role": {
+      "patch": {
+        "operationId": "AdminUsersController_changeRole",
+        "summary": "Change a user role (admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminUserResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Changing own role, or demoting the last remaining admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/admin/users/{id}/verify-email": {
+      "post": {
+        "operationId": "AdminUsersController_verifyEmail",
+        "summary": "Mark a user's email as verified (admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The updated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminUserResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/admin/words": {
+      "get": {
+        "operationId": "AdminWordsController_list",
+        "summary": "List all words with search, deck filter and paging (admin)",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "1-based page number",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (capped at 100)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive search across word and translation",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deckId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by deck",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of words",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "total",
+                        "page",
+                        "limit",
+                        "hasMore"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AdminWordResponseDto"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "example": 137
+                        },
+                        "page": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "example": 20
+                        },
+                        "hasMore": {
+                          "type": "boolean",
+                          "example": true
+                        }
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "AdminWordsController_create",
+        "summary": "Create a curated word (admin)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdminWordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Word created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminWordResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/admin/words/{id}": {
+      "patch": {
+        "operationId": "AdminWordsController_update",
+        "summary": "Edit any word (admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated word",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminWordResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Word not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "AdminWordsController_remove",
+        "summary": "Delete any word (admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Word deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "example": {
+                        "message": "Word deleted"
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Word not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/admin/decks": {
+      "get": {
+        "operationId": "AdminDecksController_list",
+        "summary": "List every deck (system + user) with owner context (admin)",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "1-based page number",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (capped at 100)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "description": "Filter by CEFR level",
+            "schema": {
+              "enum": [
+                "A1",
+                "A2",
+                "B1",
+                "B2",
+                "C1",
+                "C2"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive title search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of decks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "total",
+                        "page",
+                        "limit",
+                        "hasMore"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AdminDeckRowDto"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "example": 137
+                        },
+                        "page": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "example": 20
+                        },
+                        "hasMore": {
+                          "type": "boolean",
+                          "example": true
+                        }
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "AdminDecksController_create",
+        "summary": "Create a curated system deck (admin)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeckDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "System deck created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/DeckResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requires the ADMIN role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/admin/decks/{id}": {
+      "get": {
+        "operationId": "AdminDecksController_getOne",
+        "summary": "Get a deck with its full word list (admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The deck and its words",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminDeckDetailDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "AdminDecksController_update",
+        "summary": "Update any deck (admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDeckDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated deck",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminDeckRowDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "AdminDecksController_remove",
+        "summary": "Delete any deck (admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deck deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "example": {
+                        "message": "Deck deleted successfully"
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/admin/decks/{id}/words": {
+      "post": {
+        "operationId": "AdminDecksController_addWords",
+        "summary": "Add words to any deck (admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddDeckWordsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Words added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AddDeckWordsResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/admin/decks/{id}/words/{wordId}": {
+      "delete": {
+        "operationId": "AdminDecksController_removeWord",
+        "summary": "Remove a single word from any deck (admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "wordId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Word removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "example": {
+                        "message": "Word removed from deck"
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck or word not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
         ]
       }
     }
@@ -3717,6 +4828,512 @@
           "lapses",
           "status",
           "lastReviewedAt"
+        ]
+      },
+      "AdminUserStatsDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 1240
+          },
+          "admins": {
+            "type": "number",
+            "example": 3
+          },
+          "verified": {
+            "type": "number",
+            "example": 980
+          },
+          "onboarded": {
+            "type": "number",
+            "example": 1100
+          },
+          "newToday": {
+            "type": "number",
+            "example": 12,
+            "description": "Signups since UTC midnight today"
+          },
+          "newThisWeek": {
+            "type": "number",
+            "example": 84,
+            "description": "Signups in the last 7 days"
+          }
+        },
+        "required": [
+          "total",
+          "admins",
+          "verified",
+          "onboarded",
+          "newToday",
+          "newThisWeek"
+        ]
+      },
+      "AdminDeckStatsDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 57
+          },
+          "system": {
+            "type": "number",
+            "example": 12,
+            "description": "Curated system decks"
+          }
+        },
+        "required": [
+          "total",
+          "system"
+        ]
+      },
+      "AdminWordStatsDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 8400
+          }
+        },
+        "required": [
+          "total"
+        ]
+      },
+      "AdminReviewStatsDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 91000
+          },
+          "today": {
+            "type": "number",
+            "example": 320,
+            "description": "Reviews since UTC midnight today"
+          }
+        },
+        "required": [
+          "total",
+          "today"
+        ]
+      },
+      "AdminTestStatsDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 4200
+          }
+        },
+        "required": [
+          "total"
+        ]
+      },
+      "AdminStatsOverviewDto": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "$ref": "#/components/schemas/AdminUserStatsDto"
+          },
+          "decks": {
+            "$ref": "#/components/schemas/AdminDeckStatsDto"
+          },
+          "words": {
+            "$ref": "#/components/schemas/AdminWordStatsDto"
+          },
+          "reviews": {
+            "$ref": "#/components/schemas/AdminReviewStatsDto"
+          },
+          "tests": {
+            "$ref": "#/components/schemas/AdminTestStatsDto"
+          }
+        },
+        "required": [
+          "users",
+          "decks",
+          "words",
+          "reviews",
+          "tests"
+        ]
+      },
+      "SignupPointDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "example": "2026-06-30"
+          },
+          "count": {
+            "type": "number",
+            "example": 14
+          }
+        },
+        "required": [
+          "date",
+          "count"
+        ]
+      },
+      "AdminUserCountsDto": {
+        "type": "object",
+        "properties": {
+          "words": {
+            "type": "number",
+            "example": 12,
+            "description": "Words created by the user"
+          },
+          "decks": {
+            "type": "number",
+            "example": 3,
+            "description": "Decks the user owns"
+          },
+          "enrollments": {
+            "type": "number",
+            "example": 5,
+            "description": "Decks the user has joined"
+          },
+          "reviews": {
+            "type": "number",
+            "example": 240,
+            "description": "Grading actions logged"
+          },
+          "tests": {
+            "type": "number",
+            "example": 8,
+            "description": "Tests taken"
+          }
+        },
+        "required": [
+          "words",
+          "decks",
+          "enrollments",
+          "reviews",
+          "tests"
+        ]
+      },
+      "AdminUserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "student@example.com"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "ADMIN"
+            ],
+            "example": "USER"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1",
+              "C2"
+            ],
+            "nullable": true
+          },
+          "dailyGoal": {
+            "type": "number",
+            "example": 20,
+            "description": "Daily review goal (1–200)"
+          },
+          "onboardedAt": {
+            "type": "object",
+            "format": "date-time",
+            "nullable": true
+          },
+          "emailVerifiedAt": {
+            "type": "object",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/AdminUserCountsDto"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "dailyGoal",
+          "createdAt",
+          "updatedAt",
+          "counts"
+        ]
+      },
+      "UpdateRoleDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "ADMIN"
+            ],
+            "example": "ADMIN"
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "AdminWordResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "word": {
+            "type": "string",
+            "example": "serendipity"
+          },
+          "translation": {
+            "type": "string",
+            "example": "kutilmagan yoqimli kashfiyot"
+          },
+          "example": {
+            "type": "object",
+            "example": "Finding that book was pure serendipity."
+          },
+          "audioUrl": {
+            "type": "object",
+            "example": "https://cdn.example.com/audio/serendipity.mp3"
+          },
+          "deckId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true
+          },
+          "deckTitle": {
+            "type": "object",
+            "nullable": true,
+            "description": "Title of the deck the word belongs to"
+          },
+          "createdById": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Owner id; null for curated/system words"
+          },
+          "ownerEmail": {
+            "type": "object",
+            "nullable": true,
+            "description": "Owner email; null for system words"
+          },
+          "isSystem": {
+            "type": "boolean",
+            "description": "True when the word has no individual owner"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "word",
+          "translation",
+          "isSystem",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateAdminWordDto": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string",
+            "example": "serendipity"
+          },
+          "translation": {
+            "type": "string",
+            "example": "kutilmagan yoqimli kashfiyot"
+          },
+          "example": {
+            "type": "string",
+            "example": "Finding that book was pure serendipity."
+          },
+          "audioUrl": {
+            "type": "string",
+            "example": "https://cdn.example.com/audio/serendipity.mp3"
+          },
+          "deckId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Attach the word to this deck (optional)"
+          }
+        },
+        "required": [
+          "word",
+          "translation"
+        ]
+      },
+      "AdminDeckRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "Travel Essentials"
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1",
+              "C2"
+            ],
+            "nullable": true
+          },
+          "isSystem": {
+            "type": "boolean",
+            "description": "True for curated decks shipped with the app"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Public visibility. Always false for system decks."
+          },
+          "wordCount": {
+            "type": "number",
+            "example": 40
+          },
+          "createdById": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Owner id; null for system decks"
+          },
+          "ownerEmail": {
+            "type": "object",
+            "nullable": true,
+            "description": "Owner email; null for system decks"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "isSystem",
+          "isPublic",
+          "wordCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "AdminDeckDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "Travel Essentials"
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1",
+              "C2"
+            ],
+            "nullable": true
+          },
+          "isSystem": {
+            "type": "boolean",
+            "description": "True for curated decks shipped with the app"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Public visibility. Always false for system decks."
+          },
+          "wordCount": {
+            "type": "number",
+            "example": 40
+          },
+          "createdById": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Owner id; null for system decks"
+          },
+          "ownerEmail": {
+            "type": "object",
+            "nullable": true,
+            "description": "Owner email; null for system decks"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "words": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WordResponseDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "isSystem",
+          "isPublic",
+          "wordCount",
+          "createdAt",
+          "updatedAt",
+          "words"
         ]
       }
     }

@@ -1,5 +1,6 @@
 /**
- * Daily-activity bucketing for the review-trends endpoint.
+ * Daily-count bucketing into a dense series. Shared by the review-trends
+ * endpoint and the admin signup-trend endpoint.
  *
  * Given a set of review timestamps and the current UTC day, produces a DENSE
  * series of `{ date, count }` points — one for every day in the trailing

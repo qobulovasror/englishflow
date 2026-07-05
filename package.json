@@ -21,6 +21,7 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "admin:promote": "ts-node scripts/promote-admin.ts",
     "openapi": "ts-node scripts/export-openapi.ts"
   },
   "dependencies": {
