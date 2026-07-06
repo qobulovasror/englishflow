@@ -332,3 +332,17 @@ export interface DeckWordInput {
   example?: string
   audioUrl?: string
 }
+
+// Bulk import of parsed CSV/JSON rows. `deckId` is optional — omit for
+// standalone curated words.
+export interface ImportWordsPayload {
+  deckId?: string
+  words: DeckWordInput[]
+}
+
+export interface ImportWordsResult {
+  message: string
+  received: number
+  imported: number
+  skipped: number
+}

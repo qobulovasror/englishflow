@@ -9,7 +9,12 @@ import AppModal from '@/components/admin/AppModal.vue'
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue'
 import AppButton from '@/components/AppButton.vue'
 import AppInput from '@/components/AppInput.vue'
-import type { AdminWord } from '@/types'
+import type { AdminDeckRow, AdminWord } from '@/types'
+import {
+  parseVocabFile,
+  chunkRows,
+  type ParsedVocab,
+} from '@/utils/parseVocabFile'
 
 const columns: AdminTableColumn[] = [
   { key: 'word', label: 'Word' },
@@ -34,6 +39,17 @@ const formError = ref<string | null>(null)
 const form = reactive({ id: '', word: '', translation: '', example: '', audioUrl: '' })
 
 const deleteTarget = ref<AdminWord | null>(null)
+
+// ── Import ──────────────────────────────────────────────────────────────────
+const importOpen = ref(false)
+const importBusy = ref(false)
+const importError = ref<string | null>(null)
+const parsing = ref(false)
+const importFileName = ref('')
+const parsed = ref<ParsedVocab | null>(null)
+const importDeckId = ref('') // '' = no deck (standalone curated words)
+const decks = ref<AdminDeckRow[]>([])
+const importResult = ref<{ received: number; imported: number; skipped: number } | null>(null)
 
 async function fetchWords() {
   loading.value = true
@@ -140,6 +156,71 @@ async function confirmDelete() {
   }
 }
 
+async function openImport() {
+  importError.value = null
+  importResult.value = null
+  parsed.value = null
+  importFileName.value = ''
+  importDeckId.value = ''
+  importOpen.value = true
+  // Load decks once for the optional target picker; failure is non-fatal
+  // (the admin can still import as standalone words).
+  if (decks.value.length === 0) {
+    try {
+      const res = await adminService.decks.list({ limit: 100 })
+      decks.value = res.items
+    } catch {
+      /* deck picker is optional */
+    }
+  }
+}
+
+async function onFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  importResult.value = null
+  parsed.value = null
+  importError.value = null
+  if (!file) return
+  importFileName.value = file.name
+  parsing.value = true
+  try {
+    parsed.value = await parseVocabFile(file)
+  } catch (err) {
+    importError.value = extractErrorMessage(err, 'Failed to read the file')
+  } finally {
+    parsing.value = false
+  }
+}
+
+async function runImport() {
+  if (!parsed.value || parsed.value.rows.length === 0 || importBusy.value) return
+  importBusy.value = true
+  importError.value = null
+  const agg = { received: 0, imported: 0, skipped: 0 }
+  try {
+    // Send in chunks so each request stays under the API JSON body limit; the
+    // backend skips duplicates (including across chunks already committed).
+    for (const part of chunkRows(parsed.value.rows)) {
+      const res = await adminService.words.import({
+        ...(importDeckId.value ? { deckId: importDeckId.value } : {}),
+        words: part,
+      })
+      agg.received += res.received
+      agg.imported += res.imported
+      agg.skipped += res.skipped
+    }
+    importResult.value = agg
+    parsed.value = null
+    importFileName.value = ''
+    await fetchWords()
+  } catch (e) {
+    importError.value = extractErrorMessage(e, 'Import failed')
+  } finally {
+    importBusy.value = false
+  }
+}
+
 onMounted(fetchWords)
 </script>
 
@@ -152,6 +233,7 @@ onMounted(fetchWords)
         placeholder="Search words or translations…"
         class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
       />
+      <AppButton variant="secondary" @click="openImport">Import file</AppButton>
       <AppButton @click="openCreate">+ Add word</AppButton>
     </div>
 
@@ -211,5 +293,124 @@ onMounted(fetchWords)
       @confirm="confirmDelete"
       @cancel="deleteTarget = null"
     />
+
+    <AppModal v-if="importOpen" title="Import words from file" @close="importOpen = false">
+      <div class="space-y-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Upload a <strong>CSV</strong> or <strong>JSON</strong> file. Columns:
+          <code class="text-xs">word, translation, example, audioUrl</code>
+          (only <em>word</em> and <em>translation</em> are required). Duplicates
+          of existing words are skipped.
+        </p>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Target deck (optional)
+          </label>
+          <select
+            v-model="importDeckId"
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+          >
+            <option value="">No deck — standalone curated words</option>
+            <option v-for="d in decks" :key="d.id" :value="d.id">
+              {{ d.title }}{{ d.isSystem ? ' (system)' : '' }}
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            File
+          </label>
+          <input
+            type="file"
+            accept=".csv,.json,.txt"
+            class="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 dark:file:bg-primary-900/30 dark:file:text-primary-300 hover:file:bg-primary-100 cursor-pointer"
+            @change="onFileChange"
+          />
+        </div>
+
+        <p v-if="parsing" class="text-sm text-gray-400">Reading file…</p>
+
+        <!-- Parse preview -->
+        <div v-if="parsed && !importResult" class="space-y-3">
+          <div class="flex flex-wrap gap-4 text-sm">
+            <span class="text-green-600 dark:text-green-400">
+              {{ parsed.rows.length }} valid row{{ parsed.rows.length === 1 ? '' : 's' }}
+            </span>
+            <span v-if="parsed.errors.length" class="text-amber-600 dark:text-amber-400">
+              {{ parsed.errors.length }} skipped
+            </span>
+          </div>
+
+          <div
+            v-if="parsed.rows.length"
+            class="border border-gray-100 dark:border-gray-700 rounded-lg overflow-hidden"
+          >
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50 dark:bg-gray-700/40 text-gray-500 dark:text-gray-400">
+                <tr>
+                  <th class="text-left px-3 py-1.5 font-medium">Word</th>
+                  <th class="text-left px-3 py-1.5 font-medium">Translation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(r, i) in parsed.rows.slice(0, 8)"
+                  :key="i"
+                  class="border-t border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-200"
+                >
+                  <td class="px-3 py-1.5">{{ r.word }}</td>
+                  <td class="px-3 py-1.5 text-gray-500 dark:text-gray-400">{{ r.translation }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p
+              v-if="parsed.rows.length > 8"
+              class="px-3 py-1.5 text-xs text-gray-400 bg-gray-50 dark:bg-gray-700/40"
+            >
+              … and {{ parsed.rows.length - 8 }} more
+            </p>
+          </div>
+
+          <details v-if="parsed.errors.length" class="text-xs">
+            <summary class="cursor-pointer text-amber-600 dark:text-amber-400">
+              Show {{ parsed.errors.length }} skipped row{{ parsed.errors.length === 1 ? '' : 's' }}
+            </summary>
+            <ul class="mt-1 space-y-0.5 text-gray-500 dark:text-gray-400 max-h-32 overflow-y-auto">
+              <li v-for="(err, i) in parsed.errors.slice(0, 50)" :key="i">{{ err }}</li>
+              <li v-if="parsed.errors.length > 50">…</li>
+            </ul>
+          </details>
+        </div>
+
+        <!-- Result -->
+        <div
+          v-if="importResult"
+          class="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3 text-sm text-green-700 dark:text-green-300"
+        >
+          Imported <strong>{{ importResult.imported }}</strong>,
+          skipped <strong>{{ importResult.skipped }}</strong>
+          (of {{ importResult.received }} received).
+        </div>
+
+        <p v-if="importError" class="text-sm text-red-500">{{ importError }}</p>
+      </div>
+
+      <template #footer>
+        <AppButton variant="secondary" size="sm" @click="importOpen = false">
+          {{ importResult ? 'Close' : 'Cancel' }}
+        </AppButton>
+        <AppButton
+          v-if="!importResult"
+          size="sm"
+          :loading="importBusy"
+          :disabled="!parsed || parsed.rows.length === 0"
+          @click="runImport"
+        >
+          Import {{ parsed && parsed.rows.length ? parsed.rows.length : '' }}
+        </AppButton>
+      </template>
+    </AppModal>
   </div>
 </template>
