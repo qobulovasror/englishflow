@@ -11,6 +11,8 @@ import type {
   CreateDeckPayload,
   Deck,
   DeckWordInput,
+  ImportWordsPayload,
+  ImportWordsResult,
   PaginatedResponse,
   SignupPoint,
   UpdateAdminWordPayload,
@@ -156,6 +158,13 @@ export const adminService = {
     },
     async create(payload: CreateAdminWordPayload): Promise<AdminWord> {
       const { data } = await api.post<AdminWord>('/admin/words', payload)
+      return data
+    },
+    async import(payload: ImportWordsPayload): Promise<ImportWordsResult> {
+      const { data } = await api.post<ImportWordsResult>(
+        '/admin/words/import',
+        payload,
+      )
       return data
     },
     async update(

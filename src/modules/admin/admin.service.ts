@@ -15,6 +15,8 @@ import { AdminUserResponseDto } from './dto/admin-user-response.dto';
 import { AdminWordQueryDto } from './dto/admin-word-query.dto';
 import { AdminWordResponseDto } from './dto/admin-word-response.dto';
 import { CreateAdminWordDto } from './dto/create-admin-word.dto';
+import { ImportWordsDto } from './dto/import-words.dto';
+import { ImportWordsResultDto } from './dto/import-words-response.dto';
 import {
   AdminStatsOverviewDto,
   SignupPointDto,
@@ -339,7 +341,76 @@ export class AdminService {
     return { message: 'Word deleted' };
   }
 
+  /**
+   * Bulk-imports parsed rows (from a CSV/JSON upload). Rows that duplicate an
+   * existing word in the same scope — same deck, matched case-insensitively on
+   * word+translation — are skipped, as are duplicates within the batch itself.
+   * Returns how many were inserted vs skipped so the UI can report the outcome.
+   */
+  async importWords(dto: ImportWordsDto): Promise<ImportWordsResultDto> {
+    const deckId = dto.deckId ?? null;
+
+    if (deckId) {
+      const deck = await this.prisma.deck.findUnique({ where: { id: deckId } });
+      if (!deck) throw new NotFoundException('Deck not found');
+    }
+
+    // 1) Collapse duplicates inside the incoming batch (case-insensitive).
+    const seen = new Set<string>();
+    const batchUnique = dto.words.filter((w) => {
+      const key = this.wordKey(w.word, w.translation);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    // 2) Skip rows already present in the same scope. The `word` match is an
+    //    exact-string `in` (bounded by the batch size); the final comparison is
+    //    case-insensitive on word+translation, catching same-cased re-imports.
+    const existing = await this.prisma.word.findMany({
+      where: { deckId, word: { in: batchUnique.map((w) => w.word) } },
+      select: { word: true, translation: true },
+    });
+    const existingKeys = new Set(
+      existing.map((e) => this.wordKey(e.word, e.translation)),
+    );
+    const toInsert = batchUnique.filter(
+      (w) => !existingKeys.has(this.wordKey(w.word, w.translation)),
+    );
+
+    if (toInsert.length > 0) {
+      await this.prisma.word.createMany({
+        data: toInsert.map((w) => ({
+          word: w.word,
+          translation: w.translation,
+          example: w.example,
+          audioUrl: w.audioUrl,
+          deckId,
+          createdById: null,
+        })),
+      });
+    }
+
+    const imported = toInsert.length;
+    const skipped = dto.words.length - imported;
+    return plainToInstance(
+      ImportWordsResultDto,
+      {
+        message: `Imported ${imported} word${imported === 1 ? '' : 's'}, skipped ${skipped} duplicate${skipped === 1 ? '' : 's'}`,
+        received: dto.words.length,
+        imported,
+        skipped,
+      },
+      { excludeExtraneousValues: true },
+    );
+  }
+
   // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  /** Case-insensitive dedup key for a word: `word\0translation`, trimmed+lowercased. */
+  private wordKey(word: string, translation: string): string {
+    return `${word.trim().toLowerCase()}\u0000${translation.trim().toLowerCase()}`;
+  }
 
   private async loadUserWithCounts(id: string): Promise<UserWithCounts> {
     const user = await this.prisma.user.findUnique({

@@ -35,6 +35,8 @@ import { AdminService } from '../admin.service';
 import { AdminWordQueryDto } from '../dto/admin-word-query.dto';
 import { AdminWordResponseDto } from '../dto/admin-word-response.dto';
 import { CreateAdminWordDto } from '../dto/create-admin-word.dto';
+import { ImportWordsDto } from '../dto/import-words.dto';
+import { ImportWordsResultDto } from '../dto/import-words-response.dto';
 
 /** Global word administration. ADMIN-only (JwtAuthGuard + RolesGuard). */
 @ApiTags('Admin')
@@ -67,6 +69,23 @@ export class AdminWordsController {
   })
   create(@Body() dto: CreateAdminWordDto): Promise<AdminWordResponseDto> {
     return this.adminService.createWord(dto);
+  }
+
+  @Post('import')
+  @ApiOperation({
+    summary: 'Bulk-import curated words from a parsed CSV/JSON file (admin)',
+  })
+  @ApiSuccessResponse(ImportWordsResultDto, {
+    status: HttpStatus.CREATED,
+    description: 'Import summary (imported / skipped counts)',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Deck not found',
+    type: ApiErrorResponseDto,
+  })
+  importWords(@Body() dto: ImportWordsDto): Promise<ImportWordsResultDto> {
+    return this.adminService.importWords(dto);
   }
 
   @Patch(':id')

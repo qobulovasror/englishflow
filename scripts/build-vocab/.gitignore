@@ -1,0 +1,4 @@
+# Generated output, fetch cache, and derived word lists — not source.
+out/
+.cache/
+words.csv
