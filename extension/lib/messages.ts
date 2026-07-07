@@ -18,7 +18,6 @@ import type {
 export interface MessageMap {
   AUTH_STATE: { req: Record<never, never>; res: AuthState };
   LOGIN: { req: { email: string; password: string }; res: User };
-  REGISTER: { req: { email: string; password: string }; res: User };
   LOGOUT: { req: Record<never, never>; res: { done: true } };
   SAVE_WORD: { req: { input: SaveWordInput }; res: { done: true } };
   LOOKUP: { req: { term: string }; res: DictionaryResult | null };

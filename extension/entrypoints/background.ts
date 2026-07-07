@@ -1,4 +1,4 @@
-import { getAuthState, login, logout, register } from '../lib/auth';
+import { getAuthState, login, logout } from '../lib/auth';
 import { lookup } from '../lib/dictionary';
 import type { AnyRequest, Result } from '../lib/messages';
 import { getDaily, getDashboard, listDecks, saveWord, submitReview } from '../lib/resources';
@@ -54,8 +54,6 @@ async function handle(msg: AnyRequest): Promise<Result<unknown>> {
         return ok(await getAuthState());
       case 'LOGIN':
         return ok(await login(msg.email, msg.password));
-      case 'REGISTER':
-        return ok(await register(msg.email, msg.password));
       case 'LOGOUT':
         await logout();
         return ok({ done: true });

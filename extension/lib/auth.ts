@@ -13,17 +13,6 @@ export async function login(email: string, password: string): Promise<User> {
   return data.user;
 }
 
-/** POST /auth/register → persist the session (both tokens + user). */
-export async function register(email: string, password: string): Promise<User> {
-  const data = await apiFetch<AuthResponse>(
-    '/auth/register',
-    { method: 'POST', body: JSON.stringify({ email, password }) },
-    { auth: false },
-  );
-  await storage.setSession(data.accessToken, data.refreshToken, data.user);
-  return data.user;
-}
-
 /** Best-effort server-side revocation, then always clear local session. */
 export async function logout(): Promise<void> {
   const refreshToken = await storage.getRefreshToken();
