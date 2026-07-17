@@ -29,7 +29,10 @@ export class DeckProgressDto {
   @Expose()
   isSystem: boolean;
 
-  @ApiProperty({ example: 40, description: "Words in the deck the user is tracking" })
+  @ApiProperty({
+    example: 40,
+    description: 'Words in the deck the user is tracking',
+  })
   @Expose()
   total: number;
 
@@ -45,7 +48,10 @@ export class DeckProgressDto {
   @Expose()
   learned: number;
 
-  @ApiProperty({ example: 20, description: 'Percentage of learned words (0–100)' })
+  @ApiProperty({
+    example: 20,
+    description: 'Percentage of learned words (0–100)',
+  })
   @Expose()
   progressPercentage: number;
 }
@@ -63,7 +69,10 @@ export class LeechWordDto {
   @Expose()
   translation: string;
 
-  @ApiProperty({ example: 6, description: 'Times the card was failed after graduating' })
+  @ApiProperty({
+    example: 6,
+    description: 'Times the card was failed after graduating',
+  })
   @Expose()
   lapses: number;
 

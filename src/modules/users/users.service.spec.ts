@@ -21,6 +21,9 @@ type MockedPrisma = {
   refreshToken: {
     deleteMany: jest.Mock;
   };
+  authToken: {
+    updateMany: jest.Mock;
+  };
   deck: {
     findMany: jest.Mock;
   };
@@ -59,10 +62,15 @@ describe('UsersService', () => {
       refreshToken: {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
+      authToken: {
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
       deck: {
         findMany: jest.fn().mockResolvedValue([]),
       },
-      $transaction: jest.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
+      $transaction: jest.fn(async (ops: Promise<unknown>[]) =>
+        Promise.all(ops),
+      ),
     };
     decks = { enroll: jest.fn().mockResolvedValue({}) };
 
@@ -136,9 +144,9 @@ describe('UsersService', () => {
 
       expect(decks.enroll).not.toHaveBeenCalled();
       expect(prisma.deck.findMany).not.toHaveBeenCalled();
-      expect(prisma.user.update.mock.calls[0][0].data.onboardedAt).toBeInstanceOf(
-        Date,
-      );
+      expect(
+        prisma.user.update.mock.calls[0][0].data.onboardedAt,
+      ).toBeInstanceOf(Date);
     });
   });
 
@@ -153,7 +161,9 @@ describe('UsersService', () => {
       const user = buildUser();
       prisma.user.findUnique.mockResolvedValue(user);
 
-      const result = await service.update('u1', { currentPassword: 'whatever' });
+      const result = await service.update('u1', {
+        currentPassword: 'whatever',
+      });
 
       expect(result).toBe(user);
       expect(prisma.user.update).not.toHaveBeenCalled();
@@ -173,7 +183,10 @@ describe('UsersService', () => {
       prisma.user.findUnique.mockResolvedValue(await userWithPassword(CURRENT));
       prisma.user.update.mockResolvedValue(buildUser({ email: 'new@x.y' }));
 
-      await service.update('u1', { email: 'new@x.y', currentPassword: CURRENT });
+      await service.update('u1', {
+        email: 'new@x.y',
+        currentPassword: CURRENT,
+      });
 
       const updateCall = prisma.user.update.mock.calls[0][0];
       expect(updateCall.where).toEqual({ id: 'u1' });
@@ -222,6 +235,30 @@ describe('UsersService', () => {
       await expect(
         service.update('u1', { email: 'x@y.z', currentPassword: CURRENT }),
       ).rejects.toBe(err);
+    });
+  });
+
+  describe('email normalization', () => {
+    it('lower-cases and trims the email on create', async () => {
+      prisma.user.create.mockResolvedValue(buildUser());
+
+      await service.create({ email: '  User@Example.COM ', password: 'h' });
+
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ email: 'user@example.com' }),
+        }),
+      );
+    });
+
+    it('normalizes the email before lookup in findByEmail', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await service.findByEmail('  Foo@Bar.COM ');
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'foo@bar.com' },
+      });
     });
   });
 
@@ -322,9 +359,9 @@ describe('UsersService', () => {
     it('throws Unauthorized when the password is incorrect and does not delete', async () => {
       prisma.user.findUnique.mockResolvedValue(await userWithPassword(CURRENT));
 
-      await expect(
-        service.deleteAccount('u1', 'wrong'),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
+      await expect(service.deleteAccount('u1', 'wrong')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
 
       expect(prisma.user.delete).not.toHaveBeenCalled();
     });
@@ -332,9 +369,9 @@ describe('UsersService', () => {
     it('throws NotFound when the user is missing', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.deleteAccount('u1', CURRENT),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.deleteAccount('u1', CURRENT)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
 
       expect(prisma.user.delete).not.toHaveBeenCalled();
     });
@@ -343,7 +380,9 @@ describe('UsersService', () => {
       prisma.user.findUnique.mockResolvedValue(await userWithPassword(CURRENT));
       prisma.user.delete.mockResolvedValue(buildUser());
 
-      await expect(service.deleteAccount('u1', CURRENT)).resolves.toBeUndefined();
+      await expect(
+        service.deleteAccount('u1', CURRENT),
+      ).resolves.toBeUndefined();
 
       expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: 'u1' } });
     });

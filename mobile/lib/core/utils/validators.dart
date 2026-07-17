@@ -5,8 +5,11 @@ class Validators {
     if (value == null || value.isEmpty) {
       return 'Email is required';
     }
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    if (!emailRegex.hasMatch(value)) {
+    // Permissive client-side check (local@domain.tld) — the backend does the
+    // authoritative validation. The old pattern wrongly rejected long TLDs like
+    // `.photography` / `.museum`.
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(value.trim())) {
       return 'Please enter a valid email';
     }
     return null;

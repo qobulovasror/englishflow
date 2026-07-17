@@ -48,7 +48,9 @@ export class AdminWordsController {
   constructor(private readonly adminService: AdminService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List all words with search, deck filter and paging (admin)' })
+  @ApiOperation({
+    summary: 'List all words with search, deck filter and paging (admin)',
+  })
   @ApiPaginatedResponse(AdminWordResponseDto, { description: 'Page of words' })
   list(
     @Query() query: AdminWordQueryDto,

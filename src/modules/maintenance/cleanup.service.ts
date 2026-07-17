@@ -22,7 +22,9 @@ export class CleanupService {
 
   /**
    * Deletes stale token rows:
-   *  - refresh tokens whose `expiresAt` is in the past, and
+   *  - refresh tokens that are expired (`expiresAt < now`) OR already rotated
+   *    (`revokedAt` is set) — rotation soft-revokes the old row so a replay is
+   *    detectable as reuse; once swept, the detection window closes, and
    *  - auth tokens that are expired (`expiresAt < now`) OR already consumed
    *    (`usedAt` is set).
    *
@@ -34,7 +36,9 @@ export class CleanupService {
 
     const [refreshTokens, authTokens] = await Promise.all([
       this.prisma.refreshToken.deleteMany({
-        where: { expiresAt: { lt: now } },
+        where: {
+          OR: [{ expiresAt: { lt: now } }, { revokedAt: { not: null } }],
+        },
       }),
       this.prisma.authToken.deleteMany({
         where: {

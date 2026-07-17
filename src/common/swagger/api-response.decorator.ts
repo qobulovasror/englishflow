@@ -75,7 +75,10 @@ export function ApiPaginatedResponse<T extends Type<unknown>>(
             type: 'object',
             required: ['items', 'total', 'page', 'limit', 'hasMore'],
             properties: {
-              items: { type: 'array', items: { $ref: getSchemaPath(itemType) } },
+              items: {
+                type: 'array',
+                items: { $ref: getSchemaPath(itemType) },
+              },
               total: { type: 'integer', example: 137 },
               page: { type: 'integer', example: 1 },
               limit: { type: 'integer', example: 20 },
@@ -92,9 +95,7 @@ export function ApiPaginatedResponse<T extends Type<unknown>>(
 /**
  * For endpoints that return a primitive or untyped object (e.g. {message: string}).
  */
-export function ApiSuccessPrimitiveResponse(
-  options: ApiPrimitiveOptions = {},
-) {
+export function ApiSuccessPrimitiveResponse(options: ApiPrimitiveOptions = {}) {
   const { description, status = HttpStatus.OK, example } = options;
   return ApiResponse({
     status,

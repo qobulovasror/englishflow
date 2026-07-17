@@ -322,57 +322,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/decks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create a curated system deck (admin) */
-        post: operations["AdminDecksController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/decks/{id}/words": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add words to any deck (admin) */
-        post: operations["AdminDecksController_addWords"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/decks/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete any deck (admin) */
-        delete: operations["AdminDecksController_remove"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/words": {
         parameters: {
             query?: never;
@@ -574,6 +523,233 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/stats/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Aggregate platform metrics (admin) */
+        get: operations["AdminDashboardController_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/stats/signups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daily signup trend (admin) */
+        get: operations["AdminDashboardController_signups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List users with search, role filter and paging (admin) */
+        get: operations["AdminUsersController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single user with relation counts (admin) */
+        get: operations["AdminUsersController_getOne"];
+        put?: never;
+        post?: never;
+        /** Permanently delete a user (admin) */
+        delete: operations["AdminUsersController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change a user role (admin) */
+        patch: operations["AdminUsersController_changeRole"];
+        trace?: never;
+    };
+    "/admin/users/{id}/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a user's email as verified (admin) */
+        post: operations["AdminUsersController_verifyEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/words": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all words with search, deck filter and paging (admin) */
+        get: operations["AdminWordsController_list"];
+        put?: never;
+        /** Create a curated word (admin) */
+        post: operations["AdminWordsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/words/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk-import curated words from a parsed CSV/JSON file (admin) */
+        post: operations["AdminWordsController_importWords"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/words/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete any word (admin) */
+        delete: operations["AdminWordsController_remove"];
+        options?: never;
+        head?: never;
+        /** Edit any word (admin) */
+        patch: operations["AdminWordsController_update"];
+        trace?: never;
+    };
+    "/admin/decks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List every deck (system + user) with owner context (admin) */
+        get: operations["AdminDecksController_list"];
+        put?: never;
+        /** Create a curated system deck (admin) */
+        post: operations["AdminDecksController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/decks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a deck with its full word list (admin) */
+        get: operations["AdminDecksController_getOne"];
+        put?: never;
+        post?: never;
+        /** Delete any deck (admin) */
+        delete: operations["AdminDecksController_remove"];
+        options?: never;
+        head?: never;
+        /** Update any deck (admin) */
+        patch: operations["AdminDecksController_update"];
+        trace?: never;
+    };
+    "/admin/decks/{id}/words": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add words to any deck (admin) */
+        post: operations["AdminDecksController_addWords"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/decks/{id}/words/{wordId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a single word from any deck (admin) */
+        delete: operations["AdminDecksController_removeWord"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1175,6 +1351,254 @@ export interface components {
             status: "NEW" | "LEARNING" | "LEARNED";
             /** Format: date-time */
             lastReviewedAt: Record<string, never> | null;
+        };
+        AdminUserStatsDto: {
+            /** @example 1240 */
+            total: number;
+            /** @example 3 */
+            admins: number;
+            /** @example 980 */
+            verified: number;
+            /** @example 1100 */
+            onboarded: number;
+            /**
+             * @description Signups since UTC midnight today
+             * @example 12
+             */
+            newToday: number;
+            /**
+             * @description Signups in the last 7 days
+             * @example 84
+             */
+            newThisWeek: number;
+        };
+        AdminDeckStatsDto: {
+            /** @example 57 */
+            total: number;
+            /**
+             * @description Curated system decks
+             * @example 12
+             */
+            system: number;
+        };
+        AdminWordStatsDto: {
+            /** @example 8400 */
+            total: number;
+        };
+        AdminReviewStatsDto: {
+            /** @example 91000 */
+            total: number;
+            /**
+             * @description Reviews since UTC midnight today
+             * @example 320
+             */
+            today: number;
+        };
+        AdminTestStatsDto: {
+            /** @example 4200 */
+            total: number;
+        };
+        AdminStatsOverviewDto: {
+            users: components["schemas"]["AdminUserStatsDto"];
+            decks: components["schemas"]["AdminDeckStatsDto"];
+            words: components["schemas"]["AdminWordStatsDto"];
+            reviews: components["schemas"]["AdminReviewStatsDto"];
+            tests: components["schemas"]["AdminTestStatsDto"];
+        };
+        SignupPointDto: {
+            /** @example 2026-06-30 */
+            date: string;
+            /** @example 14 */
+            count: number;
+        };
+        AdminUserCountsDto: {
+            /**
+             * @description Words created by the user
+             * @example 12
+             */
+            words: number;
+            /**
+             * @description Decks the user owns
+             * @example 3
+             */
+            decks: number;
+            /**
+             * @description Decks the user has joined
+             * @example 5
+             */
+            enrollments: number;
+            /**
+             * @description Grading actions logged
+             * @example 240
+             */
+            reviews: number;
+            /**
+             * @description Tests taken
+             * @example 8
+             */
+            tests: number;
+        };
+        AdminUserResponseDto: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: email
+             * @example student@example.com
+             */
+            email: string;
+            /**
+             * @example USER
+             * @enum {string}
+             */
+            role: "USER" | "ADMIN";
+            /** @enum {string|null} */
+            level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2" | null;
+            /**
+             * @description Daily review goal (1–200)
+             * @example 20
+             */
+            dailyGoal: number;
+            /** Format: date-time */
+            onboardedAt?: Record<string, never> | null;
+            /** Format: date-time */
+            emailVerifiedAt?: Record<string, never> | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            counts: components["schemas"]["AdminUserCountsDto"];
+        };
+        UpdateRoleDto: {
+            /**
+             * @example ADMIN
+             * @enum {string}
+             */
+            role: "USER" | "ADMIN";
+        };
+        AdminWordResponseDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example serendipity */
+            word: string;
+            /** @example kutilmagan yoqimli kashfiyot */
+            translation: string;
+            /** @example Finding that book was pure serendipity. */
+            example?: Record<string, never>;
+            /** @example https://cdn.example.com/audio/serendipity.mp3 */
+            audioUrl?: Record<string, never>;
+            /** Format: uuid */
+            deckId?: Record<string, never> | null;
+            /** @description Title of the deck the word belongs to */
+            deckTitle?: Record<string, never> | null;
+            /**
+             * Format: uuid
+             * @description Owner id; null for curated/system words
+             */
+            createdById?: Record<string, never> | null;
+            /** @description Owner email; null for system words */
+            ownerEmail?: Record<string, never> | null;
+            /** @description True when the word has no individual owner */
+            isSystem: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CreateAdminWordDto: {
+            /** @example serendipity */
+            word: string;
+            /** @example kutilmagan yoqimli kashfiyot */
+            translation: string;
+            /** @example Finding that book was pure serendipity. */
+            example?: string;
+            /** @example https://cdn.example.com/audio/serendipity.mp3 */
+            audioUrl?: string;
+            /**
+             * Format: uuid
+             * @description Attach the word to this deck (optional)
+             */
+            deckId?: string;
+        };
+        ImportWordsResultDto: {
+            /** @example Imported 42 words, skipped 8 duplicates */
+            message: string;
+            /**
+             * @description Rows received in this request
+             * @example 50
+             */
+            received: number;
+            /**
+             * @description New words inserted
+             * @example 42
+             */
+            imported: number;
+            /**
+             * @description Rows skipped as duplicates (already present in the same scope)
+             * @example 8
+             */
+            skipped: number;
+        };
+        ImportWordsDto: {
+            /**
+             * Format: uuid
+             * @description Attach every imported word to this deck. Omit for standalone curated words.
+             */
+            deckId?: string;
+            /** @description Parsed rows to import */
+            words: components["schemas"]["DeckWordItemDto"][];
+        };
+        AdminDeckRowDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Travel Essentials */
+            title: string;
+            description?: Record<string, never> | null;
+            /** @enum {string|null} */
+            level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2" | null;
+            /** @description True for curated decks shipped with the app */
+            isSystem: boolean;
+            /** @description Public visibility. Always false for system decks. */
+            isPublic: boolean;
+            /** @example 40 */
+            wordCount: number;
+            /**
+             * Format: uuid
+             * @description Owner id; null for system decks
+             */
+            createdById?: Record<string, never> | null;
+            /** @description Owner email; null for system decks */
+            ownerEmail?: Record<string, never> | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AdminDeckDetailDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Travel Essentials */
+            title: string;
+            description?: Record<string, never> | null;
+            /** @enum {string|null} */
+            level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2" | null;
+            /** @description True for curated decks shipped with the app */
+            isSystem: boolean;
+            /** @description Public visibility. Always false for system decks. */
+            isPublic: boolean;
+            /** @example 40 */
+            wordCount: number;
+            /**
+             * Format: uuid
+             * @description Owner id; null for system decks
+             */
+            createdById?: Record<string, never> | null;
+            /** @description Owner email; null for system decks */
+            ownerEmail?: Record<string, never> | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            words: components["schemas"]["WordResponseDto"][];
         };
     };
     responses: never;
@@ -2111,146 +2535,6 @@ export interface operations {
             };
         };
     };
-    AdminDecksController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDeckDto"];
-            };
-        };
-        responses: {
-            /** @description System deck created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example true */
-                        success: boolean;
-                        data: components["schemas"]["DeckResponseDto"];
-                        /** Format: date-time */
-                        timestamp: string;
-                    };
-                };
-            };
-            /** @description Requires the ADMIN role */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponseDto"];
-                };
-            };
-        };
-    };
-    AdminDecksController_addWords: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AddDeckWordsDto"];
-            };
-        };
-        responses: {
-            /** @description Words added */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example true */
-                        success: boolean;
-                        data: components["schemas"]["AddDeckWordsResponseDto"];
-                        /** Format: date-time */
-                        timestamp: string;
-                    };
-                };
-            };
-            /** @description Requires the ADMIN role */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponseDto"];
-                };
-            };
-            /** @description Deck not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponseDto"];
-                };
-            };
-        };
-    };
-    AdminDecksController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deck deleted */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example true */
-                        success?: boolean;
-                        /**
-                         * @example {
-                         *       "message": "Deck deleted successfully"
-                         *     }
-                         */
-                        data?: unknown;
-                        /** Format: date-time */
-                        timestamp?: string;
-                    };
-                };
-            };
-            /** @description Requires the ADMIN role */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponseDto"];
-                };
-            };
-            /** @description Deck not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponseDto"];
-                };
-            };
-        };
-    };
     WordsController_findAll: {
         parameters: {
             query?: {
@@ -2552,7 +2836,10 @@ export interface operations {
     };
     ProgressController_getProgress: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Client timezone offset in minutes east of UTC (-new Date().getTimezoneOffset()). Buckets the streak and daily goal by local calendar date; defaults to UTC. */
+                tzOffsetMinutes?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2580,6 +2867,8 @@ export interface operations {
             query?: {
                 /** @description Size of the trailing window in days (ending today, UTC) */
                 days?: number;
+                /** @description Client timezone offset in minutes east of UTC (-new Date().getTimezoneOffset()). Buckets days by local calendar date; defaults to UTC. */
+                tzOffsetMinutes?: number;
             };
             header?: never;
             path?: never;
@@ -2684,6 +2973,748 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    AdminDashboardController_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Overview counts for users, decks, words, reviews and tests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["AdminStatsOverviewDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    AdminDashboardController_signups: {
+        parameters: {
+            query?: {
+                /** @description Length of the trailing daily window */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dense daily signup series, oldest→newest */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["SignupPointDto"][];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    AdminUsersController_list: {
+        parameters: {
+            query?: {
+                /** @description 1-based page number */
+                page?: number;
+                /** @description Items per page (capped at 100) */
+                limit?: number;
+                /** @description Case-insensitive email search */
+                search?: string;
+                /** @description Filter by role */
+                role?: "USER" | "ADMIN";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Page of users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: {
+                            items: components["schemas"]["AdminUserResponseDto"][];
+                            /** @example 137 */
+                            total: number;
+                            /** @example 1 */
+                            page: number;
+                            /** @example 20 */
+                            limit: number;
+                            /** @example true */
+                            hasMore: boolean;
+                        };
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    AdminUsersController_getOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["AdminUserResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminUsersController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "User deleted"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description Deleting own account, or the last remaining admin */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminUsersController_changeRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRoleDto"];
+            };
+        };
+        responses: {
+            /** @description The updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["AdminUserResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Changing own role, or demoting the last remaining admin */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminUsersController_verifyEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["AdminUserResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    AdminWordsController_list: {
+        parameters: {
+            query?: {
+                /** @description 1-based page number */
+                page?: number;
+                /** @description Items per page (capped at 100) */
+                limit?: number;
+                /** @description Case-insensitive search across word and translation */
+                search?: string;
+                /** @description Filter by deck */
+                deckId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Page of words */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: {
+                            items: components["schemas"]["AdminWordResponseDto"][];
+                            /** @example 137 */
+                            total: number;
+                            /** @example 1 */
+                            page: number;
+                            /** @example 20 */
+                            limit: number;
+                            /** @example true */
+                            hasMore: boolean;
+                        };
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    AdminWordsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminWordDto"];
+            };
+        };
+        responses: {
+            /** @description Word created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["AdminWordResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminWordsController_importWords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportWordsDto"];
+            };
+        };
+        responses: {
+            /** @description Import summary (imported / skipped counts) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["ImportWordsResultDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminWordsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Word deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "Word deleted"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description Word not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminWordsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWordDto"];
+            };
+        };
+        responses: {
+            /** @description The updated word */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["AdminWordResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Word not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDecksController_list: {
+        parameters: {
+            query?: {
+                /** @description 1-based page number */
+                page?: number;
+                /** @description Items per page (capped at 100) */
+                limit?: number;
+                /** @description Filter by CEFR level */
+                level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+                /** @description Case-insensitive title search */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Page of decks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: {
+                            items: components["schemas"]["AdminDeckRowDto"][];
+                            /** @example 137 */
+                            total: number;
+                            /** @example 1 */
+                            page: number;
+                            /** @example 20 */
+                            limit: number;
+                            /** @example true */
+                            hasMore: boolean;
+                        };
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+        };
+    };
+    AdminDecksController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDeckDto"];
+            };
+        };
+        responses: {
+            /** @description System deck created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["DeckResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Requires the ADMIN role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDecksController_getOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The deck and its words */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["AdminDeckDetailDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDecksController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deck deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "Deck deleted successfully"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDecksController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDeckDto"];
+            };
+        };
+        responses: {
+            /** @description The updated deck */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["AdminDeckRowDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDecksController_addWords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddDeckWordsDto"];
+            };
+        };
+        responses: {
+            /** @description Words added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success: boolean;
+                        data: components["schemas"]["AddDeckWordsResponseDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Deck not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDecksController_removeWord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                wordId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Word removed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        success?: boolean;
+                        /**
+                         * @example {
+                         *       "message": "Word removed from deck"
+                         *     }
+                         */
+                        data?: unknown;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description Deck or word not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
             };
         };
     };

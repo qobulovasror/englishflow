@@ -26,7 +26,7 @@ export interface MessageMap {
   DAILY: { req: Record<never, never>; res: DailyWord[] };
   REVIEW: { req: { userWordId: string; rating: Rating }; res: ReviewResult };
   GET_API_URL: { req: Record<never, never>; res: { apiUrl: string } };
-  SET_API_URL: { req: { apiUrl: string }; res: { done: true } };
+  SET_API_URL: { req: { apiUrl: string }; res: { done: true; sessionCleared: boolean } };
   OPEN_POPUP: { req: Record<never, never>; res: { done: boolean } };
 }
 

@@ -8,9 +8,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpAdapterHost } from '@nestjs/core';
-import {
-  Prisma,
-} from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { AppConfig } from '../../config/configuration';
 
 export interface ErrorResponseBody {
@@ -64,7 +62,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const body: ErrorResponseBody = {
       success: false,
       statusCode,
-      message: isProduction && statusCode >= 500 ? 'Internal server error' : message,
+      message:
+        isProduction && statusCode >= 500 ? 'Internal server error' : message,
       error,
       ...(errors ? { errors } : {}),
       path,
@@ -101,7 +100,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         statusCode,
         message: isValidationError
           ? 'Validation failed'
-          : (rawMessage as string) ?? exception.message,
+          : ((rawMessage as string) ?? exception.message),
         error: (body.error as string) ?? HttpStatus[statusCode] ?? 'Error',
         ...(isValidationError ? { errors: rawMessage } : {}),
       };
@@ -122,19 +121,25 @@ export class AllExceptionsFilter implements ExceptionFilter {
     return {
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       message:
-        exception instanceof Error ? exception.message : 'Internal server error',
+        exception instanceof Error
+          ? exception.message
+          : 'Internal server error',
       error: 'Internal Server Error',
     };
   }
 
-  private handlePrismaKnownError(exception: Prisma.PrismaClientKnownRequestError): {
+  private handlePrismaKnownError(
+    exception: Prisma.PrismaClientKnownRequestError,
+  ): {
     statusCode: number;
     message: string;
     error: string;
   } {
     switch (exception.code) {
       case 'P2002': {
-        const target = (exception.meta?.target as string[] | undefined)?.join(', ');
+        const target = (exception.meta?.target as string[] | undefined)?.join(
+          ', ',
+        );
         return {
           statusCode: HttpStatus.CONFLICT,
           message: target

@@ -21,14 +21,21 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
       <div
         class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 max-h-[90vh] flex flex-col"
       >
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+        <div
+          class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700"
+        >
           <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ title }}</h3>
           <button
             class="p-1 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             @click="emit('close')"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>

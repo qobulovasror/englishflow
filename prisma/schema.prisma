@@ -93,8 +93,10 @@ model Review {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  wordId String
-  word   Word   @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  // Nullable + SetNull: deleting a word must NOT erase the review log (it powers
+  // streaks/trends). The row survives with wordId = null instead of cascading.
+  wordId String?
+  word   Word?   @relation(fields: [wordId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@map("reviews")
@@ -231,6 +233,8 @@ model UserWord {
   @@index([wordId])
   @@index([status])
   @@index([userId, nextReviewAt])
+  // Progress counts filter per-user by status.
+  @@index([userId, status])
   @@map("user_words")
 }
 
@@ -250,6 +254,8 @@ model Test {
   questions TestQuestion[]
 
   @@index([userId])
+  // Dashboard lists the user's recent tests ordered by createdAt desc.
+  @@index([userId, createdAt])
   @@map("tests")
 }
 

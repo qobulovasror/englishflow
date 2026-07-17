@@ -20,9 +20,9 @@ import * as request from 'supertest';
 
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { Logger as PinoLogger } from 'nestjs-pino';
 import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor';
-import { LoggingInterceptor } from '../src/common/interceptors/logging.interceptor';
 
 describe('Rate limiting (e2e)', () => {
   let app: INestApplication;
@@ -44,6 +44,7 @@ describe('Rate limiting (e2e)', () => {
       .compile();
 
     app = moduleRef.createNestApplication({ bufferLogs: true });
+    app.useLogger(app.get(PinoLogger));
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -52,7 +53,6 @@ describe('Rate limiting (e2e)', () => {
       }),
     );
     app.useGlobalInterceptors(
-      new LoggingInterceptor(),
       new TransformInterceptor(),
       new ClassSerializerInterceptor(app.get(Reflector)),
     );

@@ -30,7 +30,31 @@ function buildPrismaMock() {
       rows.set(row.tokenHash, row);
       return row;
     }),
-    findUnique: jest.fn(async ({ where }: any) => rows.get(where.tokenHash) ?? null),
+    findUnique: jest.fn(
+      async ({ where }: any) => rows.get(where.tokenHash) ?? null,
+    ),
+    update: jest.fn(async ({ where, data }: any) => {
+      for (const row of rows.values()) {
+        if (row.id === where.id || row.tokenHash === where.tokenHash) {
+          Object.assign(row, data);
+          return row;
+        }
+      }
+      throw new Error('not found');
+    }),
+    updateMany: jest.fn(async ({ where, data }: any) => {
+      let count = 0;
+      for (const row of rows.values()) {
+        const matchId = !where.id || row.id === where.id;
+        const matchRevoked =
+          where.revokedAt === null ? row.revokedAt === null : true;
+        if (matchId && matchRevoked) {
+          Object.assign(row, data);
+          count += 1;
+        }
+      }
+      return { count };
+    }),
     delete: jest.fn(async ({ where }: any) => {
       for (const [hash, row] of rows) {
         if (row.id === where.id || row.tokenHash === where.tokenHash) {
@@ -98,17 +122,32 @@ describe('RefreshTokensService', () => {
   });
 
   describe('rotate', () => {
-    it('replaces the old token and returns a new one + the user id', async () => {
+    it('soft-revokes the old token and returns a new one + the user id', async () => {
       const { token } = await service.issue('u1');
+      const oldHash = [...prisma._rows.values()][0].tokenHash;
 
       const { userId, issued } = await service.rotate(token);
 
       expect(userId).toBe('u1');
       expect(issued.token).not.toBe(token);
-      // Old hash gone, exactly one (new) row remains.
-      expect(prisma._rows.size).toBe(1);
-      const stored = [...prisma._rows.values()][0];
-      expect(stored.userId).toBe('u1');
+      // Old row kept (soft-revoked) + new row = two rows.
+      expect(prisma._rows.size).toBe(2);
+      const oldRow = prisma._rows.get(oldHash);
+      expect(oldRow?.revokedAt).toBeInstanceOf(Date);
+      const liveRows = [...prisma._rows.values()].filter((r) => !r.revokedAt);
+      expect(liveRows).toHaveLength(1);
+      expect(liveRows[0].userId).toBe('u1');
+    });
+
+    it('detects reuse when the rotated (revoked) token is replayed', async () => {
+      const { token } = await service.issue('u1');
+      await service.rotate(token); // token is now soft-revoked
+
+      await expect(service.rotate(token)).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      // Reuse detection wiped the whole chain.
+      expect(prisma._rows.size).toBe(0);
     });
 
     it('rejects an unknown token', async () => {

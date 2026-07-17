@@ -42,10 +42,16 @@ class LearningNotifier extends StateNotifier<LearningState> {
     final currentWord = state.currentWord;
     if (currentWord == null) return;
 
-    // Send review to backend (fire and forget)
+    // Send the review without blocking the UI, but DON'T silently swallow a
+    // failure: count it so the session summary can tell the user their progress
+    // wasn't fully saved (instead of pretending every review synced).
     _learningService
         .reviewWord(userWordId: currentWord.id, rating: rating)
-        .catchError((_) {});
+        .catchError((_) {
+      if (mounted) {
+        state = state.copyWith(failedReviews: state.failedReviews + 1);
+      }
+    });
 
     // AGAIN is the only "didn't recall" grade; the rest count as known for the
     // session summary.

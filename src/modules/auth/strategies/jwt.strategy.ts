@@ -33,9 +33,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // Reject tokens issued before the latest password change. Note `iat` is
     // in seconds and `passwordChangedAt` in ms — divide by 1000 first.
-    const passwordChangedAtSec = Math.floor(user.passwordChangedAt.getTime() / 1000);
+    const passwordChangedAtSec = Math.floor(
+      user.passwordChangedAt.getTime() / 1000,
+    );
     if (payload.iat < passwordChangedAtSec) {
-      throw new UnauthorizedException('Token issued before last password change');
+      throw new UnauthorizedException(
+        'Token issued before last password change',
+      );
     }
 
     return { id: user.id, email: user.email, role: user.role };

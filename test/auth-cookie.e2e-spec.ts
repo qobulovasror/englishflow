@@ -144,18 +144,21 @@ describe('Auth cookie flow (e2e)', () => {
 
       // Find the user's refresh token in the stub (cookie value matches the
       // plaintext, then we look up by hash via the agent's next call).
-      const tokensBeforeLogout = [...prisma._stores.refreshTokens.values()].filter(
-        (t) =>
-          [...prisma._stores.users.values()].some(
-            (u) => u.id === t.userId && u.email === 'web-3@example.com',
-          ),
+      const tokensBeforeLogout = [
+        ...prisma._stores.refreshTokens.values(),
+      ].filter((t) =>
+        [...prisma._stores.users.values()].some(
+          (u) => u.id === t.userId && u.email === 'web-3@example.com',
+        ),
       );
       expect(tokensBeforeLogout.length).toBeGreaterThan(0);
 
       const res = await agent.post('/auth/logout').send({}).expect(200);
 
       const setCookie = res.headers['set-cookie'] as string[] | undefined;
-      expect(setCookie?.some((c) => c.startsWith('refresh_token=;'))).toBe(true);
+      expect(setCookie?.some((c) => c.startsWith('refresh_token=;'))).toBe(
+        true,
+      );
 
       const tokensAfter = [...prisma._stores.refreshTokens.values()].filter(
         (t) =>

@@ -10,17 +10,39 @@ class _FakeWordsService implements WordsService {
   List<WordModel> words;
   bool shouldThrow;
   String? lastStatusFilter;
-  int getWordsCalls = 0;
+  int pageCalls = 0;
+  bool hasMore;
+  List<WordModel> secondPage;
 
-  _FakeWordsService({this.words = const [], this.shouldThrow = false});
+  _FakeWordsService({
+    this.words = const [],
+    this.shouldThrow = false,
+    this.hasMore = false,
+    this.secondPage = const [],
+  });
 
   @override
-  Future<List<WordModel>> getWords({String? status}) async {
-    getWordsCalls++;
+  Future<PaginatedResponse<WordModel>> getWordsPage({
+    int page = 1,
+    int limit = 100,
+    String? status,
+  }) async {
+    pageCalls++;
     lastStatusFilter = status;
     if (shouldThrow) throw Exception('boom');
-    return words;
+    final items = page == 1 ? words : secondPage;
+    return PaginatedResponse(
+      items: items,
+      total: words.length + secondPage.length,
+      page: page,
+      limit: limit,
+      hasMore: page == 1 ? hasMore : false,
+    );
   }
+
+  @override
+  Future<List<WordModel>> getWords({String? status}) async =>
+      (await getWordsPage(status: status)).items;
 
   @override
   Future<WordModel> addWord({
@@ -58,13 +80,6 @@ class _FakeWordsService implements WordsService {
     if (shouldThrow) throw Exception('boom');
   }
 
-  @override
-  Future<PaginatedResponse<WordModel>> getWordsPage({
-    int page = 1,
-    int limit = 100,
-    String? status,
-  }) =>
-      throw UnimplementedError();
 }
 
 const _word = WordModel(id: '1', word: 'apple', translation: 'olma');
@@ -108,7 +123,41 @@ void main() {
       final notifier = WordsNotifier(fake);
 
       await notifier.setStatusFilter(null); // already null
-      expect(fake.getWordsCalls, 0);
+      expect(fake.pageCalls, 0);
+    });
+  });
+
+  group('WordsNotifier.loadMore', () {
+    test('appends the next page and tracks hasMore', () async {
+      final fake = _FakeWordsService(
+        words: const [_word],
+        hasMore: true,
+        secondPage: const [WordModel(id: '2', word: 'book', translation: 'kitob')],
+      );
+      final notifier = WordsNotifier(fake);
+
+      await notifier.loadWords();
+      expect(notifier.state.hasMore, isTrue);
+      expect(notifier.state.words.length, 1);
+
+      await notifier.loadMore();
+
+      expect(notifier.state.words.length, 2);
+      expect(notifier.state.words.last.word, 'book');
+      expect(notifier.state.hasMore, isFalse); // page 2 was the last
+      expect(notifier.state.isLoadingMore, isFalse);
+    });
+
+    test('is a no-op when there are no more pages', () async {
+      final fake = _FakeWordsService(words: const [_word], hasMore: false);
+      final notifier = WordsNotifier(fake);
+      await notifier.loadWords();
+      final callsAfterLoad = fake.pageCalls;
+
+      await notifier.loadMore();
+
+      expect(fake.pageCalls, callsAfterLoad); // no extra fetch
+      expect(notifier.state.words.length, 1);
     });
   });
 

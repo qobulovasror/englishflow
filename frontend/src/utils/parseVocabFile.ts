@@ -49,7 +49,8 @@ function toRow(
 
   const example = (exampleRaw ?? '').trim()
   if (example) {
-    if (example.length > MAX_EXAMPLE) return `Row ${line}: example exceeds ${MAX_EXAMPLE} characters`
+    if (example.length > MAX_EXAMPLE)
+      return `Row ${line}: example exceeds ${MAX_EXAMPLE} characters`
     row.example = example
   }
 
@@ -199,7 +200,11 @@ function parseJsonVocab(text: string): ParsedVocab {
       asString(o.word ?? o.term),
       asString(o.translation ?? o.meaning ?? o.definition),
       o.example != null ? asString(o.example) : undefined,
-      o.audioUrl != null ? asString(o.audioUrl) : o.audio_url != null ? asString(o.audio_url) : undefined,
+      o.audioUrl != null
+        ? asString(o.audioUrl)
+        : o.audio_url != null
+          ? asString(o.audio_url)
+          : undefined,
       line,
     )
     if (typeof res === 'string') errors.push(res)

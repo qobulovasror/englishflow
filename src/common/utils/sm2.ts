@@ -31,6 +31,16 @@ const QUALITY: Record<Rating, number> = {
 export const MIN_EASE_FACTOR = 1.3;
 export const DEFAULT_EASE_FACTOR = 2.5;
 
+// Anki-style lapse penalty applied to the ease factor on AGAIN. The raw SM-2
+// formula for q=0 subtracts 0.8 per lapse, which slams a card to the 1.3 floor
+// after two failures and is far harsher than modern SRS schedulers.
+export const LAPSE_EASE_PENALTY = 0.2;
+
+// After a failed recall the card re-enters a short relearning step instead of
+// disappearing until tomorrow (raw SM-2 would set interval = 1 day). Expressed
+// in minutes; `interval` stays 0 (sub-day) so the card is due again this session.
+export const RELEARN_STEP_MINUTES = 10;
+
 export interface Sm2State {
   repetitionCount: number;
   easeFactor: number;
@@ -45,6 +55,7 @@ export interface Sm2Result extends Sm2State {
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const MS_PER_MINUTE = 60 * 1000;
 
 /**
  * Compute the next SM-2 state for a card given the user's rating.
@@ -57,11 +68,14 @@ export function sm2(state: Sm2State, rating: Rating, now: Date): Sm2Result {
   let { repetitionCount, easeFactor, interval, lapses } = state;
 
   if (q < 3) {
-    // Failed recall: reset the streak and re-learn from a 1-day interval.
-    // Count a lapse only if the card had actually graduated (interval >= 1).
+    // Failed recall: reset the streak and drop into a short relearning step
+    // (interval 0 => due again in RELEARN_STEP_MINUTES, not tomorrow). Count a
+    // lapse only if the card had actually graduated (interval >= 1). Apply a
+    // mild, fixed ease penalty rather than the punishing raw SM-2 q=0 formula.
     if (interval >= 1) lapses += 1;
     repetitionCount = 0;
-    interval = 1;
+    interval = 0;
+    easeFactor -= LAPSE_EASE_PENALTY;
   } else {
     if (repetitionCount === 0) {
       interval = 1;
@@ -71,13 +85,16 @@ export function sm2(state: Sm2State, rating: Rating, now: Date): Sm2Result {
       interval = Math.round(interval * easeFactor);
     }
     repetitionCount += 1;
+    // EF update on success uses the graded quality directly (SM-2).
+    easeFactor = easeFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
   }
 
-  // EF update applies on every review (SM-2 uses the graded quality directly).
-  easeFactor = easeFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
   if (easeFactor < MIN_EASE_FACTOR) easeFactor = MIN_EASE_FACTOR;
 
-  const nextReviewAt = new Date(now.getTime() + interval * MS_PER_DAY);
+  const nextReviewAt =
+    interval >= 1
+      ? new Date(now.getTime() + interval * MS_PER_DAY)
+      : new Date(now.getTime() + RELEARN_STEP_MINUTES * MS_PER_MINUTE);
 
   return { repetitionCount, easeFactor, interval, lapses, nextReviewAt };
 }

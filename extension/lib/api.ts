@@ -21,7 +21,18 @@ interface FetchOpts {
 
 async function parse<T>(res: Response): Promise<T> {
   const text = await res.text();
-  const body = text ? JSON.parse(text) : null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: any = null;
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      // Non-JSON response (proxy error page, bare 401, etc.). Surface it as an
+      // ApiError carrying the status so callers can still special-case 401
+      // instead of dying on a SyntaxError.
+      throw new ApiError(`Request failed (${res.status})`, res.status);
+    }
+  }
 
   if (!res.ok) {
     const raw = body?.message ?? `Request failed (${res.status})`;

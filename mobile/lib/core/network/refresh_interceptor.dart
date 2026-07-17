@@ -13,9 +13,25 @@ class RefreshInterceptor extends Interceptor {
   final Dio dio;
   final TokenStorage tokenStorage;
 
+  /// Invoked when the session can't be recovered (refresh token missing,
+  /// rejected, or expired). Lets the app layer clear its in-memory auth state
+  /// so the router redirects to /login — clearing storage alone leaves the
+  /// StateNotifier believing the user is still authenticated (dead-session
+  /// lockout).
+  final void Function()? onSessionExpired;
+
   Future<String?>? _inFlight;
 
-  RefreshInterceptor({required this.dio, required this.tokenStorage});
+  RefreshInterceptor({
+    required this.dio,
+    required this.tokenStorage,
+    this.onSessionExpired,
+  });
+
+  Future<void> _expireSession() async {
+    await tokenStorage.clearAll();
+    onSessionExpired?.call();
+  }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
@@ -29,16 +45,24 @@ class RefreshInterceptor extends Interceptor {
 
     if (!shouldTry) {
       if (response?.statusCode == 401) {
-        await tokenStorage.clearAll();
+        await _expireSession();
       }
       return handler.next(err);
     }
 
-    final newAccess = await (_inFlight ??= _refresh());
-    _inFlight = null;
+    // Coalesce concurrent 401s onto a single in-flight refresh. Each awaiter
+    // must clear ONLY the future it started — nulling unconditionally lets a
+    // late awaiter wipe a newer refresh, spawning a second concurrent
+    // /auth/refresh that replays an already-rotated token and (with server-side
+    // reuse detection) revokes the whole session family.
+    final future = _inFlight ??= _refresh();
+    final newAccess = await future;
+    if (identical(_inFlight, future)) {
+      _inFlight = null;
+    }
 
     if (newAccess == null) {
-      await tokenStorage.clearAll();
+      await _expireSession();
       return handler.next(err);
     }
 
@@ -59,8 +83,14 @@ class RefreshInterceptor extends Interceptor {
     if (refreshToken == null) return null;
 
     try {
-      // Use a bare Dio instance to bypass this interceptor entirely.
-      final bare = Dio(BaseOptions(baseUrl: dio.options.baseUrl));
+      // Use a bare Dio instance to bypass this interceptor entirely. Copy the
+      // timeouts so a hung /auth/refresh can't block every coalesced 401 caller
+      // indefinitely.
+      final bare = Dio(BaseOptions(
+        baseUrl: dio.options.baseUrl,
+        connectTimeout: dio.options.connectTimeout,
+        receiveTimeout: dio.options.receiveTimeout,
+      ));
       final res = await bare.post(
         ApiEndpoints.refresh,
         data: {'refreshToken': refreshToken},

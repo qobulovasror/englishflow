@@ -45,9 +45,7 @@ export default (): Configuration => ({
     trustProxy: parseInt(process.env.TRUST_PROXY ?? '0', 10),
     frontendUrl:
       process.env.FRONTEND_URL ??
-      (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
-        .split(',')[0]
-        .trim(),
+      (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',')[0].trim(),
   },
   jwt: {
     secret: process.env.JWT_SECRET!,

@@ -17,7 +17,12 @@ const password = ref('')
 const resetNotice = computed(() => route.query.notice === 'password-reset')
 
 async function handleSubmit() {
-  await authStore.login(email.value, password.value)
+  try {
+    await authStore.login(email.value, password.value)
+  } catch {
+    // The store already set `error` (rendered below) and navigates on success;
+    // swallow the rethrow so it isn't an unhandled promise rejection.
+  }
 }
 </script>
 
@@ -33,11 +38,10 @@ async function handleSubmit() {
         <p class="text-gray-500 dark:text-gray-400 mt-2">Sign in to your account</p>
       </div>
 
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
-        <p
-          v-if="resetNotice"
-          class="text-sm text-green-600 dark:text-green-400 mb-4"
-        >
+      <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8"
+      >
+        <p v-if="resetNotice" class="text-sm text-green-600 dark:text-green-400 mb-4">
           Your password has been reset. You can now sign in.
         </p>
 
@@ -69,13 +73,7 @@ async function handleSubmit() {
 
           <p v-if="authStore.error" class="text-sm text-red-500">{{ authStore.error }}</p>
 
-          <AppButton
-            type="submit"
-            :loading="authStore.loading"
-            class="w-full"
-          >
-            Sign In
-          </AppButton>
+          <AppButton type="submit" :loading="authStore.loading" class="w-full"> Sign In </AppButton>
         </form>
 
         <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">

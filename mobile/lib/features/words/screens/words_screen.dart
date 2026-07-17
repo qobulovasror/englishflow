@@ -18,10 +18,29 @@ class WordsScreen extends ConsumerStatefulWidget {
 }
 
 class _WordsScreenState extends ConsumerState<WordsScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(wordsProvider.notifier).loadWords());
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  // Fetch the next page as the list nears the bottom (infinite scroll). The
+  // provider guards against overlapping loads / the last page.
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 300) {
+      ref.read(wordsProvider.notifier).loadMore();
+    }
   }
 
   @override
@@ -115,9 +134,17 @@ class _WordsScreenState extends ConsumerState<WordsScreen> {
       onRefresh: () => ref.read(wordsProvider.notifier).loadWords(),
       color: AppColors.primary,
       child: ListView.builder(
+        controller: _scrollController,
         padding: const EdgeInsets.all(16),
-        itemCount: state.words.length,
+        itemCount: state.words.length + (state.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
+          // Footer row while more pages exist: shows a spinner as they load.
+          if (index >= state.words.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
           final word = state.words[index];
           return Dismissible(
             key: Key(word.id),

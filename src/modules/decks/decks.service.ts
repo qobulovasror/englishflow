@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -85,10 +86,7 @@ export class DecksService {
   async findMine(userId: string): Promise<DeckResponseDto[]> {
     const decks = await this.prisma.deck.findMany({
       where: {
-        OR: [
-          { enrollments: { some: { userId } } },
-          { createdById: userId },
-        ],
+        OR: [{ enrollments: { some: { userId } } }, { createdById: userId }],
       },
       orderBy: [{ isSystem: 'desc' }, { title: 'asc' }],
       include: { _count: { select: { words: true } } },
@@ -211,11 +209,53 @@ export class DecksService {
   async remove(id: string, userId: string): Promise<{ message: string }> {
     await this.loadOwnedDeck(id, userId);
 
+    // Refuse to delete a deck other people have enrolled in: the cascade would
+    // wipe every enrollee's UserWord/Review rows (their learning progress and
+    // streak history) with no warning. Owners should unpublish (set isPublic
+    // false) instead, which stops new enrollments while preserving learners.
+    const foreignEnrollments = await this.prisma.deckEnrollment.count({
+      where: { deckId: id, userId: { not: userId } },
+    });
+    if (foreignEnrollments > 0) {
+      throw new ConflictException(
+        'This deck has other learners enrolled. Make it private instead of ' +
+          'deleting it to avoid erasing their progress.',
+      );
+    }
+
     // Cascades remove the deck's words (and their UserWord/testQuestion rows)
     // plus any enrollments via the schema's onDelete: Cascade relations.
     await this.prisma.deck.delete({ where: { id } });
 
     return { message: 'Deck deleted successfully' };
+  }
+
+  /**
+   * Back-fills UserWord rows for everyone already enrolled in a deck for the
+   * given (just-added) word ids, so words added after enrollment still reach
+   * their learning list. Without this the new words are invisible and deck
+   * progress reports "100% learned" while unseen words exist. `skipDuplicates`
+   * keeps it idempotent. Crossing ONLY the new words (not the whole deck)
+   * against enrollees bounds the insert to the actual delta. Runs inside the
+   * caller's transaction.
+   */
+  private async backfillEnrolledUserWords(
+    tx: Prisma.TransactionClient,
+    deckId: string,
+    wordIds: string[],
+  ): Promise<void> {
+    if (wordIds.length === 0) return;
+    const enrollments = await tx.deckEnrollment.findMany({
+      where: { deckId },
+      select: { userId: true },
+    });
+    if (enrollments.length === 0) return;
+    await tx.userWord.createMany({
+      data: enrollments.flatMap((e) =>
+        wordIds.map((wordId) => ({ userId: e.userId, wordId })),
+      ),
+      skipDuplicates: true,
+    });
   }
 
   async addWords(
@@ -226,7 +266,7 @@ export class DecksService {
     const deck = await this.loadOwnedDeck(id, userId);
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.word.createMany({
+      const created = await tx.word.createManyAndReturn({
         data: dto.words.map((w) => ({
           word: w.word,
           translation: w.translation,
@@ -235,7 +275,14 @@ export class DecksService {
           deckId: id,
           createdById: userId,
         })),
+        select: { id: true },
       });
+
+      await this.backfillEnrolledUserWords(
+        tx,
+        id,
+        created.map((w) => w.id),
+      );
     });
 
     const wordCount = await this.prisma.word.count({ where: { deckId: id } });
@@ -303,7 +350,7 @@ export class DecksService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.word.createMany({
+      const created = await tx.word.createManyAndReturn({
         data: dto.words.map((w) => ({
           word: w.word,
           translation: w.translation,
@@ -312,7 +359,13 @@ export class DecksService {
           deckId: id,
           createdById: null,
         })),
+        select: { id: true },
       });
+      await this.backfillEnrolledUserWords(
+        tx,
+        id,
+        created.map((w) => w.id),
+      );
     });
 
     const wordCount = await this.prisma.word.count({ where: { deckId: id } });

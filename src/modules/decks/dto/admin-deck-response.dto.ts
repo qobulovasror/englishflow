@@ -29,7 +29,9 @@ export class AdminDeckRowDto {
   @Expose()
   isSystem: boolean;
 
-  @ApiProperty({ description: 'Public visibility. Always false for system decks.' })
+  @ApiProperty({
+    description: 'Public visibility. Always false for system decks.',
+  })
   @Expose()
   isPublic: boolean;
 
@@ -45,7 +47,10 @@ export class AdminDeckRowDto {
   @Expose()
   createdById?: string | null;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Owner email; null for system decks' })
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Owner email; null for system decks',
+  })
   @Expose()
   ownerEmail?: string | null;
 

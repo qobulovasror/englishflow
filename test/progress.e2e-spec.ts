@@ -131,11 +131,13 @@ describe('Progress (e2e)', () => {
     uwArr[0].status = WordStatus.LEARNING;
     uwArr[1].status = WordStatus.LEARNED;
 
-    // Record 2 tests directly via the stub
+    // Record 2 submitted tests directly via the stub. submittedAt must be set:
+    // progress stats only count graded (submitted) tests.
     prisma._stores.tests.set('t-1', {
       id: 't-1',
       userId,
       score: 3,
+      submittedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -143,6 +145,7 @@ describe('Progress (e2e)', () => {
       id: 't-2',
       userId,
       score: 5,
+      submittedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -166,7 +169,7 @@ describe('Progress (e2e)', () => {
     expect(res.body.data.tests.recent).toHaveLength(2);
   });
 
-  it('is scoped to the calling user (does not include other users\' data)', async () => {
+  it("is scoped to the calling user (does not include other users' data)", async () => {
     const alice = await registerUser(app);
     const bob = await registerUser(app);
 
@@ -214,7 +217,9 @@ describe('Progress (e2e)', () => {
     // Oldest→newest, today is the last slot and holds both seeded reviews.
     const last = res.body.data[6];
     expect(last.count).toBe(2);
-    expect(res.body.data.slice(0, 6).every((p: any) => p.count === 0)).toBe(true);
+    expect(res.body.data.slice(0, 6).every((p: any) => p.count === 0)).toBe(
+      true,
+    );
   });
 
   it('GET /progress/decks reports per-deck status counts', async () => {

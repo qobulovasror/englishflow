@@ -466,3 +466,7 @@ pyrightconfig.json
 # Recommended template: Node.gitignore
 
 # End of https://www.toptal.com/developers/gitignore/api/vue,flutter,node,flask,python
+
+# macOS / editor cruft
+.DS_Store
+**/.DS_Store

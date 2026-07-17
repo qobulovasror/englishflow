@@ -1,9 +1,4 @@
-import {
-  sm2,
-  Rating,
-  DEFAULT_EASE_FACTOR,
-  MIN_EASE_FACTOR,
-} from './sm2';
+import { sm2, Rating, DEFAULT_EASE_FACTOR, MIN_EASE_FACTOR } from './sm2';
 
 const NOW = new Date('2026-06-14T00:00:00.000Z');
 
@@ -46,14 +41,19 @@ describe('sm2', () => {
     };
     const r = sm2(mature, Rating.AGAIN, NOW);
     expect(r.repetitionCount).toBe(0);
-    expect(r.interval).toBe(1);
+    expect(r.interval).toBe(0); // relearning step, not a full day
     expect(r.lapses).toBe(1);
+    // Due again in ~10 minutes, not tomorrow.
+    const minutes = (r.nextReviewAt.getTime() - NOW.getTime()) / 60000;
+    expect(minutes).toBeCloseTo(10, 5);
+    // Mild fixed ease penalty (0.2), not the harsh raw SM-2 q=0 drop (0.8).
+    expect(r.easeFactor).toBeCloseTo(2.5 - 0.2, 5);
   });
 
   it('does not count a lapse for a never-graduated card', () => {
     const r = sm2(fresh(), Rating.AGAIN, NOW);
     expect(r.lapses).toBe(0);
-    expect(r.interval).toBe(1);
+    expect(r.interval).toBe(0);
   });
 
   it('keeps GOOD ease-factor stable (q=4)', () => {

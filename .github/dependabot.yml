@@ -1,0 +1,44 @@
+version: 2
+updates:
+  # Backend (NestJS/Prisma)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      backend-minor-patch:
+        update-types: [minor, patch]
+
+  # Web client (Vue/Vite)
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-patch:
+        update-types: [minor, patch]
+
+  # Browser extension (WXT/Vue)
+  - package-ecosystem: npm
+    directory: /extension
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      extension-minor-patch:
+        update-types: [minor, patch]
+
+  # Mobile (Flutter/Dart)
+  - package-ecosystem: pub
+    directory: /mobile
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # CI action versions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

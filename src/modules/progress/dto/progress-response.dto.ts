@@ -18,7 +18,10 @@ export class VocabularyStatsDto {
   @Expose()
   learned: number;
 
-  @ApiProperty({ example: 24, description: 'Percentage of learned words (0–100)' })
+  @ApiProperty({
+    example: 24,
+    description: 'Percentage of learned words (0–100)',
+  })
   @Expose()
   progressPercentage: number;
 }
@@ -57,11 +60,18 @@ export class TestStatsDto {
 }
 
 export class StreakStatsDto {
-  @ApiProperty({ example: 5, description: 'Consecutive active days ending today (or yesterday if not yet reviewed today)' })
+  @ApiProperty({
+    example: 5,
+    description:
+      'Consecutive active days ending today (or yesterday if not yet reviewed today)',
+  })
   @Expose()
   current: number;
 
-  @ApiProperty({ example: 12, description: 'Longest consecutive active-day run ever' })
+  @ApiProperty({
+    example: 12,
+    description: 'Longest consecutive active-day run ever',
+  })
   @Expose()
   longest: number;
 
@@ -73,7 +83,10 @@ export class StreakStatsDto {
   @Expose()
   dailyGoal: number;
 
-  @ApiProperty({ example: false, description: 'Whether todayCount has reached dailyGoal' })
+  @ApiProperty({
+    example: false,
+    description: 'Whether todayCount has reached dailyGoal',
+  })
   @Expose()
   goalMet: boolean;
 }

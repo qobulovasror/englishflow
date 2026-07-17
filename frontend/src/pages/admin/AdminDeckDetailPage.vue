@@ -93,7 +93,10 @@ onMounted(load)
 
 <template>
   <div class="max-w-5xl mx-auto space-y-6">
-    <router-link to="/admin/decks" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600">
+    <router-link
+      to="/admin/decks"
+      class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600"
+    >
       ← Back to decks
     </router-link>
 
@@ -107,14 +110,18 @@ onMounted(load)
             {{ deck.title }}
             <span
               class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-              :class="deck.isSystem
-                ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300'"
+              :class="
+                deck.isSystem
+                  ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300'
+              "
             >
               {{ deck.isSystem ? 'System' : 'User' }}
             </span>
           </h1>
-          <p v-if="deck.description" class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ deck.description }}</p>
+          <p v-if="deck.description" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {{ deck.description }}
+          </p>
           <p class="text-xs text-gray-400 mt-1">
             {{ deck.level ?? 'No level' }} · {{ deck.wordCount }} words
             <span v-if="deck.ownerEmail"> · owner {{ deck.ownerEmail }}</span>
@@ -137,7 +144,9 @@ onMounted(load)
           <td class="px-4 py-3 text-gray-500 dark:text-gray-400">{{ w.translation }}</td>
           <td class="px-4 py-3 text-gray-400 text-xs truncate max-w-xs">{{ w.example || '—' }}</td>
           <td class="px-4 py-3 text-right">
-            <button class="text-xs text-red-500 hover:underline" @click="removeTarget = w">Remove</button>
+            <button class="text-xs text-red-500 hover:underline" @click="removeTarget = w">
+              Remove
+            </button>
           </td>
         </tr>
       </AdminTable>
@@ -147,9 +156,22 @@ onMounted(load)
     <AppModal v-if="addOpen" title="Add word to deck" @close="addOpen = false">
       <form class="space-y-4" @submit.prevent="submitAdd">
         <AppInput v-model="addForm.word" label="Word" required placeholder="serendipity" />
-        <AppInput v-model="addForm.translation" label="Translation" required placeholder="kutilmagan yoqimli kashfiyot" />
-        <AppInput v-model="addForm.example" label="Example (optional)" placeholder="Finding that book was pure serendipity." />
-        <AppInput v-model="addForm.audioUrl" label="Audio URL (optional)" placeholder="https://…/word.mp3" />
+        <AppInput
+          v-model="addForm.translation"
+          label="Translation"
+          required
+          placeholder="kutilmagan yoqimli kashfiyot"
+        />
+        <AppInput
+          v-model="addForm.example"
+          label="Example (optional)"
+          placeholder="Finding that book was pure serendipity."
+        />
+        <AppInput
+          v-model="addForm.audioUrl"
+          label="Audio URL (optional)"
+          placeholder="https://…/word.mp3"
+        />
         <p v-if="addError" class="text-sm text-red-500">{{ addError }}</p>
       </form>
       <template #footer>

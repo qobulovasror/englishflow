@@ -69,9 +69,12 @@ async function finish() {
 
 async function skip() {
   submitting.value = true
+  error.value = null
   try {
     await authStore.completeOnboarding({ deckIds: [] })
     router.push('/dashboard')
+  } catch {
+    error.value = authStore.error ?? 'Something went wrong. Please try again.'
   } finally {
     submitting.value = false
   }
@@ -101,7 +104,11 @@ async function skip() {
           </button>
         </div>
         <div class="mt-6 text-center">
-          <button class="text-sm text-gray-500 hover:underline" :disabled="submitting" @click="skip">
+          <button
+            class="text-sm text-gray-500 hover:underline"
+            :disabled="submitting"
+            @click="skip"
+          >
             Skip for now
           </button>
         </div>
@@ -116,21 +123,40 @@ async function skip() {
             v-for="deck in decks"
             :key="deck.id"
             class="w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-colors text-left"
-            :class="selectedDeckIds.has(deck.id)
-              ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-              : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'"
+            :class="
+              selectedDeckIds.has(deck.id)
+                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+            "
             @click="toggleDeck(deck.id)"
           >
             <div>
               <div class="font-medium text-gray-800 dark:text-gray-100">{{ deck.title }}</div>
-              <div class="text-sm text-gray-500">{{ deck.wordCount }} words · {{ deck.level ?? '—' }}</div>
+              <div class="text-sm text-gray-500">
+                {{ deck.wordCount }} words · {{ deck.level ?? '—' }}
+              </div>
             </div>
             <span
               class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-              :class="selectedDeckIds.has(deck.id) ? 'border-primary-500 bg-primary-500' : 'border-gray-300'"
+              :class="
+                selectedDeckIds.has(deck.id)
+                  ? 'border-primary-500 bg-primary-500'
+                  : 'border-gray-300'
+              "
             >
-              <svg v-if="selectedDeckIds.has(deck.id)" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+              <svg
+                v-if="selectedDeckIds.has(deck.id)"
+                class="w-3 h-3 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="3"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             </span>
           </button>
@@ -139,7 +165,11 @@ async function skip() {
         <div class="mt-6 flex items-center justify-between gap-3">
           <button class="text-sm text-gray-500 hover:underline" @click="step = 1">Back</button>
           <div class="flex items-center gap-3">
-            <button class="text-sm text-gray-500 hover:underline" :disabled="submitting" @click="skip">
+            <button
+              class="text-sm text-gray-500 hover:underline"
+              :disabled="submitting"
+              @click="skip"
+            >
               Skip
             </button>
             <AppButton :loading="submitting" :disabled="selectedDeckIds.size === 0" @click="finish">

@@ -133,13 +133,10 @@ describe('Tests (e2e)', () => {
       const { testId, questions } = start.body.data;
 
       // Answer every question correctly except the first → score = total - 1.
-      const answers = questions.map(
-        (q: { wordId: string }, i: number) => ({
-          wordId: q.wordId,
-          selectedAnswer:
-            i === 0 ? 'WRONG' : translationByWordId.get(q.wordId),
-        }),
-      );
+      const answers = questions.map((q: { wordId: string }, i: number) => ({
+        wordId: q.wordId,
+        selectedAnswer: i === 0 ? 'WRONG' : translationByWordId.get(q.wordId),
+      }));
 
       const res = await request(app.getHttpServer())
         .post('/tests/submit')

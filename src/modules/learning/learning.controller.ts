@@ -1,4 +1,11 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -22,7 +29,7 @@ export class LearningController {
   constructor(private readonly learningService: LearningService) {}
 
   @Get('daily')
-  @ApiOperation({ summary: 'Get today\'s words to review (spaced repetition)' })
+  @ApiOperation({ summary: "Get today's words to review (spaced repetition)" })
   @ApiSuccessResponse(DailyWordResponseDto, { isArray: true })
   getDailyWords(@CurrentUser() user: { id: string }) {
     return this.learningService.getDailyWords(user.id);
@@ -37,10 +44,7 @@ export class LearningController {
     description: 'UserWord does not exist or does not belong to user',
     type: ApiErrorResponseDto,
   })
-  reviewWord(
-    @Body() dto: ReviewWordDto,
-    @CurrentUser() user: { id: string },
-  ) {
+  reviewWord(@Body() dto: ReviewWordDto, @CurrentUser() user: { id: string }) {
     return this.learningService.reviewWord(dto, user.id);
   }
 }

@@ -3,7 +3,9 @@ import { LearningService } from './learning.service';
 
 describe('LearningController', () => {
   let controller: LearningController;
-  let service: jest.Mocked<Pick<LearningService, 'getDailyWords' | 'reviewWord'>>;
+  let service: jest.Mocked<
+    Pick<LearningService, 'getDailyWords' | 'reviewWord'>
+  >;
   const user = { id: 'u1' };
 
   beforeEach(() => {

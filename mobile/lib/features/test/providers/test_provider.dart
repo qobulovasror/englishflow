@@ -54,14 +54,18 @@ class TestNotifier extends StateNotifier<TestState> {
     );
   }
 
-  /// Submits all answers to the server and returns the server-graded score.
+  /// Submits all answers to the server and returns the server-graded score, or
+  /// `null` when the submission couldn't be completed (nothing to submit, or a
+  /// network/server error — the error is set on state). Callers must NOT treat
+  /// a failure as a real 0 score.
+  ///
   /// The client no longer knows which option is correct — `/tests/start` does
   /// not return `correctAnswer`, so grading is server-only.
-  Future<int> submitQuiz() async {
+  Future<int?> submitQuiz() async {
     if (state.selectedOption == null ||
         state.currentQuestion == null ||
         state.testId == null) {
-      return state.score ?? 0;
+      return null;
     }
 
     final question = state.currentQuestion!;
@@ -69,9 +73,12 @@ class TestNotifier extends StateNotifier<TestState> {
       wordId: question.wordId,
       selectedAnswer: question.options[state.selectedOption!],
     );
+    // Compute locally — do NOT persist into state.answers before the call.
+    // Persisting would make a retry (which re-enters submitQuiz) append the
+    // last answer again each time.
     final allAnswers = [...state.answers, lastAnswer];
 
-    state = state.copyWith(isSubmitting: true, answers: allAnswers);
+    state = state.copyWith(isSubmitting: true);
 
     try {
       final result = await _testService.submitQuiz(state.testId!, allAnswers);
@@ -82,9 +89,9 @@ class TestNotifier extends StateNotifier<TestState> {
     } catch (_) {
       state = state.copyWith(
         isSubmitting: false,
-        error: 'Failed to submit quiz',
+        error: 'Failed to submit quiz. Check your connection and try again.',
       );
-      return 0;
+      return null;
     }
   }
 

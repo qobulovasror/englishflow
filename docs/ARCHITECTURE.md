@@ -21,7 +21,7 @@ This document explains how the three clients and the backend fit together — wh
                         └──────────────────────────────────────────────┘
 ```
 
-\*Currently per-controller via `@UseGuards(JwtAuthGuard)`. `@Public()` decorator exists for the future migration to a global guard.
+\*`JwtAuthGuard` is registered globally as an `APP_GUARD` (see `src/app.module.ts`); endpoints opt out with the `@Public()` decorator (used by `/auth/*` and `/health`).
 
 ---
 
@@ -32,9 +32,9 @@ A typical authenticated request (e.g. `POST /learning/review`):
 1. **CORS** — preflight against the `CORS_ORIGIN` list from `ConfigService`. `credentials: true` so the web client's auth cookies flow.
 2. **`cookie-parser`** — populates `req.cookies` from the `Cookie` header.
 3. **ThrottlerGuard** (global `APP_GUARD`) — 120 req/min/IP by default; `/auth/*` is tightened to 10/min via controller-level `@Throttle()`. Excess returns 429 with the standard envelope.
-4. **JwtAuthGuard** — extracts `Authorization: Bearer <token>` and verifies via `passport-jwt`. Populates `req.user = { id, email }`. **Also** compares the token's `iat` to `user.passwordChangedAt`; any token issued before the last password change is rejected.
+4. **JwtAuthGuard** (global `APP_GUARD`, bypassed by `@Public()`) — extracts `Authorization: Bearer <token>` and verifies via `passport-jwt`. Populates `req.user = { id, email, role }` (role read fresh from the DB). **Also** compares the token's `iat` to `user.passwordChangedAt`; any token issued before the last password change is rejected. `@Roles(Role.ADMIN)` + `RolesGuard` then gate the `/admin/*` endpoints.
 5. **ValidationPipe** (global, `whitelist + forbidNonWhitelisted + transform`) — converts the body to the controller's DTO class and strips unknown fields. Validation errors short-circuit with `BadRequestException`.
-6. **LoggingInterceptor** — records method, URL, status, and elapsed time.
+6. **pino (nestjs-pino)** — auto-logs the completed request as one structured line (`req.id`, method, url, status, responseTime). Each request carries an `x-request-id` (reused from upstream or minted) echoed back on the response header; `/health*` probes are excluded.
 7. **Controller** — pulls `@CurrentUser()` from `req.user`, invokes the service.
 8. **Service** — does the work; for read endpoints calls Prisma, for writes wraps state transitions in `$transaction` where needed.
 9. **Return value** — services return DTO instances built via `plainToInstance(Dto, raw, { excludeExtraneousValues: true })`. Only `@Expose()`-marked fields survive serialization.
@@ -79,11 +79,11 @@ Two-token JWT design with refresh-token rotation.
 
 - Hashes the incoming token and looks it up.
 - If missing → 401 (unknown token).
-- If present and **`revokedAt` is set** → token was already used; this is replay → **revoke every refresh token for the user** and 401.
+- If present and **`revokedAt` is set** → token was already rotated; this is replay → **revoke every refresh token for the user** and 401.
 - If expired → delete it and 401.
-- Otherwise: delete the old row and create a new token atomically (`$transaction`). Return the new plaintext.
+- Otherwise: **soft-revoke** the old row (stamp `revokedAt`) and create a new token atomically (`$transaction`). Return the new plaintext.
 
-This means a stolen refresh token has at most one successful use before the legitimate user (or attacker) trips the reuse detector and locks them both out.
+Keeping the rotated row (rather than deleting it) is what makes reuse detection real: a replay of an already-rotated token is recognised as reuse and trips the chain-wide revocation, instead of looking like a generic unknown token. The nightly `CleanupService` purges revoked/expired rows. So a stolen refresh token has at most one successful use before the legitimate user (or attacker) trips the detector and locks them both out.
 
 ### Password change invalidation (defense in depth)
 
@@ -106,9 +106,9 @@ Web clients never see the refresh token in JS:
 
 `sameSite=lax` provides CSRF protection out of the box for cross-origin POSTs as long as the SPA and API are same-site (eTLD+1). For unrelated origins, switch to `sameSite=none + secure` and add an explicit CSRF token.
 
-### Authorization (planned)
+### Authorization (RBAC)
 
-`@Public()`, `@Roles(...)`, and `RolesGuard` are in place under `src/common/`. The `User` model does not have a `roles` column yet — adding one is a schema change, then `JwtStrategy.validate` would include `roles` on the request user.
+Implemented. `User.role` is a `Role` enum (`USER` | `ADMIN`, default `USER`). `JwtStrategy.validate` reads the current role from the DB on every request, so a demotion takes effect immediately. `@Roles(Role.ADMIN)` + `RolesGuard` protect the `/admin/*` content-moderation endpoints (deck/word management). The last-admin-standing case is guarded inside serializable transactions so an admin can't strip the final admin.
 
 ---
 
@@ -128,24 +128,31 @@ npm run prisma:migrate   # = prisma migrate deploy
 
 | Model | Purpose | Notable columns |
 |-------|---------|----------------|
-| `User` | Account | `email @unique`, hashed `password`, `passwordChangedAt`, `createdAt`, `updatedAt` |
-| `RefreshToken` | One row per active refresh token | `tokenHash @unique` (SHA-256), `expiresAt`, `revokedAt`, FK→User cascade |
-| `Word` | A vocabulary entry owned by one user | `createdById` FK + index |
-| `UserWord` | Junction between User and Word with learning state | `status WordStatus`, `repetitionCount`, `lastReviewedAt`. Unique on `(userId, wordId)`. |
-| `Test` | A completed quiz session | `score`, FK to user |
-| `TestQuestion` | One graded question inside a `Test` | FKs to `test` and `word` |
+| `User` | Account | `email @unique`, hashed `password`, `role Role`, `passwordChangedAt`, `level CefrLevel?`, `onboardedAt?`, `emailVerifiedAt?`, `dailyGoal` |
+| `RefreshToken` | One row per refresh token (kept after rotation until revoked/expired) | `tokenHash @unique` (SHA-256), `expiresAt`, `revokedAt`, FK→User cascade |
+| `AuthToken` | Single-use email tokens (`PASSWORD_RESET`, `EMAIL_VERIFY`) | `type`, `tokenHash @unique` (SHA-256), `expiresAt`, `usedAt` |
+| `Word` | A vocabulary entry | `createdById?` FK, `deckId?` FK, `audioUrl?` |
+| `Deck` | A curated (system) or user-built collection of words | `isSystem`, `isPublic`, `level?`, `createdById?` |
+| `DeckEnrollment` | Tracks which decks a user joined | unique `(userId, deckId)` |
+| `UserWord` | Per-user learning state for a word (SM-2) | `status WordStatus`, `repetitionCount`, `easeFactor`, `interval`, `nextReviewAt`, `lapses`, `lastReviewedAt`; unique `(userId, wordId)` |
+| `Review` | Append-only log of each grading action (powers streaks/trends) | `rating ReviewRating`, `createdAt`, FKs→User/Word |
+| `Test` | A quiz session | `score`, `submittedAt?` (null while in progress; set once at submit) |
+| `TestQuestion` | One graded question inside a `Test` | `correctAnswer` (server-only key), `selectedAnswer?`, FKs to `test` and `word` |
 
 ### Indexes
 
 PostgreSQL does **not** auto-index foreign keys. The schema declares them explicitly:
 
-- `words(createdById)` — `GET /words` list.
+- `words(createdById)`, `words(deckId)` — list + deck lookups.
 - `user_words(wordId)` — cascade deletes, reverse lookup.
-- `user_words(status)` — `/learning/daily` filters on `status IN (NEW, LEARNING)`.
+- `user_words(status)` and `user_words(userId, nextReviewAt)` — `/learning/daily` due/new filtering.
+- `reviews(userId, createdAt)` — streak/trend windows.
+- `deck_enrollments(deckId)` + unique `(userId, deckId)`.
 - `tests(userId)` — `/progress` aggregate.
 - `test_questions(testId)`, `test_questions(wordId)` — cascade + joins.
-- `refresh_tokens(userId)` — revoke-all queries on password change / reuse detection.
-- `refresh_tokens(expiresAt)` — future cleanup job for expired tokens.
+- `auth_tokens(userId)` — recovery-token lookups.
+- `refresh_tokens(userId)` — revoke-all on password change / reuse detection.
+- `refresh_tokens(expiresAt)` — used by the nightly `CleanupService` purge.
 
 ### `@updatedAt`
 
@@ -193,9 +200,9 @@ Component  →  Pinia store action  →  service (axios)  →  api.ts intercepto
 - `extractErrorMessage()` in `services/api.ts` reads the normalized error envelope.
 - **Token storage**: access token lives in Pinia state (memory) — never `localStorage`. The refresh token lives in an `httpOnly` cookie that the browser sends automatically; JS cannot read it. On app boot the auth store calls `/auth/refresh`; the cookie restores the session if it's still valid.
 - **Silent refresh on 401**: the axios response interceptor catches 401, hits `/auth/refresh` once, retries the original request with the new access token. Concurrent 401s share a single in-flight refresh promise.
-- Types are in two places:
-  - `src/types/index.ts` — hand-written, legacy.
-  - `src/types/api.ts` — auto-generated from `openapi.json`. Use `src/types/api-helpers.ts` for ergonomic aliases.
+- Types are in two places, and the migration between them is unfinished:
+  - `src/types/index.ts` — hand-written; **this is what the app currently imports**.
+  - `src/types/api.ts` (+ `api-helpers.ts`) — auto-generated from `openapi.json`, but not yet consumed by call sites. Regenerate on API change to prevent drift; migrate imports over incrementally.
 
 ---
 
@@ -213,7 +220,8 @@ Screen (Consumer)  →  StateNotifier  →  service  →  Dio interceptor chain 
 
 - All providers are Riverpod `StateNotifierProvider`s.
 - The auth state holds `UserModel`, access token, and refresh token. `tryAutoLogin()` rehydrates from `TokenStorage` on splash.
-- Mobile **does not** use the cookie — it stores the refresh token in `SharedPreferences` and sends it in the JSON body of `/auth/refresh` and `/auth/logout`. The backend accepts both transports.
+- Mobile **does not** use the cookie — it stores the access + refresh tokens in `flutter_secure_storage` (Keychain on iOS, `encryptedSharedPreferences` on Android) and sends the refresh token in the JSON body of `/auth/refresh` and `/auth/logout`. The backend accepts both transports.
+- When a refresh fails (token rejected/expired), the `RefreshInterceptor` both clears storage **and** signals the auth notifier, so the router redirects to `/login` instead of stranding the user on a screen that keeps 401-ing.
 - `ApiException` exposes `isValidationError`, `isUnauthorized`, `isConflict`, `isServerError` for ergonomic UI handling.
 - Sensitive fields (`password`, `accessToken`, `refreshToken`, `Authorization`) are redacted in logs — and logs only run in debug builds.
 
@@ -226,9 +234,10 @@ Under `src/common/`:
 | Folder | Purpose |
 |--------|---------|
 | `filters/` | `AllExceptionsFilter` — single error normalizer |
-| `interceptors/` | `LoggingInterceptor`, `TransformInterceptor` |
+| `interceptors/` | `TransformInterceptor` (response envelope) |
+| `logger/` | `buildLoggerParams` — nestjs-pino config (JSON logs, request id, redaction) |
 | `decorators/` | `@CurrentUser()`, `@Public()`, `@Roles(...)` |
-| `guards/` | `RolesGuard` (infra only — needs `User.roles` to be useful) |
+| `guards/` | `RolesGuard` — enforces `@Roles(Role.ADMIN)` against `User.role` |
 | `dto/` | `PaginationQueryDto`, `PaginatedResponseDto` |
 | `utils/` | `paginate(items, total, query)` helper |
 | `swagger/` | `ApiSuccessResponse`, `ApiPaginatedResponse`, `ApiErrorResponseDto` — keeps Swagger docs aware of the response envelope |
@@ -239,12 +248,14 @@ Under `src/common/`:
 
 | Layer | Tool | Files | What's covered |
 |-------|------|-------|----------------|
-| Backend unit | Jest + `@nestjs/testing` | `src/**/*.spec.ts` | 6 suites · auth/users/learning services, exception filter, transform interceptor, pagination |
-| Backend e2e | Jest + supertest | `test/**/*.e2e-spec.ts` | 5 suites · auth (register/login/refresh/logout/password change + invalidation), rate limiting, words CRUD + ownership, tests grading, progress aggregation |
+| Backend unit | Jest + `@nestjs/testing` | `src/**/*.spec.ts` | ~29 suites (~226 tests) · services (auth/refresh/users/words/learning/tests/progress/decks/admin/maintenance), SM-2 + streak + trend utils, exception filter, transform interceptor, pagination, guards |
+| Backend e2e | Jest + supertest | `test/**/*.e2e-spec.ts` | 8 suites (~82 tests) · auth + refresh rotation/reuse, rate limiting, words CRUD + ownership, decks, tests grading, progress/trends/decks/leeches, admin |
+| Backend migrations | Prisma + real Postgres (CI) | `prisma/migrations/` | CI `migrations` job applies every migration to a fresh Postgres 16 and checks `migrate status` |
 | Frontend | `vue-tsc --noEmit` | — | Type-check only; UI tests not yet wired |
-| Mobile | `flutter test` | `mobile/test/**/*_test.dart` | 5 suites · model parsing, paginated response, API exception normalization |
+| Mobile | `flutter analyze` + `flutter test` | `mobile/test/**/*_test.dart` | ~83 tests · models, providers, widgets, paginated response, API exception |
+| Extension | `vue-tsc --noEmit` | — | Type-check only (`npm run compile`) |
 
-E2E tests use an in-memory Prisma stub (`test/helpers/prisma-stub.ts`) so they run without a database. The CI workflow (`.github/workflows/ci.yml`) runs all three layers in parallel jobs on every push.
+Jest e2e tests use an in-memory Prisma stub (`test/helpers/prisma-stub.ts`) so they run without a database; the CI `migrations` job is what exercises real Postgres. The CI workflow (`.github/workflows/ci.yml`) runs the backend, migrations, frontend, and mobile jobs in parallel on every push.
 
 Run from the repo root:
 
@@ -260,10 +271,10 @@ npm run test:cov   # coverage report
 
 The backend ships as a multi-stage Docker image (see `Dockerfile`):
 
-1. Builder stage: `npm install`, `prisma generate`, `npm run build`.
-2. Runtime stage: Node 20 Alpine + OpenSSL + `dist/`, `node_modules/`, `prisma/`. Entrypoint runs `prisma migrate deploy` then `node dist/main`.
+1. Builder stage: `npm ci`, `prisma generate`, `npm run build`, then `npm prune --omit=dev`.
+2. Runtime stage: Node 20 Alpine + OpenSSL + `tini` + non-root `app` user + `dist/`, pruned `node_modules/`, `prisma/`. A `HEALTHCHECK` polls `/health`. Entrypoint runs `prisma migrate deploy` then `node dist/main`. The `prisma` CLI is a **production** dependency so the migrate step uses the bundled binary (no registry fetch at boot); for zero-downtime rollouts prefer running migrations as a separate pre-deploy step.
 
-`docker-compose.yml` defines Postgres + backend. Backend reads `env_file: .env` — secrets are never baked into the image or compose file.
+`docker-compose.yml` defines Postgres + backend + web (nginx). Backend reads `env_file: .env` — secrets are never baked into the image or compose file; Postgres is bound to `127.0.0.1`.
 
 For production:
 
@@ -277,13 +288,15 @@ For production:
 
 ## Known gaps / open work
 
-These are deliberate trade-offs noted for future iterations:
+Now-implemented (previously listed here): RBAC (`User.role` + `RolesGuard` + `/admin/*`), refresh-token cleanup cron, email verification + password reset (both reuse `passwordChangedAt`), and mobile provider/widget tests. Backend coverage is now ~80%+.
 
-- **Roles / RBAC** — `RolesGuard` exists but `User.roles` does not. Adding it is a schema change.
-- **Refresh-token cleanup** — expired rows accumulate; a daily cron/job using the `expiresAt` index would garbage-collect them.
-- **Mobile screen tests** — only model and parser tests today; provider/widget tests still missing.
-- **Mobile codegen** — Flutter models mirror DTOs by convention. Generating Dart bindings from `openapi.json` would close the loop.
-- **Backend coverage** — 32% line coverage today. The hot paths (auth, learning state machine, error normalization) are 90–100%; controllers and pagination are exercised end-to-end. Next priority is broader service coverage.
-- **Soft deletes / audit log** — `User` / `Word` deletes cascade hard.
-- **Email verification / password reset** — not implemented; both would reuse `passwordChangedAt` to invalidate stale sessions.
-- **Account lockout** — throttler slows brute force but doesn't lock the account; add an `auth_failed_attempts` counter on `User` for hard lockout if needed.
+Still open (see `docs/AUDIT.md` for the full, severity-ranked backlog):
+
+- **Soft deletes / audit log** — `User` / `Deck` / `Word` deletes cascade hard; deleting a shared deck erases enrolled users' `UserWord`/`Review` rows. `DecksService.remove` now blocks deleting a deck other users are enrolled in as a stopgap; full soft-delete is pending.
+- **ESLint / Prettier** — scripts reference them but they aren't installed or wired into CI.
+- **Structured logging / error tracking** — plain-text Nest logger; no JSON logs, metrics, or Sentry yet.
+- **Real-DB e2e** — Jest e2e run against an in-memory stub; only the CI `migrations` job touches real Postgres.
+- **Web dual type system** — hand-written `types/index.ts` not yet replaced by the generated `api.ts`.
+- **Mobile codegen / offline sync** — Flutter models mirror DTOs by convention; no offline review queue.
+- **Account lockout** — throttler slows brute force but doesn't lock the account.
+- **Timezone-aware analytics** — progress/trends accept a `tzOffsetMinutes` param (default UTC); clients must send it to get local-day streaks.

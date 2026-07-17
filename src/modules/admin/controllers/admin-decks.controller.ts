@@ -57,7 +57,9 @@ export class AdminDecksController {
   constructor(private readonly decksService: DecksService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List every deck (system + user) with owner context (admin)' })
+  @ApiOperation({
+    summary: 'List every deck (system + user) with owner context (admin)',
+  })
   @ApiPaginatedResponse(AdminDeckRowDto, { description: 'Page of decks' })
   list(
     @Query() query: DeckQueryDto,
@@ -68,7 +70,9 @@ export class AdminDecksController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a deck with its full word list (admin)' })
   @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiSuccessResponse(AdminDeckDetailDto, { description: 'The deck and its words' })
+  @ApiSuccessResponse(AdminDeckDetailDto, {
+    description: 'The deck and its words',
+  })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'Deck not found',

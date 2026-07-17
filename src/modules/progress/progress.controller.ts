@@ -2,6 +2,7 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ProgressService } from './progress.service';
 import { ProgressResponseDto } from './dto/progress-response.dto';
+import { ProgressQueryDto } from './dto/progress-query.dto';
 import { TrendsQueryDto } from './dto/trends-query.dto';
 import {
   DeckProgressDto,
@@ -18,24 +19,37 @@ export class ProgressController {
   constructor(private readonly progressService: ProgressService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get vocabulary and test statistics for the current user' })
+  @ApiOperation({
+    summary: 'Get vocabulary and test statistics for the current user',
+  })
   @ApiSuccessResponse(ProgressResponseDto)
-  getProgress(@CurrentUser() user: { id: string }) {
-    return this.progressService.getUserProgress(user.id);
+  getProgress(
+    @CurrentUser() user: { id: string },
+    @Query() query: ProgressQueryDto,
+  ) {
+    return this.progressService.getUserProgress(user.id, query.tzOffsetMinutes);
   }
 
   @Get('trends')
-  @ApiOperation({ summary: 'Daily review activity over a trailing window (zero-filled)' })
+  @ApiOperation({
+    summary: 'Daily review activity over a trailing window (zero-filled)',
+  })
   @ApiSuccessResponse(TrendPointDto, { isArray: true })
   getTrends(
     @CurrentUser() user: { id: string },
     @Query() query: TrendsQueryDto,
   ) {
-    return this.progressService.getTrends(user.id, query.days ?? 30);
+    return this.progressService.getTrends(
+      user.id,
+      query.days ?? 30,
+      query.tzOffsetMinutes,
+    );
   }
 
   @Get('decks')
-  @ApiOperation({ summary: 'Per-deck learning progress for joined/created decks' })
+  @ApiOperation({
+    summary: 'Per-deck learning progress for joined/created decks',
+  })
   @ApiSuccessResponse(DeckProgressDto, { isArray: true })
   getDeckProgress(@CurrentUser() user: { id: string }) {
     return this.progressService.getDeckProgress(user.id);

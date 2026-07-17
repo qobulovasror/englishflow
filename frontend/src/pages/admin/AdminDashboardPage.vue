@@ -13,7 +13,8 @@ const signups = ref<SignupPoint[]>([])
 const recentUsers = ref<AdminUser[]>([])
 
 const ICONS = {
-  users: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 00-3-6.16',
+  users:
+    'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 00-3-6.16',
   spark: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
   deck: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
   word: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13',
@@ -21,9 +22,7 @@ const ICONS = {
   clock: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
 }
 
-const maxSignups = computed(() =>
-  signups.value.reduce((m, p) => Math.max(m, p.count), 0),
-)
+const maxSignups = computed(() => signups.value.reduce((m, p) => Math.max(m, p.count), 0))
 
 function barHeight(count: number): string {
   if (maxSignups.value === 0) return '2%'
@@ -89,12 +88,7 @@ onMounted(load)
           :icon="ICONS.deck"
           accent="violet"
         />
-        <StatCard
-          label="Words"
-          :value="overview.words.total"
-          :icon="ICONS.word"
-          accent="sky"
-        />
+        <StatCard label="Words" :value="overview.words.total" :icon="ICONS.word" accent="sky" />
         <StatCard
           label="Reviews today"
           :value="overview.reviews.today"
@@ -144,14 +138,18 @@ onMounted(load)
                 class="flex items-center justify-between py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 -mx-2 px-2 rounded-lg transition-colors"
               >
                 <div class="min-w-0">
-                  <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{{ u.email }}</p>
+                  <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
+                    {{ u.email }}
+                  </p>
                   <p class="text-xs text-gray-400">Joined {{ fmtDate(u.createdAt) }}</p>
                 </div>
                 <span
                   class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                  :class="u.role === 'ADMIN'
-                    ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300'"
+                  :class="
+                    u.role === 'ADMIN'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300'
+                  "
                 >
                   {{ u.role }}
                 </span>

@@ -41,7 +41,11 @@ describe('AdminUsersController', () => {
 
   it('changeRole passes the acting user id', async () => {
     await controller.changeRole('u1', { role: Role.ADMIN }, acting);
-    expect(service.changeRole).toHaveBeenCalledWith('u1', Role.ADMIN, 'admin-1');
+    expect(service.changeRole).toHaveBeenCalledWith(
+      'u1',
+      Role.ADMIN,
+      'admin-1',
+    );
   });
 
   it('verifyEmail delegates with the id', async () => {

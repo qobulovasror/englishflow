@@ -21,6 +21,9 @@ export class LearningService {
   // Anki's "mature" threshold: an interval of 21+ days means the word is
   // effectively learned.
   private readonly MATURE_INTERVAL_DAYS = 21;
+  // A repeat review of the SAME card within this window is treated as a
+  // double-tap / retry and ignored (no second Review row, no SM-2 re-run).
+  private readonly REVIEW_DEDUP_MS = 2000;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -69,30 +72,48 @@ export class LearningService {
     );
   }
 
-  async reviewWord(dto: ReviewWordDto, userId: string): Promise<ReviewResultDto> {
-    const userWord = await this.prisma.userWord.findFirst({
-      where: { id: dto.userWordId, userId },
-    });
+  async reviewWord(
+    dto: ReviewWordDto,
+    userId: string,
+  ): Promise<ReviewResultDto> {
+    const now = new Date();
 
-    if (!userWord) {
-      throw new NotFoundException('Word not found in your learning list');
-    }
-
-    const next = sm2(
-      {
-        repetitionCount: userWord.repetitionCount,
-        easeFactor: userWord.easeFactor,
-        interval: userWord.interval,
-        lapses: userWord.lapses,
-      },
-      dto.rating,
-      new Date(),
-    );
-
-    // Update the card's SM-2 state and append a row to the review log in one
-    // atomic step — the daily count and streaks read from the log, so it must
-    // never drift from the card state.
+    // Read the card, re-run SM-2 and append the review log in ONE transaction —
+    // the daily count and streaks read from the log, so it must never drift from
+    // the card state. Reading inside the transaction (not before) also keeps the
+    // SM-2 input current.
     const updated = await this.prisma.$transaction(async (tx) => {
+      const userWord = await tx.userWord.findFirst({
+        where: { id: dto.userWordId, userId },
+        include: { word: true },
+      });
+
+      if (!userWord) {
+        throw new NotFoundException('Word not found in your learning list');
+      }
+
+      // Idempotency guard against double-taps / retries: a repeat review of the
+      // same card within REVIEW_DEDUP_MS is a no-op (returning the current
+      // state) so it can't inflate today's count/streak or re-grade from stale
+      // state.
+      if (
+        userWord.lastReviewedAt &&
+        now.getTime() - userWord.lastReviewedAt.getTime() < this.REVIEW_DEDUP_MS
+      ) {
+        return userWord;
+      }
+
+      const next = sm2(
+        {
+          repetitionCount: userWord.repetitionCount,
+          easeFactor: userWord.easeFactor,
+          interval: userWord.interval,
+          lapses: userWord.lapses,
+        },
+        dto.rating,
+        now,
+      );
+
       const result = await tx.userWord.update({
         where: { id: userWord.id },
         data: {
@@ -102,7 +123,7 @@ export class LearningService {
           lapses: next.lapses,
           nextReviewAt: next.nextReviewAt,
           status: this.statusFor(next.interval),
-          lastReviewedAt: new Date(),
+          lastReviewedAt: now,
         },
         include: { word: true },
       });

@@ -65,22 +65,31 @@ export interface ReviewResult {
   nextReviewAt: string;
 }
 
+/** GET /progress — matches the backend ProgressResponseDto (nested). */
 export interface Progress {
-  totalWords: number;
-  newCount: number;
-  learningCount: number;
-  learnedCount: number;
-  todayReviewCount: number;
-  currentStreak: number;
-  dailyGoal: number;
-  goalMet: boolean;
+  vocabulary: {
+    total: number;
+    new: number;
+    learning: number;
+    learned: number;
+    progressPercentage: number;
+  };
+  streak: {
+    current: number;
+    longest: number;
+    todayCount: number;
+    dailyGoal: number;
+    goalMet: boolean;
+  };
 }
 
+/** Backend PaginatedResponseDto — the list slice is `items`, paged by page/limit. */
 export interface Paginated<T> {
-  data: T[];
+  items: T[];
   total: number;
-  skip: number;
-  take: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
 }
 
 /** Best-effort lookup from the free Dictionary API (English definitions). */
@@ -91,10 +100,14 @@ export interface DictionaryResult {
   phonetic?: string;
 }
 
-/** Aggregated payload for the popup dashboard. */
+/** Flattened payload for the popup dashboard (shielded from the nested DTOs). */
 export interface DashboardData {
-  progress: Progress;
+  totalWords: number;
   dueToday: number;
+  currentStreak: number;
+  todayCount: number;
+  dailyGoal: number;
+  goalMet: boolean;
   recent: Word[];
 }
 

@@ -18,15 +18,21 @@ async function handleStart() {
   answers.value = []
   currentQuestionIndex.value = 0
   selectedOption.value = null
-  await testStore.startTest()
+  try {
+    await testStore.startTest()
+  } catch {
+    // Failure is surfaced via testStore.error; swallow the rethrow.
+  }
 }
 
 function selectOption(option: string) {
   selectedOption.value = option
 }
 
-function nextQuestion() {
+async function nextQuestion() {
   if (!currentQuestion.value || !selectedOption.value) return
+  // Ignore double-clicks / re-entry while a submit is in flight.
+  if (testStore.loading) return
 
   answers.value.push({
     wordId: currentQuestion.value.wordId,
@@ -34,7 +40,13 @@ function nextQuestion() {
   })
 
   if (isLastQuestion.value) {
-    testStore.submitTest(answers.value)
+    try {
+      await testStore.submitTest(answers.value)
+    } catch {
+      // Failure is surfaced via testStore.error; stay on this screen. Roll back
+      // the just-pushed answer so retrying Submit doesn't duplicate it.
+      answers.value.pop()
+    }
   } else {
     currentQuestionIndex.value++
     selectedOption.value = null
@@ -57,7 +69,9 @@ function handleReset() {
     <div v-if="!hasStarted && !testStore.result" class="text-center py-16">
       <div class="text-6xl mb-4">&#128221;</div>
       <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Ready for a quiz?</h3>
-      <p class="text-gray-500 dark:text-gray-400 mt-2">Test your knowledge with multiple choice questions</p>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">
+        Test your knowledge with multiple choice questions
+      </p>
       <p v-if="testStore.error" class="text-red-500 text-sm mt-3">{{ testStore.error }}</p>
       <AppButton class="mt-6" :loading="testStore.loading" @click="handleStart">
         Start Test
@@ -73,7 +87,9 @@ function handleReset() {
         <div class="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <div
             class="bg-primary-600 h-2 rounded-full transition-all"
-            :style="{ width: `${((currentQuestionIndex + 1) / testStore.questions.length) * 100}%` }"
+            :style="{
+              width: `${((currentQuestionIndex + 1) / testStore.questions.length) * 100}%`,
+            }"
           />
         </div>
       </div>
@@ -81,7 +97,9 @@ function handleReset() {
       <AppCard>
         <div class="text-center py-4">
           <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">What is the translation of:</p>
-          <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ currentQuestion.word }}</h3>
+          <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+            {{ currentQuestion.word }}
+          </h3>
         </div>
 
         <div class="space-y-3 mt-4">
@@ -100,10 +118,15 @@ function handleReset() {
           </button>
         </div>
 
+        <p v-if="testStore.error" class="text-red-500 text-sm mt-4 text-center">
+          {{ testStore.error }}
+        </p>
+
         <div class="mt-6">
           <AppButton
             class="w-full"
-            :disabled="!selectedOption"
+            :disabled="!selectedOption || testStore.loading"
+            :loading="testStore.loading"
             @click="nextQuestion"
           >
             {{ isLastQuestion ? 'Submit' : 'Next' }}
@@ -117,10 +140,25 @@ function handleReset() {
       <AppCard>
         <div class="text-center py-6">
           <div class="text-5xl mb-4">
-            {{ testStore.result.percentage >= 80 ? '&#127942;' : testStore.result.percentage >= 50 ? '&#128170;' : '&#128218;' }}
+            {{
+              testStore.result.percentage >= 80
+                ? '&#127942;'
+                : testStore.result.percentage >= 50
+                  ? '&#128170;'
+                  : '&#128218;'
+            }}
           </div>
           <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Test Complete!</h3>
-          <p class="text-4xl font-bold mt-4" :class="testStore.result.percentage >= 80 ? 'text-green-500' : testStore.result.percentage >= 50 ? 'text-yellow-500' : 'text-red-500'">
+          <p
+            class="text-4xl font-bold mt-4"
+            :class="
+              testStore.result.percentage >= 80
+                ? 'text-green-500'
+                : testStore.result.percentage >= 50
+                  ? 'text-yellow-500'
+                  : 'text-red-500'
+            "
+          >
             {{ testStore.result.percentage }}%
           </p>
           <p class="text-gray-500 dark:text-gray-400 mt-2">
@@ -133,18 +171,22 @@ function handleReset() {
             v-for="q in testStore.result.questions"
             :key="q.id"
             class="flex items-center justify-between px-3 py-2 rounded"
-            :class="q.selectedAnswer === q.correctAnswer ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'"
+            :class="
+              q.selectedAnswer === q.correctAnswer
+                ? 'bg-green-50 dark:bg-green-900/20'
+                : 'bg-red-50 dark:bg-red-900/20'
+            "
           >
             <span class="text-sm text-gray-700 dark:text-gray-300">{{ q.correctAnswer }}</span>
-            <span v-if="q.selectedAnswer === q.correctAnswer" class="text-green-500 text-sm">&#10003;</span>
+            <span v-if="q.selectedAnswer === q.correctAnswer" class="text-green-500 text-sm"
+              >&#10003;</span
+            >
             <span v-else class="text-red-500 text-sm">&#10007; ({{ q.selectedAnswer }})</span>
           </div>
         </div>
 
         <div class="mt-6">
-          <AppButton class="w-full" @click="handleReset">
-            Try Again
-          </AppButton>
+          <AppButton class="w-full" @click="handleReset"> Try Again </AppButton>
         </div>
       </AppCard>
     </div>
