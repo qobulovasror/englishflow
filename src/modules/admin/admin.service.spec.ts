@@ -11,7 +11,7 @@ type MockedPrisma = {
     update: jest.Mock;
     delete: jest.Mock;
   };
-  deck: { count: jest.Mock; findUnique: jest.Mock };
+  deck: { count: jest.Mock; findUnique: jest.Mock; findFirst: jest.Mock };
   word: {
     count: jest.Mock;
     findMany: jest.Mock;
@@ -58,7 +58,7 @@ describe('AdminService', () => {
         update: jest.fn(),
         delete: jest.fn().mockResolvedValue({}),
       },
-      deck: { count: jest.fn(), findUnique: jest.fn() },
+      deck: { count: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn() },
       word: {
         count: jest.fn(),
         findMany: jest.fn().mockResolvedValue([]),
@@ -197,7 +197,7 @@ describe('AdminService', () => {
 
   describe('createWord', () => {
     it('throws when the target deck does not exist', async () => {
-      prisma.deck.findUnique.mockResolvedValue(null);
+      prisma.deck.findFirst.mockResolvedValue(null);
       await expect(
         service.createWord({
           word: 'a',
@@ -252,7 +252,7 @@ describe('AdminService', () => {
 
   describe('importWords', () => {
     it('back-fills UserWord for enrollees when importing into a deck', async () => {
-      prisma.deck.findUnique.mockResolvedValue({ id: 'd1' });
+      prisma.deck.findFirst.mockResolvedValue({ id: 'd1' });
       // word.findMany = dedup existing-check (none exist). The inserted words'
       // ids come from createManyAndReturn (w1, w2).
       prisma.word.findMany.mockResolvedValue([]);

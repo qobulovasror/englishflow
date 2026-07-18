@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { HttpAdapterHost } from '@nestjs/core';
 import { Prisma } from '@prisma/client';
 import { AppConfig } from '../../config/configuration';
+import { captureException } from '../sentry/sentry';
 
 export interface ErrorResponseBody {
   success: false;
@@ -53,6 +54,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
         `[${requestId ?? '-'}] ${request.method} ${path} -> ${statusCode} ${message}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
+      // Report server-side failures to Sentry (no-op when SENTRY_DSN is unset).
+      captureException(exception, {
+        requestId,
+        method: request.method,
+        path,
+      });
     } else {
       this.logger.warn(
         `[${requestId ?? '-'}] ${request.method} ${path} -> ${statusCode} ${message}`,

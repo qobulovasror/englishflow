@@ -82,7 +82,7 @@ flutter run --dart-define=BASE_URL=http://10.0.2.2:3000
 | `npm run dev` | Vite dev server |
 | `npm run build` | Production build |
 | `npm run type-check` | `vue-tsc --noEmit` |
-| `npm run generate:types` | Generate `src/types/api.ts` from `../openapi.json` |
+| `npm run lint` / `npm run format` | ESLint / Prettier |
 
 ### Mobile (`mobile/`)
 
@@ -96,16 +96,9 @@ flutter run --dart-define=BASE_URL=http://10.0.2.2:3000
 
 ## Keeping types in sync
 
-When backend DTOs change, regenerate the API contract for the web client:
+The web client's API types are hand-maintained in a single file, `frontend/src/types/index.ts`. When backend DTOs change, update the matching interface there. (`npm run openapi` at the repo root still writes `openapi.json`, used for Swagger docs and as the contract reference.)
 
-```bash
-npm run openapi                  # repo root → writes openapi.json
-cd frontend && npm run generate:types   # → frontend/src/types/api.ts
-```
-
-The web client currently consumes the hand-written `frontend/src/types/index.ts`; the generated `src/types/api.ts` (+ `api-helpers.ts`) exist but the migration to them is incomplete. Regenerate them when the API changes so they don't drift, and migrate call sites incrementally.
-
-The Flutter app does not currently use codegen; its models mirror the backend by convention. Run `flutter test` to catch shape drift early.
+The Flutter app likewise mirrors the backend by convention (no codegen). Run `flutter test` / `npm run type-check` to catch shape drift early.
 
 ---
 
@@ -150,6 +143,8 @@ englishflow/
 | `TRUST_PROXY` | no | `0` | Trusted reverse-proxy hops for client-IP (rate limiting); `1` behind nginx/CDN |
 | `FRONTEND_URL` | no | `http://localhost:5173` | Base URL for account-recovery email links (defaults to first `CORS_ORIGIN`) |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `MAIL_FROM` | no | (see `.env.example`) | Transactional email; unset in dev → mailer logs the message + link to the console |
+| `SENTRY_DSN` | no | (project DSN) | Enables Sentry error tracking; unset = disabled (no-op) |
+| `LOG_LEVEL` | no | `info` | pino level; `silent` under `NODE_ENV=test` |
 
 The Joi schema in `src/config/env.validation.ts` is the single source of truth — adding a variable requires updating the schema and `src/config/configuration.ts`.
 
@@ -196,5 +191,5 @@ See `docs/AUDIT.md` for the current quality/security backlog.
 
 1. Branch from `main`.
 2. Run lint/build/test for the layer you changed (backend: `npm run lint && npm test && npm run test:e2e`; web: `npm run lint && npm run type-check`; mobile: `flutter analyze && flutter test`). Backend + web are ESLint + Prettier gated in CI.
-3. If you change the backend API: `npm run openapi && cd frontend && npm run generate:types` and commit the regenerated `openapi.json` + `frontend/src/types/api.ts`.
+3. If you change the backend API: run `npm run openapi` and commit the regenerated `openapi.json`, and update the matching interface in `frontend/src/types/index.ts`.
 4. CI (`.github/workflows/ci.yml`) verifies the same on every push.

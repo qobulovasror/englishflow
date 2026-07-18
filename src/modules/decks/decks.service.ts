@@ -1,5 +1,4 @@
 import {
-  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -42,6 +41,7 @@ export class DecksService {
   // access rule lives in exactly one place.
   private visibleWhere(userId: string): Prisma.DeckWhereInput {
     return {
+      deletedAt: null,
       OR: [{ isSystem: true }, { isPublic: true }, { createdById: userId }],
     };
   }
@@ -86,6 +86,7 @@ export class DecksService {
   async findMine(userId: string): Promise<DeckResponseDto[]> {
     const decks = await this.prisma.deck.findMany({
       where: {
+        deletedAt: null,
         OR: [{ enrollments: { some: { userId } } }, { createdById: userId }],
       },
       orderBy: [{ isSystem: 'desc' }, { title: 'asc' }],
@@ -209,23 +210,13 @@ export class DecksService {
   async remove(id: string, userId: string): Promise<{ message: string }> {
     await this.loadOwnedDeck(id, userId);
 
-    // Refuse to delete a deck other people have enrolled in: the cascade would
-    // wipe every enrollee's UserWord/Review rows (their learning progress and
-    // streak history) with no warning. Owners should unpublish (set isPublic
-    // false) instead, which stops new enrollments while preserving learners.
-    const foreignEnrollments = await this.prisma.deckEnrollment.count({
-      where: { deckId: id, userId: { not: userId } },
+    // Soft delete: the deck disappears from every listing but its words stay,
+    // so enrolled users keep their UserWord/Review progress. (A hard delete
+    // would cascade those away.) All read paths filter `deletedAt: null`.
+    await this.prisma.deck.update({
+      where: { id },
+      data: { deletedAt: new Date() },
     });
-    if (foreignEnrollments > 0) {
-      throw new ConflictException(
-        'This deck has other learners enrolled. Make it private instead of ' +
-          'deleting it to avoid erasing their progress.',
-      );
-    }
-
-    // Cascades remove the deck's words (and their UserWord/testQuestion rows)
-    // plus any enrollments via the schema's onDelete: Cascade relations.
-    await this.prisma.deck.delete({ where: { id } });
 
     return { message: 'Deck deleted successfully' };
   }
@@ -344,7 +335,9 @@ export class DecksService {
     id: string,
     dto: AddDeckWordsDto,
   ): Promise<AddDeckWordsResponseDto> {
-    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    const deck = await this.prisma.deck.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!deck) {
       throw new NotFoundException('Deck not found');
     }
@@ -381,14 +374,19 @@ export class DecksService {
     );
   }
 
-  /** Deletes ANY deck. Cascades remove its words and enrollments. */
+  /** Soft-deletes ANY deck (archives it; words + enrollee progress preserved). */
   async adminRemove(id: string): Promise<{ message: string }> {
-    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    const deck = await this.prisma.deck.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!deck) {
       throw new NotFoundException('Deck not found');
     }
 
-    await this.prisma.deck.delete({ where: { id } });
+    await this.prisma.deck.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
 
     return { message: 'Deck deleted successfully' };
   }
@@ -401,6 +399,7 @@ export class DecksService {
     query: DeckQueryDto,
   ): Promise<PaginatedResponseDto<AdminDeckRowDto>> {
     const where: Prisma.DeckWhereInput = {
+      deletedAt: null,
       AND: [
         query.level ? { level: query.level } : {},
         query.search
@@ -432,8 +431,8 @@ export class DecksService {
 
   /** Deck detail for admin management: any deck plus its full word list. */
   async adminFindOne(id: string): Promise<AdminDeckDetailDto> {
-    const deck = await this.prisma.deck.findUnique({
-      where: { id },
+    const deck = await this.prisma.deck.findFirst({
+      where: { id, deletedAt: null },
       include: {
         words: { orderBy: { createdAt: 'asc' } },
         _count: { select: { words: true } },
@@ -460,7 +459,9 @@ export class DecksService {
 
   /** Updates ANY deck's metadata, bypassing the owner check. */
   async adminUpdate(id: string, dto: UpdateDeckDto): Promise<AdminDeckRowDto> {
-    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    const deck = await this.prisma.deck.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!deck) {
       throw new NotFoundException('Deck not found');
     }
@@ -487,7 +488,9 @@ export class DecksService {
     id: string,
     wordId: string,
   ): Promise<{ message: string }> {
-    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    const deck = await this.prisma.deck.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!deck) {
       throw new NotFoundException('Deck not found');
     }
@@ -529,7 +532,9 @@ export class DecksService {
   // every write path so the ownership rule lives in one place: system decks and
   // other users' decks are off-limits.
   private async loadOwnedDeck(id: string, userId: string): Promise<Deck> {
-    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    const deck = await this.prisma.deck.findFirst({
+      where: { id, deletedAt: null },
+    });
 
     if (!deck) {
       throw new NotFoundException('Deck not found');

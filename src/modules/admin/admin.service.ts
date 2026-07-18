@@ -85,8 +85,8 @@ export class AdminService {
       this.prisma.user.count({ where: { onboardedAt: { not: null } } }),
       this.prisma.user.count({ where: { createdAt: { gte: todayStart } } }),
       this.prisma.user.count({ where: { createdAt: { gte: weekAgo } } }),
-      this.prisma.deck.count(),
-      this.prisma.deck.count({ where: { isSystem: true } }),
+      this.prisma.deck.count({ where: { deletedAt: null } }),
+      this.prisma.deck.count({ where: { deletedAt: null, isSystem: true } }),
       this.prisma.word.count(),
       this.prisma.review.count(),
       this.prisma.review.count({ where: { createdAt: { gte: todayStart } } }),
@@ -290,8 +290,8 @@ export class AdminService {
   /** Creates a curated word (no owner). Attaches to a deck when `deckId` is given. */
   async createWord(dto: CreateAdminWordDto): Promise<AdminWordResponseDto> {
     if (dto.deckId) {
-      const deck = await this.prisma.deck.findUnique({
-        where: { id: dto.deckId },
+      const deck = await this.prisma.deck.findFirst({
+        where: { id: dto.deckId, deletedAt: null },
       });
       if (!deck) throw new NotFoundException('Deck not found');
     }
@@ -355,7 +355,9 @@ export class AdminService {
     const deckId = dto.deckId ?? null;
 
     if (deckId) {
-      const deck = await this.prisma.deck.findUnique({ where: { id: deckId } });
+      const deck = await this.prisma.deck.findFirst({
+        where: { id: deckId, deletedAt: null },
+      });
       if (!deck) throw new NotFoundException('Deck not found');
     }
 

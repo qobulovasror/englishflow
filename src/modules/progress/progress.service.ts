@@ -193,6 +193,7 @@ export class ProgressService {
   async getDeckProgress(userId: string): Promise<DeckProgressDto[]> {
     const decks = await this.prisma.deck.findMany({
       where: {
+        deletedAt: null,
         OR: [{ enrollments: { some: { userId } } }, { createdById: userId }],
       },
       orderBy: [{ isSystem: 'desc' }, { title: 'asc' }],

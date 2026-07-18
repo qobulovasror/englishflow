@@ -200,9 +200,7 @@ Component  →  Pinia store action  →  service (axios)  →  api.ts intercepto
 - `extractErrorMessage()` in `services/api.ts` reads the normalized error envelope.
 - **Token storage**: access token lives in Pinia state (memory) — never `localStorage`. The refresh token lives in an `httpOnly` cookie that the browser sends automatically; JS cannot read it. On app boot the auth store calls `/auth/refresh`; the cookie restores the session if it's still valid.
 - **Silent refresh on 401**: the axios response interceptor catches 401, hits `/auth/refresh` once, retries the original request with the new access token. Concurrent 401s share a single in-flight refresh promise.
-- Types are in two places, and the migration between them is unfinished:
-  - `src/types/index.ts` — hand-written; **this is what the app currently imports**.
-  - `src/types/api.ts` (+ `api-helpers.ts`) — auto-generated from `openapi.json`, but not yet consumed by call sites. Regenerate on API change to prevent drift; migrate imports over incrementally.
+- Types live in a single hand-maintained file, `src/types/index.ts` (imported app-wide via `@/types`). The previous unused, drift-prone generated `api.ts`/`api-helpers.ts` and the `generate:types` codegen were removed; keep `index.ts` in step with the backend DTOs by hand when the API changes.
 
 ---
 
@@ -296,7 +294,7 @@ Still open (see `docs/AUDIT.md` for the full, severity-ranked backlog):
 - **ESLint / Prettier** — scripts reference them but they aren't installed or wired into CI.
 - **Structured logging / error tracking** — plain-text Nest logger; no JSON logs, metrics, or Sentry yet.
 - **Real-DB e2e** — Jest e2e run against an in-memory stub; only the CI `migrations` job touches real Postgres.
-- **Web dual type system** — hand-written `types/index.ts` not yet replaced by the generated `api.ts`.
+- **Web codegen** — API types are hand-maintained in `types/index.ts` (the unused generated `api.ts` was removed). Reintroducing OpenAPI→TS codegen would require fixing the backend DTO nullable annotations first (the old generated output mis-typed nullable strings).
 - **Mobile codegen / offline sync** — Flutter models mirror DTOs by convention; no offline review queue.
 - **Account lockout** — throttler slows brute force but doesn't lock the account.
 - **Timezone-aware analytics** — progress/trends accept a `tzOffsetMinutes` param (default UTC); clients must send it to get local-day streaks.

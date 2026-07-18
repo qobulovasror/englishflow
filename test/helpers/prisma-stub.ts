@@ -479,6 +479,8 @@ export function buildPrismaStub() {
       if (!where.OR.some((w: any) => deckMatches(d, w))) return false;
     }
     if (where.id !== undefined && d.id !== where.id) return false;
+    // Soft delete: `deletedAt: null` matches only rows that aren't archived.
+    if (where.deletedAt === null && (d as any).deletedAt) return false;
     if (where.isSystem !== undefined && d.isSystem !== where.isSystem)
       return false;
     if (where.isPublic !== undefined && d.isPublic !== where.isPublic)

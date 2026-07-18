@@ -78,4 +78,11 @@ export const envValidationSchema = Joi.object({
     then: Joi.required(),
   }),
   MAIL_FROM: Joi.string().default('EnglishFlow <no-reply@englishflow.app>'),
+  // Sentry error tracking. Optional — unset disables Sentry entirely (no-op).
+  SENTRY_DSN: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .optional(),
+  LOG_LEVEL: Joi.string()
+    .valid('trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent')
+    .optional(),
 });

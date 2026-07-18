@@ -1,9 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  ConflictException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CefrLevel } from '@prisma/client';
 import { DecksService } from './decks.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -224,7 +220,7 @@ describe('DecksService', () => {
 
   describe('update', () => {
     it('updates only provided fields on an owned deck', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: false, createdById: 'u1' }),
       );
       prisma.deck.update.mockResolvedValue(
@@ -247,7 +243,7 @@ describe('DecksService', () => {
     });
 
     it('throws NotFound when the deck does not exist', async () => {
-      prisma.deck.findUnique.mockResolvedValue(null);
+      prisma.deck.findFirst.mockResolvedValue(null);
 
       await expect(
         service.update('missing', { title: 'x' } as never, 'u1'),
@@ -255,7 +251,7 @@ describe('DecksService', () => {
     });
 
     it('throws Forbidden when the deck is a system deck', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: true, createdById: null }),
       );
 
@@ -266,7 +262,7 @@ describe('DecksService', () => {
     });
 
     it('throws Forbidden when the deck belongs to another user', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: false, createdById: 'other' }),
       );
 
@@ -277,47 +273,53 @@ describe('DecksService', () => {
   });
 
   describe('remove', () => {
-    it('deletes an owned deck', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+    it('soft-deletes an owned deck (sets deletedAt, no hard delete)', async () => {
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: false, createdById: 'u1' }),
       );
 
       const result = await service.remove('d1', 'u1');
 
-      expect(prisma.deck.delete).toHaveBeenCalledWith({ where: { id: 'd1' } });
+      expect(prisma.deck.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'd1' },
+          data: { deletedAt: expect.any(Date) },
+        }),
+      );
+      expect(prisma.deck.delete).not.toHaveBeenCalled();
       expect(result.message).toBe('Deck deleted successfully');
     });
 
     it('throws Forbidden when deleting a system deck', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: true, createdById: null }),
       );
 
       await expect(service.remove('d1', 'u1')).rejects.toBeInstanceOf(
         ForbiddenException,
       );
-      expect(prisma.deck.delete).not.toHaveBeenCalled();
+      expect(prisma.deck.update).not.toHaveBeenCalled();
     });
 
-    it('refuses to delete a deck other users are enrolled in', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+    it('allows deleting a deck other users are enrolled in (soft delete preserves their progress)', async () => {
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: false, createdById: 'u1' }),
       );
       prisma.deckEnrollment.count.mockResolvedValue(2);
 
-      await expect(service.remove('d1', 'u1')).rejects.toBeInstanceOf(
-        ConflictException,
-      );
-      expect(prisma.deckEnrollment.count).toHaveBeenCalledWith({
-        where: { deckId: 'd1', userId: { not: 'u1' } },
-      });
+      await service.remove('d1', 'u1');
+
+      // No hard delete → no cascade → enrollees keep their UserWord/Review.
       expect(prisma.deck.delete).not.toHaveBeenCalled();
+      expect(prisma.deck.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { deletedAt: expect.any(Date) } }),
+      );
     });
   });
 
   describe('addWords', () => {
     it('creates words tied to the deck and returns the new wordCount', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: false, createdById: 'u1' }),
       );
       prisma.word.count.mockResolvedValue(2);
@@ -355,7 +357,7 @@ describe('DecksService', () => {
     });
 
     it('back-fills UserWord for enrolled users so new words reach them', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: false, createdById: 'u1' }),
       );
       // Two learners enrolled; two new words are added (createManyAndReturn
@@ -392,7 +394,7 @@ describe('DecksService', () => {
     });
 
     it('skips the UserWord back-fill when the deck has no enrollees', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: false, createdById: 'u1' }),
       );
       prisma.deckEnrollment.findMany.mockResolvedValue([]);
@@ -409,7 +411,7 @@ describe('DecksService', () => {
     });
 
     it('throws Forbidden when adding words to a system deck', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: true, createdById: null }),
       );
 
@@ -460,7 +462,7 @@ describe('DecksService', () => {
 
   describe('adminAddWords', () => {
     it('adds words to any deck without an ownership check', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: true, createdById: null }),
       );
       prisma.word.count.mockResolvedValue(2);
@@ -492,7 +494,7 @@ describe('DecksService', () => {
     });
 
     it('throws NotFound when the deck does not exist', async () => {
-      prisma.deck.findUnique.mockResolvedValue(null);
+      prisma.deck.findFirst.mockResolvedValue(null);
 
       await expect(
         service.adminAddWords('missing', {
@@ -504,30 +506,36 @@ describe('DecksService', () => {
   });
 
   describe('adminRemove', () => {
-    it('deletes any deck, including system decks', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+    it('soft-deletes any deck, including system decks', async () => {
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: true, createdById: null }),
       );
 
       const result = await service.adminRemove('d1');
 
-      expect(prisma.deck.delete).toHaveBeenCalledWith({ where: { id: 'd1' } });
+      expect(prisma.deck.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'd1' },
+          data: { deletedAt: expect.any(Date) },
+        }),
+      );
+      expect(prisma.deck.delete).not.toHaveBeenCalled();
       expect(result.message).toBe('Deck deleted successfully');
     });
 
     it('throws NotFound when the deck does not exist', async () => {
-      prisma.deck.findUnique.mockResolvedValue(null);
+      prisma.deck.findFirst.mockResolvedValue(null);
 
       await expect(service.adminRemove('missing')).rejects.toBeInstanceOf(
         NotFoundException,
       );
-      expect(prisma.deck.delete).not.toHaveBeenCalled();
+      expect(prisma.deck.update).not.toHaveBeenCalled();
     });
   });
 
   describe('removeWord', () => {
     it('deletes a word that belongs to the owned deck', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: false, createdById: 'u1' }),
       );
       prisma.word.findUnique.mockResolvedValue({ id: 'w1', deckId: 'd1' });
@@ -539,7 +547,7 @@ describe('DecksService', () => {
     });
 
     it('throws NotFound when the word is not in this deck', async () => {
-      prisma.deck.findUnique.mockResolvedValue(
+      prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: false, createdById: 'u1' }),
       );
       prisma.word.findUnique.mockResolvedValue({

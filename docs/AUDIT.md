@@ -412,4 +412,15 @@ Mobil: permissive email validator (MOB-L4).
 
 Yakuniy: backend **232 unit + 82 e2e**, mobil **86 test** + 0 analyze error, web/extension lint+type-check+build toza.
 
-**Qolgan (katta / opt-in, ataylab):** FE-M1 (web dual-type birlashtiruvi — keng import refactori), to'liq `deletedAt` soft-delete (o'chirilganni tiklash), Sentry (DSN kerak), extension permission o'zgarishlari (EXT-M1 content-script scope, M3 storage.session, M4 host_permissions — qurilmada sinash talab qiladi), MOB-L5 dead-deps olib tashlash (cosmetic, olib tashlash xavfi).
+### A tier — katta refactorlar (2026-07-17)
+
+- **A1 / FE-M1** ✅ — Web dual-type tizimi **birlashtirildi**. Generatsiya `types/api.ts` va `api-helpers.ts` (buggy nullable codegen, hech kim import qilmaydi) + `generate:types` script + `openapi-typescript` devDep **olib tashlandi**; qo'lda `types/index.ts` yagona manba (30 fayl uni ishlatadi). CI frontend "verify generated types" qadami, eslint/prettier ignore'lar, README/ARCHITECTURE yangilandi. Type-check/build/lint yashil.
+- **A2 / B-LOG-H3 (to'liq)** ✅ — **Deck soft-delete**: `Deck.deletedAt` + migration; ~18 deck query'ga `deletedAt: null` filtri (barcha `findUnique`→`findFirst`); `remove`/`adminRemove` endi arxivlaydi (hard-delete + block guard o'rniga). Endi egasi ulashilgan deckni o'chira oladi — enrollee'lar UserWord/Review progressi **saqlanadi** (real Postgres'da tasdiqlandi: deck arxivlandi, so'z+UserWord omon qoldi). Unit spec (232) + e2e (82) yangilandi.
+
+### B tier — tashqi resurs / qurilma (2026-07-17)
+
+- **B1 / OPS-M6 Sentry** ✅ — `@sentry/node` **DSN-ixtiyoriy** integratsiya: `SENTRY_DSN` o'rnatilmasa **to'liq no-op** (ilova bir xil ishlaydi), o'rnatilsa faol. `initSentry` main.ts'da erta chaqiriladi; `AllExceptionsFilter` 5xx/noma'lum xatolarni `captureException` bilan yuboradi (requestId/method/path context). `.env.example` + README yangilandi. Build + 232 unit + 82 e2e yashil (no-op yo'l tekshirildi). **Faollashtirish uchun faqat `SENTRY_DSN` qo'ying.**
+
+**B2/B3 — brauzer/qurilma sinovi kerak (bloklangan):** extension permission o'zgarishlari (EXT-M1 content-script scope, M3 `storage.session`, M4 `host_permissions` — Chrome/Firefox'da UX sinash), mobil cert-pinning (MOB-L3 — server SPKI hash + qurilma), android scaffold (MOB-L6). Bu kodlarni yozsam bo'ladi, lekin bu muhitda **tasdiqlab bo'lmaydi** (brauzer/qurilma yo'q) — "verify before done" buziladi.
+
+**Qolgan C/D tier LOW/MEDIUM:** progress perf (B-LOG-M5), forgot-password timing (B-SEC-M2), abandoned test cleanup (B-LOG-L6), mobil M2/M4/M7, web L3/L4/L6, extension L3/L4, va boshqa trivial nitlar.

@@ -171,6 +171,10 @@ model Deck {
   // decks set createdById and default to private.
   isSystem    Boolean    @default(false)
   isPublic    Boolean    @default(false)
+  // Soft delete: set instead of hard-deleting so a shared deck can be removed
+  // without cascading away enrolled users' UserWord/Review progress. All read
+  // paths filter `deletedAt: null`.
+  deletedAt   DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -183,6 +187,7 @@ model Deck {
   @@index([isSystem])
   @@index([level])
   @@index([createdById])
+  @@index([deletedAt])
   @@map("decks")
 }
 

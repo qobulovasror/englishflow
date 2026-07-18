@@ -28,9 +28,6 @@ module.exports = {
     '*.cjs',
     '*.config.js',
     '*.config.ts',
-    // Generated OpenAPI types — not hand-maintained.
-    'src/types/api.ts',
-    'src/types/api-helpers.ts',
   ],
   rules: {
     '@typescript-eslint/no-explicit-any': 'warn',

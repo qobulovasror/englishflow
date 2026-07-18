@@ -14,8 +14,12 @@ import { AppModule } from './app.module';
 import { AppConfig } from './config/configuration';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { initSentry } from './common/sentry/sentry';
 
 async function bootstrap() {
+  // Init before anything else so early errors are captured. No-op without a DSN.
+  initSentry(process.env.SENTRY_DSN, process.env.NODE_ENV ?? 'development');
+
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,

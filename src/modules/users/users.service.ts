@@ -143,6 +143,7 @@ export class UsersService {
       // isn't visible before enrolling in any of them.
       const visible = await this.prisma.deck.findMany({
         where: {
+          deletedAt: null,
           AND: [
             { id: { in: deckIds } },
             {
