@@ -14,9 +14,9 @@
     "format:check": "prettier --check \"src/**/*.{ts,vue}\""
   },
   "dependencies": {
-    "axios": "^1.6.5",
+    "axios": "^1.18.1",
     "pinia": "^2.1.7",
-    "vue": "^3.4.15",
+    "vue": "^3.5.40",
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
@@ -24,7 +24,7 @@
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "@vitejs/plugin-vue": "^5.0.3",
-    "autoprefixer": "^10.4.17",
+    "autoprefixer": "^10.5.4",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.2",
     "eslint-plugin-vue": "^9.33.0",
