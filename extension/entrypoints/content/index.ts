@@ -11,6 +11,15 @@ export default defineContentScript({
   cssInjectionMode: 'ui',
   runAt: 'document_idle',
   async main(ctx) {
+    // Register the message listener FIRST so the context-menu path works the
+    // moment this script exists — including when it's injected on demand into a
+    // tab that was already open before the extension loaded (see background.ts).
+    // `openPanel` writes module-level reactive state, so the panel appears once
+    // the Vue app below mounts, even if the message arrives before then.
+    browser.runtime.onMessage.addListener((msg: OpenSavePanelMessage) => {
+      if (msg?.type === 'OPEN_SAVE_PANEL') openPanel(msg.text);
+    });
+
     const ui = await createShadowRootUi(ctx, {
       name: 'englishflow-ui',
       position: 'overlay',
@@ -48,11 +57,6 @@ export default defineContentScript({
 
     document.addEventListener('selectionchange', () => {
       if (!window.getSelection()?.toString().trim()) hideBubble();
-    });
-
-    // Context-menu path: background asks this tab to open the panel.
-    browser.runtime.onMessage.addListener((msg: OpenSavePanelMessage) => {
-      if (msg?.type === 'OPEN_SAVE_PANEL') openPanel(msg.text);
     });
   },
 });

@@ -35,6 +35,15 @@ USER app
 
 EXPOSE 3000
 
+# Liveness probe against the DB-free /health endpoint. Orchestrators (compose,
+# k8s) read this to gate traffic / restarts.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/health || exit 1
+
 # tini reaps zombies and forwards SIGTERM cleanly to Node.
+# `prisma` is a production dependency (see package.json), so `npx prisma` runs
+# the CLI bundled in node_modules — no registry fetch at boot, works offline.
+# For zero-downtime rollouts prefer running `migrate deploy` as a separate
+# pre-deploy job and reducing this to `node dist/main` (see docs/AUDIT.md OPS-L6).
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]

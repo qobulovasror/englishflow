@@ -3,7 +3,10 @@ import { Expose } from 'class-transformer';
 import { CefrLevel, Role } from '@prisma/client';
 
 export class UserResponseDto {
-  @ApiProperty({ example: '8c5f4e64-1c39-4a55-9c8e-1e1b9c41a0a2', format: 'uuid' })
+  @ApiProperty({
+    example: '8c5f4e64-1c39-4a55-9c8e-1e1b9c41a0a2',
+    format: 'uuid',
+  })
   @Expose()
   id: string;
 
@@ -11,7 +14,11 @@ export class UserResponseDto {
   @Expose()
   email: string;
 
-  @ApiPropertyOptional({ enum: CefrLevel, example: CefrLevel.A2, nullable: true })
+  @ApiPropertyOptional({
+    enum: CefrLevel,
+    example: CefrLevel.A2,
+    nullable: true,
+  })
   @Expose()
   level?: CefrLevel | null;
 

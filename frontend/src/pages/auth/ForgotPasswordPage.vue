@@ -39,7 +39,9 @@ async function handleSubmit() {
         <p class="text-gray-500 dark:text-gray-400 mt-2">Reset your password</p>
       </div>
 
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+      <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8"
+      >
         <div v-if="submitted" class="text-center space-y-4">
           <p class="text-sm text-green-600 dark:text-green-400">
             If that email exists, a reset link was sent. Check your inbox.
@@ -64,9 +66,7 @@ async function handleSubmit() {
 
           <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
 
-          <AppButton type="submit" :loading="loading" class="w-full">
-            Send reset link
-          </AppButton>
+          <AppButton type="submit" :loading="loading" class="w-full"> Send reset link </AppButton>
         </form>
 
         <p v-if="!submitted" class="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">

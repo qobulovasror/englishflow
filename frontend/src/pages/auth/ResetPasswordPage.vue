@@ -72,7 +72,9 @@ async function handleSubmit() {
         <p class="text-gray-500 dark:text-gray-400 mt-2">Choose a new password</p>
       </div>
 
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+      <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8"
+      >
         <div v-if="!token" class="text-center space-y-4">
           <p class="text-sm text-red-500">
             This reset link is invalid or has expired. Request a new one.
@@ -106,9 +108,7 @@ async function handleSubmit() {
             {{ validationError || serverError }}
           </p>
 
-          <AppButton type="submit" :loading="loading" class="w-full">
-            Reset password
-          </AppButton>
+          <AppButton type="submit" :loading="loading" class="w-full"> Reset password </AppButton>
 
           <p class="text-center text-sm text-gray-500 dark:text-gray-400">
             <router-link to="/login" class="text-primary-600 hover:underline font-medium">

@@ -9,15 +9,62 @@ final wordsProvider = StateNotifierProvider<WordsNotifier, WordsState>((ref) {
 class WordsNotifier extends StateNotifier<WordsState> {
   final WordsService _wordsService;
 
+  static const int _pageSize = 20;
+
   WordsNotifier(this._wordsService) : super(const WordsState());
 
   Future<void> loadWords() async {
-    state = state.copyWith(isLoading: true, clearError: true);
+    // Reset pagination flags too — any in-flight loadMore is now stale and its
+    // filter guard will discard it.
+    state = state.copyWith(
+      isLoading: true,
+      isLoadingMore: false,
+      clearError: true,
+    );
     try {
-      final words = await _wordsService.getWords(status: state.statusFilter);
-      state = state.copyWith(words: words, isLoading: false);
+      final res = await _wordsService.getWordsPage(
+        page: 1,
+        limit: _pageSize,
+        status: state.statusFilter,
+      );
+      state = state.copyWith(
+        words: res.items,
+        page: res.page,
+        hasMore: res.hasMore,
+        isLoading: false,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  /// Appends the next page. No-op while another load is in flight or when the
+  /// last page has already been reached.
+  Future<void> loadMore() async {
+    if (state.isLoadingMore || state.isLoading || !state.hasMore) return;
+    // Capture the filter this fetch belongs to; if it changes mid-flight we
+    // must NOT append the stale page onto the (now different) list.
+    final filter = state.statusFilter;
+    state = state.copyWith(isLoadingMore: true, clearError: true);
+    try {
+      final res = await _wordsService.getWordsPage(
+        page: state.page + 1,
+        limit: _pageSize,
+        status: filter,
+      );
+      if (state.statusFilter != filter) {
+        // Filter switched while loading — discard this page.
+        state = state.copyWith(isLoadingMore: false);
+        return;
+      }
+      state = state.copyWith(
+        words: [...state.words, ...res.items],
+        page: res.page,
+        hasMore: res.hasMore,
+        isLoadingMore: false,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoadingMore: false, error: e.toString());
     }
   }
 

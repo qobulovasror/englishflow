@@ -8,7 +8,10 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
-    "generate:types": "openapi-typescript ../openapi.json -o src/types/api.ts"
+    "lint": "eslint \"src/**/*.{ts,vue}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,vue}\" --fix",
+    "format": "prettier --write \"src/**/*.{ts,vue}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,vue}\""
   },
   "dependencies": {
     "axios": "^1.6.5",
@@ -18,13 +21,19 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.5",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
     "@vitejs/plugin-vue": "^5.0.3",
-    "openapi-typescript": "^7.4.0",
     "autoprefixer": "^10.4.17",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-vue": "^9.33.0",
     "postcss": "^8.4.33",
+    "prettier": "^3.9.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
     "vite": "^5.0.12",
+    "vue-eslint-parser": "^9.4.3",
     "vue-tsc": "^2.2.12"
   }
 }

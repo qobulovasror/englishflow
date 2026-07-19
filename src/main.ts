@@ -1,20 +1,33 @@
 import { NestFactory, HttpAdapterHost, Reflector } from '@nestjs/core';
-import { ClassSerializerInterceptor, Logger, ValidationPipe } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  Logger,
+  ValidationPipe,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import { Logger as PinoLogger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { AppConfig } from './config/configuration';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { initSentry } from './common/sentry/sentry';
 
 async function bootstrap() {
+  // Init before anything else so early errors are captured. No-op without a DSN.
+  initSentry(process.env.SENTRY_DSN, process.env.NODE_ENV ?? 'development');
+
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
+
+  // Route all framework + application logs through pino (buffered logs above
+  // flush here). Must run before the first real log line.
+  app.useLogger(app.get(PinoLogger));
 
   const configService = app.get(ConfigService);
   const appConfig = configService.getOrThrow<AppConfig>('app');
@@ -25,6 +38,11 @@ async function bootstrap() {
   // would mint a fresh bucket — defeating the throttler entirely. 0 = no proxy
   // (XFF ignored); behind one nginx/Cloudflare set TRUST_PROXY=1.
   app.set('trust proxy', appConfig.trustProxy);
+
+  // Security headers (HSTS, X-Content-Type-Options, X-Frame-Options, etc.).
+  // The API serves JSON only, so the default CSP is unnecessary and would only
+  // affect the Swagger UI in dev — disable it to keep /docs working.
+  app.use(helmet({ contentSecurityPolicy: false }));
 
   // Required so `@Req() req.cookies.refresh_token` is populated for the
   // web client. Mobile sends the token via JSON body and ignores cookies.
@@ -40,7 +58,6 @@ async function bootstrap() {
   );
 
   app.useGlobalInterceptors(
-    new LoggingInterceptor(),
     new TransformInterceptor(),
     new ClassSerializerInterceptor(app.get(Reflector)),
   );
@@ -68,7 +85,8 @@ async function bootstrap() {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'Paste a JWT obtained from /auth/login or /auth/register',
+          description:
+            'Paste a JWT obtained from /auth/login or /auth/register',
         },
         'JWT',
       )
@@ -86,7 +104,9 @@ async function bootstrap() {
   }
 
   await app.listen(appConfig.port);
-  logger.log(`Application running on port ${appConfig.port} [${appConfig.nodeEnv}]`);
+  logger.log(
+    `Application running on port ${appConfig.port} [${appConfig.nodeEnv}]`,
+  );
 }
 
 bootstrap();

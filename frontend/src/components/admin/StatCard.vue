@@ -19,7 +19,9 @@ const accentClasses: Record<string, string> = {
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+  <div
+    class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5"
+  >
     <div class="flex items-start justify-between">
       <div>
         <p class="text-sm text-gray-500 dark:text-gray-400">{{ label }}</p>

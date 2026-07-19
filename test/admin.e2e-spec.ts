@@ -96,7 +96,8 @@ describe('Admin decks (e2e)', () => {
         .delete(`/admin/decks/${deckId}`)
         .set('Authorization', `Bearer ${admin.accessToken}`)
         .expect(200);
-      expect(prisma._stores.decks.has(deckId)).toBe(false);
+      // Soft delete: archived (deletedAt stamped), not hard-removed.
+      expect(prisma._stores.decks.get(deckId)?.deletedAt).toBeInstanceOf(Date);
     });
 
     it('returns 404 when admin deletes a non-existent deck', async () => {

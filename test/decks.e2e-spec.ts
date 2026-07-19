@@ -119,13 +119,20 @@ describe('Decks (e2e)', () => {
         isPublic: true,
       });
 
-      // Delete
+      // Delete (soft): the row is archived, not removed — so enrolled learners
+      // keep their progress. It must vanish from listings/detail afterwards.
       await request(app.getHttpServer())
         .delete(`/decks/${deckId}`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(prisma._stores.decks.has(deckId)).toBe(false);
+      // Row still exists but is stamped deletedAt...
+      expect(prisma._stores.decks.get(deckId)?.deletedAt).toBeInstanceOf(Date);
+      // ...and is no longer reachable via the API.
+      await request(app.getHttpServer())
+        .get(`/decks/${deckId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(404);
     });
 
     it('rejects adding words with an empty array (400)', async () => {

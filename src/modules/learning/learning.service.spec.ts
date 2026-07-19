@@ -33,6 +33,7 @@ function makeUserWord(
     interval: number;
     nextReviewAt: Date | null;
     lapses: number;
+    lastReviewedAt: Date | null;
   }> = {},
 ) {
   return {
@@ -151,7 +152,10 @@ describe('LearningService', () => {
       prisma.userWord.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.reviewWord({ userWordId: 'missing', rating: Rating.GOOD }, 'u1'),
+        service.reviewWord(
+          { userWordId: 'missing', rating: Rating.GOOD },
+          'u1',
+        ),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
@@ -159,7 +163,10 @@ describe('LearningService', () => {
       prisma.userWord.findFirst.mockResolvedValue(makeUserWord());
       captureUpdate();
 
-      await service.reviewWord({ userWordId: 'uw1', rating: Rating.GOOD }, 'u1');
+      await service.reviewWord(
+        { userWordId: 'uw1', rating: Rating.GOOD },
+        'u1',
+      );
 
       const { data } = prisma.userWord.update.mock.calls[0][0];
       expect(data.repetitionCount).toBe(1);
@@ -179,13 +186,31 @@ describe('LearningService', () => {
       );
       captureUpdate();
 
-      await service.reviewWord({ userWordId: 'uw1', rating: Rating.AGAIN }, 'u1');
+      await service.reviewWord(
+        { userWordId: 'uw1', rating: Rating.AGAIN },
+        'u1',
+      );
 
       const { data } = prisma.userWord.update.mock.calls[0][0];
       expect(data.repetitionCount).toBe(0);
-      expect(data.interval).toBe(1);
+      expect(data.interval).toBe(0); // relearning step, due again shortly
       expect(data.lapses).toBe(1);
       expect(data.status).toBe(WordStatus.LEARNING);
+    });
+
+    it('ignores a repeat review of the same card within the dedup window', async () => {
+      // Card was reviewed a moment ago — a double-tap must not write again.
+      prisma.userWord.findFirst.mockResolvedValue(
+        makeUserWord({ lastReviewedAt: new Date() }),
+      );
+
+      await service.reviewWord(
+        { userWordId: 'uw1', rating: Rating.GOOD },
+        'u1',
+      );
+
+      expect(prisma.userWord.update).not.toHaveBeenCalled();
+      expect(prisma.review.create).not.toHaveBeenCalled();
     });
 
     it('marks a card LEARNED once its interval reaches the mature threshold', async () => {
@@ -201,7 +226,10 @@ describe('LearningService', () => {
       );
       captureUpdate();
 
-      await service.reviewWord({ userWordId: 'uw1', rating: Rating.GOOD }, 'u1');
+      await service.reviewWord(
+        { userWordId: 'uw1', rating: Rating.GOOD },
+        'u1',
+      );
 
       const { data } = prisma.userWord.update.mock.calls[0][0];
       expect(data.interval).toBe(25); // round(10 * 2.5)
@@ -213,7 +241,10 @@ describe('LearningService', () => {
       captureUpdate();
 
       const before = Date.now();
-      await service.reviewWord({ userWordId: 'uw1', rating: Rating.AGAIN }, 'u1');
+      await service.reviewWord(
+        { userWordId: 'uw1', rating: Rating.AGAIN },
+        'u1',
+      );
       const after = Date.now();
 
       const { data } = prisma.userWord.update.mock.calls[0][0];
@@ -228,7 +259,10 @@ describe('LearningService', () => {
       );
       captureUpdate();
 
-      await service.reviewWord({ userWordId: 'uw1', rating: Rating.GOOD }, 'u1');
+      await service.reviewWord(
+        { userWordId: 'uw1', rating: Rating.GOOD },
+        'u1',
+      );
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(prisma.$transaction.mock.calls[0][0]).toEqual(
@@ -257,7 +291,14 @@ describe('LearningService', () => {
       );
 
       expect(Object.keys(result).sort()).toEqual(
-        ['id', 'interval', 'nextReviewAt', 'repetitionCount', 'status', 'word'].sort(),
+        [
+          'id',
+          'interval',
+          'nextReviewAt',
+          'repetitionCount',
+          'status',
+          'word',
+        ].sort(),
       );
     });
   });

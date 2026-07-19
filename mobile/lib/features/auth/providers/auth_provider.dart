@@ -10,7 +10,10 @@ import 'package:englishflow/features/users/models/update_profile_request.dart';
 import 'package:englishflow/features/users/services/users_service.dart';
 import 'package:englishflow/shared/models/user_model.dart';
 
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+// Explicit type annotation breaks the top-level inference cycle: this provider
+// participates in dioProvider -> authServiceProvider -> authProvider -> dioProvider.
+final StateNotifierProvider<AuthNotifier, AuthState> authProvider =
+    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(
     authService: ref.watch(authServiceProvider),
     usersService: ref.watch(usersServiceProvider),
@@ -232,6 +235,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void clearError() {
     state = state.copyWith(clearError: true);
+  }
+
+  /// Called by the network layer when the refresh token is rejected/expired and
+  /// the session can't be recovered. Storage is already cleared by the
+  /// interceptor; here we reset the in-memory state so the router's redirect
+  /// sends the user to /login instead of stranding them on a screen where every
+  /// request 401s (dead-session lockout).
+  void onSessionExpired() {
+    if (!mounted) return;
+    state = const AuthState();
   }
 
   Future<void> _persistSession(

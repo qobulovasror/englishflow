@@ -14,10 +14,14 @@ export const useThemeStore = defineStore('theme', () => {
     isDark.value = !isDark.value
   }
 
-  watch(isDark, (dark) => {
-    localStorage.setItem('theme', dark ? 'dark' : 'light')
-    document.documentElement.classList.toggle('dark', dark)
-  }, { immediate: true })
+  watch(
+    isDark,
+    (dark) => {
+      localStorage.setItem('theme', dark ? 'dark' : 'light')
+      document.documentElement.classList.toggle('dark', dark)
+    },
+    { immediate: true },
+  )
 
   return { isDark, toggle }
 })

@@ -123,30 +123,35 @@ async function main() {
   }
 
   // Demo account for manual testing, enrolled in the first deck so the learn
-  // and test flows have content out of the box.
-  const hashedPassword = await bcrypt.hash('password123', 10);
-  const demo = await prisma.user.upsert({
-    where: { email: 'demo@englishflow.com' },
-    update: {},
-    create: { email: 'demo@englishflow.com', password: hashedPassword },
-  });
+  // and test flows have content out of the box. NEVER create it in production —
+  // it's a publicly-known credential (demo@englishflow.com / password123).
+  const seedDemo = process.env.NODE_ENV !== 'production';
+  if (seedDemo) {
+    const hashedPassword = await bcrypt.hash('password123', 12);
+    const demo = await prisma.user.upsert({
+      where: { email: 'demo@englishflow.com' },
+      update: {},
+      create: { email: 'demo@englishflow.com', password: hashedPassword },
+    });
 
-  const firstDeckWords = await prisma.word.findMany({
-    where: { deckId: DECKS[0].id },
-    select: { id: true },
-  });
-  await prisma.userWord.createMany({
-    data: firstDeckWords.map((w) => ({ userId: demo.id, wordId: w.id })),
-    skipDuplicates: true,
-  });
-  await prisma.deckEnrollment.upsert({
-    where: { userId_deckId: { userId: demo.id, deckId: DECKS[0].id } },
-    create: { userId: demo.id, deckId: DECKS[0].id },
-    update: {},
-  });
+    const firstDeckWords = await prisma.word.findMany({
+      where: { deckId: DECKS[0].id },
+      select: { id: true },
+    });
+    await prisma.userWord.createMany({
+      data: firstDeckWords.map((w) => ({ userId: demo.id, wordId: w.id })),
+      skipDuplicates: true,
+    });
+    await prisma.deckEnrollment.upsert({
+      where: { userId_deckId: { userId: demo.id, deckId: DECKS[0].id } },
+      create: { userId: demo.id, deckId: DECKS[0].id },
+      update: {},
+    });
+  }
 
   console.log(
-    `Seed completed: ${DECKS.length} system decks, demo user enrolled in "${DECKS[0].title}"`,
+    `Seed completed: ${DECKS.length} system decks` +
+      (seedDemo ? ', demo user enrolled' : ' (demo user skipped in production)'),
   );
 }
 

@@ -340,6 +340,15 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
                 ),
               ],
             ),
+            if (state.failedReviews > 0) ...[
+              const SizedBox(height: 16),
+              Text(
+                '${state.failedReviews} review(s) could not be saved — '
+                'check your connection.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.body.copyWith(color: AppColors.error),
+              ),
+            ],
             const SizedBox(height: 48),
             SizedBox(
               width: double.infinity,

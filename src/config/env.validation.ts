@@ -6,7 +6,10 @@ import * as Joi from 'joi';
 const corsOriginSchema = Joi.string()
   .default('http://localhost:5173')
   .custom((value: string, helpers) => {
-    const parts = value.split(',').map((s) => s.trim()).filter(Boolean);
+    const parts = value
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
     if (parts.length === 0) {
       return helpers.error('any.invalid');
     }
@@ -32,17 +35,29 @@ export const envValidationSchema = Joi.object({
     .valid('development', 'production', 'test')
     .default('development'),
   PORT: Joi.number().port().default(3000),
-  DATABASE_URL: Joi.string().uri({ scheme: ['postgresql', 'postgres'] }).required(),
-  JWT_SECRET: Joi.string().min(32).required().messages({
-    'string.min': 'JWT_SECRET must be at least 32 characters long for security',
-    'any.required': 'JWT_SECRET is required',
-  }),
+  DATABASE_URL: Joi.string()
+    .uri({ scheme: ['postgresql', 'postgres'] })
+    .required(),
+  JWT_SECRET: Joi.string()
+    .min(32)
+    .required()
+    // Reject the .env.example placeholder so a real deployment can never boot
+    // with a committed, guessable secret (README instructs generating one).
+    .invalid('REPLACE_WITH_RANDOM_32_CHAR_OR_LONGER_SECRET_KEY')
+    .messages({
+      'string.min':
+        'JWT_SECRET must be at least 32 characters long for security',
+      'any.required': 'JWT_SECRET is required',
+      'any.invalid': 'JWT_SECRET must be changed from the example placeholder',
+    }),
   JWT_EXPIRES_IN: Joi.string().default('15m'),
   REFRESH_TOKEN_EXPIRES_IN_DAYS: Joi.number().integer().min(1).default(30),
   CORS_ORIGIN: corsOriginSchema,
   // Optional base URL of the web client used to build email links. When unset,
   // configuration falls back to the first CORS_ORIGIN entry.
-  FRONTEND_URL: Joi.string().uri({ scheme: ['http', 'https'] }).optional(),
+  FRONTEND_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .optional(),
   // Number of trusted reverse-proxy hops in front of the app. Express uses this
   // to resolve `req.ip` from the RIGHT of the X-Forwarded-For chain, so a
   // client cannot forge it. 0 (default) = no proxy: XFF is ignored entirely and
@@ -63,4 +78,11 @@ export const envValidationSchema = Joi.object({
     then: Joi.required(),
   }),
   MAIL_FROM: Joi.string().default('EnglishFlow <no-reply@englishflow.app>'),
+  // Sentry error tracking. Optional — unset disables Sentry entirely (no-op).
+  SENTRY_DSN: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .optional(),
+  LOG_LEVEL: Joi.string()
+    .valid('trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent')
+    .optional(),
 });

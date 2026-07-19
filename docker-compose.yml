@@ -8,7 +8,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:-englishflow}
     ports:
-      - '${POSTGRES_PORT:-5433}:5432'
+      # Bind to loopback only — the DB must not be reachable from the network.
+      # For a prod host, drop this mapping entirely (the backend reaches it over
+      # the compose network).
+      - '127.0.0.1:${POSTGRES_PORT:-5433}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

@@ -15,7 +15,18 @@ onMounted(async () => {
 
 async function saveApi() {
   const res = await sendMessage('SET_API_URL', { apiUrl: apiUrl.value.trim() });
-  note.value = res.ok ? 'Saved' : 'Failed';
+  if (!res.ok) {
+    note.value = res.error;
+    setTimeout(() => (note.value = ''), 3000);
+    return;
+  }
+  // Changing the server's origin clears the session (tokens can't cross
+  // origins) — bounce the user back to the login screen.
+  if (res.data.sessionCleared) {
+    emit('logout');
+    return;
+  }
+  note.value = 'Saved';
   setTimeout(() => (note.value = ''), 1500);
 }
 

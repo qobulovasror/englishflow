@@ -8,8 +8,11 @@
  * are zero-filled so the client can render a continuous chart without
  * reconstructing the calendar itself.
  *
- * Each timestamp is bucketed by its UTC calendar date (`YYYY-MM-DD`).
- * Timestamps falling outside the window are ignored.
+ * Each timestamp is bucketed by its calendar date (`YYYY-MM-DD`) in the caller's
+ * timezone: pass `offsetMinutes` (minutes to add to UTC to get local time, i.e.
+ * `-new Date().getTimezoneOffset()`); it defaults to 0 (UTC). `todayLocal` must
+ * be the local day string for the same offset. Timestamps outside the window
+ * are ignored.
  */
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -22,21 +25,25 @@ function shiftDay(day: string, delta: number): string {
 
 export function bucketByDay(
   timestamps: Date[],
-  todayUtc: string,
+  todayLocal: string,
   days: number,
+  offsetMinutes = 0,
 ): { date: string; count: number }[] {
-  // Tally activity per UTC day from the raw timestamps.
+  // Tally activity per LOCAL day: shift each UTC timestamp by the offset, then
+  // read its calendar date. offsetMinutes = 0 keeps the original UTC behaviour.
   const counts = new Map<string, number>();
   for (const ts of timestamps) {
-    const day = ts.toISOString().slice(0, 10);
+    const day = new Date(ts.getTime() + offsetMinutes * 60000)
+      .toISOString()
+      .slice(0, 10);
     counts.set(day, (counts.get(day) ?? 0) + 1);
   }
 
   // Emit one slot per day across the window, oldest first. The window spans
-  // `days` calendar days ending at (and including) `todayUtc`.
+  // `days` calendar days ending at (and including) `todayLocal`.
   const series: { date: string; count: number }[] = [];
   for (let i = days - 1; i >= 0; i--) {
-    const date = shiftDay(todayUtc, -i);
+    const date = shiftDay(todayLocal, -i);
     series.push({ date, count: counts.get(date) ?? 0 });
   }
 

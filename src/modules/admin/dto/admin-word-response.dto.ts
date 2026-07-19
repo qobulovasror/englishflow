@@ -19,7 +19,9 @@ export class AdminWordResponseDto {
   @Expose()
   example?: string | null;
 
-  @ApiPropertyOptional({ example: 'https://cdn.example.com/audio/serendipity.mp3' })
+  @ApiPropertyOptional({
+    example: 'https://cdn.example.com/audio/serendipity.mp3',
+  })
   @Expose()
   audioUrl?: string | null;
 
@@ -27,7 +29,10 @@ export class AdminWordResponseDto {
   @Expose()
   deckId?: string | null;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Title of the deck the word belongs to' })
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Title of the deck the word belongs to',
+  })
   @Expose()
   deckTitle?: string | null;
 
@@ -39,7 +44,10 @@ export class AdminWordResponseDto {
   @Expose()
   createdById?: string | null;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Owner email; null for system words' })
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Owner email; null for system words',
+  })
   @Expose()
   ownerEmail?: string | null;
 

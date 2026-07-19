@@ -7,7 +7,11 @@ import 'package:englishflow/features/auth/models/auth_response.dart';
 import 'package:englishflow/features/auth/models/login_request.dart';
 import 'package:englishflow/features/auth/models/register_request.dart';
 
-final authServiceProvider = Provider<AuthService>((ref) {
+// Explicit type annotation: dioProvider -> authServiceProvider -> authProvider
+// -> dioProvider form an intentional provider cycle (the network layer signals
+// the auth layer on session expiry). Annotating breaks Dart's top-level type
+// inference cycle; the providers themselves resolve lazily at runtime.
+final Provider<AuthService> authServiceProvider = Provider<AuthService>((ref) {
   return AuthService(ref.watch(dioProvider));
 });
 

@@ -3,3 +3,7 @@ node_modules
 .wxt
 stats.html
 *.zip
+
+# Local env (dev). Only `.env.production` (public URLs) is committed.
+.env
+.env.local

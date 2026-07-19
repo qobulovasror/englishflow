@@ -28,7 +28,10 @@ export class ImportWordsDto {
   @IsUUID()
   deckId?: string;
 
-  @ApiProperty({ type: [DeckWordItemDto], description: 'Parsed rows to import' })
+  @ApiProperty({
+    type: [DeckWordItemDto],
+    description: 'Parsed rows to import',
+  })
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(500)

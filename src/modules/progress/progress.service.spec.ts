@@ -76,7 +76,11 @@ describe('ProgressService', () => {
 
     const res = await service.getUserProgress('u1');
 
-    expect(res.streak).toMatchObject({ todayCount: 5, dailyGoal: 5, goalMet: true });
+    expect(res.streak).toMatchObject({
+      todayCount: 5,
+      dailyGoal: 5,
+      goalMet: true,
+    });
   });
 
   it('queries today reviews with a start-of-day lower bound', async () => {

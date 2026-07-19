@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { WEB_URL } from '../../../lib/config';
 import { sendMessage } from '../../../lib/messages';
 import type { User } from '../../../lib/types';
 
 const emit = defineEmits<{ success: [user: User] }>();
 
-const mode = ref<'login' | 'register'>('login');
 const email = ref('');
 const password = ref('');
 const busy = ref(false);
@@ -15,13 +15,18 @@ async function submit() {
   if (!email.value || !password.value || busy.value) return;
   busy.value = true;
   error.value = '';
-  const res = await sendMessage(mode.value === 'login' ? 'LOGIN' : 'REGISTER', {
+  const res = await sendMessage('LOGIN', {
     email: email.value.trim(),
     password: password.value,
   });
   busy.value = false;
   if (res.ok) emit('success', res.data);
   else error.value = res.error;
+}
+
+// Sign-up happens on the web app, not in the extension.
+function openSignup() {
+  void browser.tabs.create({ url: `${WEB_URL}/register` });
 }
 </script>
 
@@ -50,11 +55,9 @@ async function submit() {
     <p v-if="error" class="err">{{ error }}</p>
 
     <button class="btn primary wide" :disabled="busy" @click="submit">
-      {{ busy ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account' }}
+      {{ busy ? 'Please wait…' : 'Log in' }}
     </button>
 
-    <button class="link" @click="mode = mode === 'login' ? 'register' : 'login'">
-      {{ mode === 'login' ? 'No account? Sign up' : 'Have an account? Log in' }}
-    </button>
+    <button class="link" @click="openSignup">No account? Sign up on the web →</button>
   </div>
 </template>

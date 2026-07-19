@@ -206,11 +206,23 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                         final score = await ref
                             .read(testProvider.notifier)
                             .submitQuiz();
-                        if (mounted) {
+                        if (!mounted) return;
+                        if (score != null) {
                           context.pushReplacement('/quiz-result', extra: {
                             'score': score,
                             'total': state.totalQuestions,
                           });
+                        } else {
+                          // Submission failed — keep the answers and let the
+                          // user retry instead of showing a fake 0 score.
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                ref.read(testProvider).error ??
+                                    'Failed to submit quiz',
+                              ),
+                            ),
+                          );
                         }
                       } else {
                         ref.read(testProvider.notifier).nextQuestion();

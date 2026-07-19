@@ -41,6 +41,7 @@ export class DecksService {
   // access rule lives in exactly one place.
   private visibleWhere(userId: string): Prisma.DeckWhereInput {
     return {
+      deletedAt: null,
       OR: [{ isSystem: true }, { isPublic: true }, { createdById: userId }],
     };
   }
@@ -85,10 +86,8 @@ export class DecksService {
   async findMine(userId: string): Promise<DeckResponseDto[]> {
     const decks = await this.prisma.deck.findMany({
       where: {
-        OR: [
-          { enrollments: { some: { userId } } },
-          { createdById: userId },
-        ],
+        deletedAt: null,
+        OR: [{ enrollments: { some: { userId } } }, { createdById: userId }],
       },
       orderBy: [{ isSystem: 'desc' }, { title: 'asc' }],
       include: { _count: { select: { words: true } } },
@@ -211,11 +210,43 @@ export class DecksService {
   async remove(id: string, userId: string): Promise<{ message: string }> {
     await this.loadOwnedDeck(id, userId);
 
-    // Cascades remove the deck's words (and their UserWord/testQuestion rows)
-    // plus any enrollments via the schema's onDelete: Cascade relations.
-    await this.prisma.deck.delete({ where: { id } });
+    // Soft delete: the deck disappears from every listing but its words stay,
+    // so enrolled users keep their UserWord/Review progress. (A hard delete
+    // would cascade those away.) All read paths filter `deletedAt: null`.
+    await this.prisma.deck.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
 
     return { message: 'Deck deleted successfully' };
+  }
+
+  /**
+   * Back-fills UserWord rows for everyone already enrolled in a deck for the
+   * given (just-added) word ids, so words added after enrollment still reach
+   * their learning list. Without this the new words are invisible and deck
+   * progress reports "100% learned" while unseen words exist. `skipDuplicates`
+   * keeps it idempotent. Crossing ONLY the new words (not the whole deck)
+   * against enrollees bounds the insert to the actual delta. Runs inside the
+   * caller's transaction.
+   */
+  private async backfillEnrolledUserWords(
+    tx: Prisma.TransactionClient,
+    deckId: string,
+    wordIds: string[],
+  ): Promise<void> {
+    if (wordIds.length === 0) return;
+    const enrollments = await tx.deckEnrollment.findMany({
+      where: { deckId },
+      select: { userId: true },
+    });
+    if (enrollments.length === 0) return;
+    await tx.userWord.createMany({
+      data: enrollments.flatMap((e) =>
+        wordIds.map((wordId) => ({ userId: e.userId, wordId })),
+      ),
+      skipDuplicates: true,
+    });
   }
 
   async addWords(
@@ -226,7 +257,7 @@ export class DecksService {
     const deck = await this.loadOwnedDeck(id, userId);
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.word.createMany({
+      const created = await tx.word.createManyAndReturn({
         data: dto.words.map((w) => ({
           word: w.word,
           translation: w.translation,
@@ -235,7 +266,14 @@ export class DecksService {
           deckId: id,
           createdById: userId,
         })),
+        select: { id: true },
       });
+
+      await this.backfillEnrolledUserWords(
+        tx,
+        id,
+        created.map((w) => w.id),
+      );
     });
 
     const wordCount = await this.prisma.word.count({ where: { deckId: id } });
@@ -297,13 +335,15 @@ export class DecksService {
     id: string,
     dto: AddDeckWordsDto,
   ): Promise<AddDeckWordsResponseDto> {
-    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    const deck = await this.prisma.deck.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!deck) {
       throw new NotFoundException('Deck not found');
     }
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.word.createMany({
+      const created = await tx.word.createManyAndReturn({
         data: dto.words.map((w) => ({
           word: w.word,
           translation: w.translation,
@@ -312,7 +352,13 @@ export class DecksService {
           deckId: id,
           createdById: null,
         })),
+        select: { id: true },
       });
+      await this.backfillEnrolledUserWords(
+        tx,
+        id,
+        created.map((w) => w.id),
+      );
     });
 
     const wordCount = await this.prisma.word.count({ where: { deckId: id } });
@@ -328,14 +374,19 @@ export class DecksService {
     );
   }
 
-  /** Deletes ANY deck. Cascades remove its words and enrollments. */
+  /** Soft-deletes ANY deck (archives it; words + enrollee progress preserved). */
   async adminRemove(id: string): Promise<{ message: string }> {
-    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    const deck = await this.prisma.deck.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!deck) {
       throw new NotFoundException('Deck not found');
     }
 
-    await this.prisma.deck.delete({ where: { id } });
+    await this.prisma.deck.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
 
     return { message: 'Deck deleted successfully' };
   }
@@ -348,6 +399,7 @@ export class DecksService {
     query: DeckQueryDto,
   ): Promise<PaginatedResponseDto<AdminDeckRowDto>> {
     const where: Prisma.DeckWhereInput = {
+      deletedAt: null,
       AND: [
         query.level ? { level: query.level } : {},
         query.search
@@ -379,8 +431,8 @@ export class DecksService {
 
   /** Deck detail for admin management: any deck plus its full word list. */
   async adminFindOne(id: string): Promise<AdminDeckDetailDto> {
-    const deck = await this.prisma.deck.findUnique({
-      where: { id },
+    const deck = await this.prisma.deck.findFirst({
+      where: { id, deletedAt: null },
       include: {
         words: { orderBy: { createdAt: 'asc' } },
         _count: { select: { words: true } },
@@ -407,7 +459,9 @@ export class DecksService {
 
   /** Updates ANY deck's metadata, bypassing the owner check. */
   async adminUpdate(id: string, dto: UpdateDeckDto): Promise<AdminDeckRowDto> {
-    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    const deck = await this.prisma.deck.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!deck) {
       throw new NotFoundException('Deck not found');
     }
@@ -434,7 +488,9 @@ export class DecksService {
     id: string,
     wordId: string,
   ): Promise<{ message: string }> {
-    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    const deck = await this.prisma.deck.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!deck) {
       throw new NotFoundException('Deck not found');
     }
@@ -476,7 +532,9 @@ export class DecksService {
   // every write path so the ownership rule lives in one place: system decks and
   // other users' decks are off-limits.
   private async loadOwnedDeck(id: string, userId: string): Promise<Deck> {
-    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    const deck = await this.prisma.deck.findFirst({
+      where: { id, deletedAt: null },
+    });
 
     if (!deck) {
       throw new NotFoundException('Deck not found');

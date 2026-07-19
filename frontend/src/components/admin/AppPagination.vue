@@ -22,8 +22,9 @@ function go(page: number) {
 <template>
   <div class="flex items-center justify-between gap-4 py-3 text-sm">
     <p class="text-gray-500 dark:text-gray-400">
-      Showing <span class="font-medium text-gray-700 dark:text-gray-200">{{ from }}–{{ to }}</span>
-      of <span class="font-medium text-gray-700 dark:text-gray-200">{{ total }}</span>
+      Showing
+      <span class="font-medium text-gray-700 dark:text-gray-200">{{ from }}–{{ to }}</span> of
+      <span class="font-medium text-gray-700 dark:text-gray-200">{{ total }}</span>
     </p>
     <div class="flex items-center gap-1">
       <button

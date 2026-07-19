@@ -1,6 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CefrLevel } from '@prisma/client';
-import { ArrayMaxSize, IsArray, IsEnum, IsOptional, IsUUID } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsEnum,
+  IsOptional,
+  IsUUID,
+} from 'class-validator';
 
 export class OnboardingDto {
   @ApiPropertyOptional({ enum: CefrLevel, description: 'Self-reported level' })

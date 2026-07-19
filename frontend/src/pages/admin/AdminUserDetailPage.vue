@@ -81,7 +81,10 @@ onMounted(load)
 
 <template>
   <div class="max-w-4xl mx-auto space-y-6">
-    <router-link to="/admin/users" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600">
+    <router-link
+      to="/admin/users"
+      class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600"
+    >
       ← Back to users
     </router-link>
 
@@ -95,9 +98,11 @@ onMounted(load)
             {{ user.email }}
             <span
               class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-              :class="user.role === 'ADMIN'
-                ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300'"
+              :class="
+                user.role === 'ADMIN'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300'
+              "
             >
               {{ user.role }}
             </span>
@@ -105,13 +110,31 @@ onMounted(load)
           <p class="text-sm text-gray-400 mt-1">ID: {{ user.id }}</p>
         </div>
         <div class="flex items-center gap-2">
-          <AppButton v-if="!user.emailVerifiedAt" size="sm" variant="success" :loading="busy" @click="verify">
+          <AppButton
+            v-if="!user.emailVerifiedAt"
+            size="sm"
+            variant="success"
+            :loading="busy"
+            @click="verify"
+          >
             Verify email
           </AppButton>
-          <AppButton v-if="!isSelf" size="sm" variant="secondary" :loading="busy" @click="confirm.type = 'role'">
+          <AppButton
+            v-if="!isSelf"
+            size="sm"
+            variant="secondary"
+            :loading="busy"
+            @click="confirm.type = 'role'"
+          >
             {{ user.role === 'ADMIN' ? 'Demote to user' : 'Promote to admin' }}
           </AppButton>
-          <AppButton v-if="!isSelf" size="sm" variant="danger" :loading="busy" @click="confirm.type = 'delete'">
+          <AppButton
+            v-if="!isSelf"
+            size="sm"
+            variant="danger"
+            :loading="busy"
+            @click="confirm.type = 'delete'"
+          >
             Delete
           </AppButton>
         </div>

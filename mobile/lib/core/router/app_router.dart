@@ -30,12 +30,21 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  // Build the router exactly once. Watching authProvider here would rebuild the
+  // whole GoRouter (resetting the nav stack to /splash) on every auth emission,
+  // including harmless isLoading toggles. Instead we bridge auth changes to a
+  // Listenable and let GoRouter re-run `redirect` via refreshListenable; the
+  // redirect reads the current auth state with ref.read.
+  final refresh = ValueNotifier<int>(0);
+  ref.listen(authProvider, (_, __) => refresh.value++);
+  ref.onDispose(refresh.dispose);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
+    refreshListenable: refresh,
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
       final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register' ||

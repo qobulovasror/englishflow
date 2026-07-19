@@ -18,7 +18,6 @@ import type {
 export interface MessageMap {
   AUTH_STATE: { req: Record<never, never>; res: AuthState };
   LOGIN: { req: { email: string; password: string }; res: User };
-  REGISTER: { req: { email: string; password: string }; res: User };
   LOGOUT: { req: Record<never, never>; res: { done: true } };
   SAVE_WORD: { req: { input: SaveWordInput }; res: { done: true } };
   LOOKUP: { req: { term: string }; res: DictionaryResult | null };
@@ -27,7 +26,7 @@ export interface MessageMap {
   DAILY: { req: Record<never, never>; res: DailyWord[] };
   REVIEW: { req: { userWordId: string; rating: Rating }; res: ReviewResult };
   GET_API_URL: { req: Record<never, never>; res: { apiUrl: string } };
-  SET_API_URL: { req: { apiUrl: string }; res: { done: true } };
+  SET_API_URL: { req: { apiUrl: string }; res: { done: true; sessionCleared: boolean } };
   OPEN_POPUP: { req: Record<never, never>; res: { done: boolean } };
 }
 

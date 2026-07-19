@@ -17,7 +17,8 @@ withDefaults(defineProps<Props>(), {
 
 const variantClasses = {
   primary: 'bg-primary-600 hover:bg-primary-700 text-white',
-  secondary: 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200',
+  secondary:
+    'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200',
   danger: 'bg-red-500 hover:bg-red-600 text-white',
   success: 'bg-green-500 hover:bg-green-600 text-white',
 }
@@ -47,7 +48,11 @@ const sizeClasses = {
       viewBox="0 0 24 24"
     >
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+      <path
+        class="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      />
     </svg>
     <slot />
   </button>

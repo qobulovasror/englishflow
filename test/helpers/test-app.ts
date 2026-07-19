@@ -7,10 +7,10 @@ import { HttpAdapterHost, Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import * as cookieParser from 'cookie-parser';
+import { Logger as PinoLogger } from 'nestjs-pino';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { AllExceptionsFilter } from '../../src/common/filters/all-exceptions.filter';
-import { LoggingInterceptor } from '../../src/common/interceptors/logging.interceptor';
 import { TransformInterceptor } from '../../src/common/interceptors/transform.interceptor';
 import { buildPrismaStub, type PrismaStub } from './prisma-stub';
 
@@ -27,6 +27,7 @@ export async function createTestApp(): Promise<{
     .compile();
 
   const app = moduleRef.createNestApplication({ bufferLogs: true });
+  app.useLogger(app.get(PinoLogger));
 
   // Match src/main.ts so `req.cookies.refresh_token` is populated.
   app.use(cookieParser());
@@ -40,7 +41,6 @@ export async function createTestApp(): Promise<{
     }),
   );
   app.useGlobalInterceptors(
-    new LoggingInterceptor(),
     new TransformInterceptor(),
     new ClassSerializerInterceptor(app.get(Reflector)),
   );
@@ -59,12 +59,19 @@ export async function registerUser(
   app: INestApplication,
   email = `user-${Math.random().toString(36).slice(2, 10)}@example.com`,
   password = 'StrongPass!123',
-): Promise<{ accessToken: string; refreshToken: string; userId: string; email: string }> {
+): Promise<{
+  accessToken: string;
+  refreshToken: string;
+  userId: string;
+  email: string;
+}> {
   const res = await request(app.getHttpServer())
     .post('/auth/register')
     .send({ email, password });
   if (res.status !== 201) {
-    throw new Error(`register failed: ${res.status} ${JSON.stringify(res.body)}`);
+    throw new Error(
+      `register failed: ${res.status} ${JSON.stringify(res.body)}`,
+    );
   }
   return {
     accessToken: res.body.data.accessToken,

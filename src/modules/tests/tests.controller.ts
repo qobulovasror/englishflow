@@ -38,10 +38,7 @@ export class TestsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Submit a completed quiz and receive the result' })
   @ApiSuccessResponse(SubmitTestResponseDto)
-  submitTest(
-    @Body() dto: SubmitTestDto,
-    @CurrentUser() user: { id: string },
-  ) {
+  submitTest(@Body() dto: SubmitTestDto, @CurrentUser() user: { id: string }) {
     return this.testsService.submitTest(dto, user.id);
   }
 }

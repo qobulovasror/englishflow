@@ -37,7 +37,10 @@ import {
   ApiSuccessResponse,
 } from '../../common/swagger/api-response.decorator';
 import { ApiErrorResponseDto } from '../../common/swagger/api-error-response.dto';
-import { IS_PUBLIC_KEY, Public } from '../../common/decorators/public.decorator';
+import {
+  IS_PUBLIC_KEY,
+  Public,
+} from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 const AUTH_THROTTLE = { default: { ttl: 60_000, limit: 10 } };
@@ -67,7 +70,10 @@ export class AuthController {
   })
   @ApiResponse({ status: HttpStatus.CONFLICT, type: ApiErrorResponseDto })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, type: ApiErrorResponseDto })
-  @ApiResponse({ status: HttpStatus.TOO_MANY_REQUESTS, type: ApiErrorResponseDto })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    type: ApiErrorResponseDto,
+  })
   async register(
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
@@ -79,10 +85,15 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Authenticate and receive an access + refresh token pair' })
+  @ApiOperation({
+    summary: 'Authenticate and receive an access + refresh token pair',
+  })
   @ApiSuccessResponse(AuthResponseDto)
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, type: ApiErrorResponseDto })
-  @ApiResponse({ status: HttpStatus.TOO_MANY_REQUESTS, type: ApiErrorResponseDto })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    type: ApiErrorResponseDto,
+  })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -154,9 +165,14 @@ export class AuthController {
   })
   @ApiSuccessPrimitiveResponse({
     description: 'Reset link sent if the account exists',
-    example: { message: 'If that email is registered, a reset link has been sent' },
+    example: {
+      message: 'If that email is registered, a reset link has been sent',
+    },
   })
-  @ApiResponse({ status: HttpStatus.TOO_MANY_REQUESTS, type: ApiErrorResponseDto })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    type: ApiErrorResponseDto,
+  })
   async forgotPassword(
     @Body() dto: ForgotPasswordDto,
   ): Promise<{ message: string }> {
@@ -196,7 +212,9 @@ export class AuthController {
   @SetMetadata(IS_PUBLIC_KEY, false)
   @ApiBearerAuth('JWT')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Send an email-verification link to the current user' })
+  @ApiOperation({
+    summary: 'Send an email-verification link to the current user',
+  })
   @ApiSuccessPrimitiveResponse({
     description: 'Verification email sent',
     example: { message: 'Verification email sent' },

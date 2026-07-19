@@ -56,12 +56,18 @@ onMounted(load)
 <template>
   <div class="max-w-5xl mx-auto">
     <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">Library</h1>
-    <p class="text-gray-500 dark:text-gray-400 mb-6">Browse decks and add them to your learning list.</p>
+    <p class="text-gray-500 dark:text-gray-400 mb-6">
+      Browse decks and add them to your learning list.
+    </p>
 
     <div class="flex flex-wrap items-center gap-2 mb-4">
       <button
         class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
-        :class="activeLevel === null ? 'bg-primary-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200'"
+        :class="
+          activeLevel === null
+            ? 'bg-primary-600 text-white'
+            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
+        "
         @click="filterByLevel(null)"
       >
         All
@@ -70,7 +76,11 @@ onMounted(load)
         v-for="lvl in LEVELS"
         :key="lvl"
         class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
-        :class="activeLevel === lvl ? 'bg-primary-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200'"
+        :class="
+          activeLevel === lvl
+            ? 'bg-primary-600 text-white'
+            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
+        "
         @click="filterByLevel(lvl)"
       >
         {{ lvl }}
@@ -93,7 +103,10 @@ onMounted(load)
       <AppCard v-for="deck in decksStore.decks" :key="deck.id">
         <div class="flex items-start justify-between mb-2">
           <h3 class="font-semibold text-gray-800 dark:text-gray-100">{{ deck.title }}</h3>
-          <span v-if="deck.level" class="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500">
+          <span
+            v-if="deck.level"
+            class="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500"
+          >
             {{ deck.level }}
           </span>
         </div>

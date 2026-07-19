@@ -8,8 +8,11 @@ import 'package:englishflow/core/network/refresh_interceptor.dart';
 import 'package:englishflow/core/network/response_unwrap_interceptor.dart';
 import 'package:englishflow/core/network/safe_log_interceptor.dart';
 import 'package:englishflow/core/utils/token_storage.dart';
+import 'package:englishflow/features/auth/providers/auth_provider.dart';
 
-final dioProvider = Provider<Dio>((ref) {
+// Explicit type annotation breaks the top-level inference cycle created by the
+// session-expiry callback below (dioProvider -> authProvider -> ... -> dioProvider).
+final Provider<Dio> dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl: AppConstants.baseUrl,
@@ -36,7 +39,13 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.addAll([
     AuthInterceptor(tokenStorage: tokenStorage),
     ResponseUnwrapInterceptor(),
-    RefreshInterceptor(dio: dio, tokenStorage: tokenStorage),
+    RefreshInterceptor(
+      dio: dio,
+      tokenStorage: tokenStorage,
+      // Read (not watch) at call time — avoids a build-time cycle since
+      // authProvider transitively depends on this dio provider.
+      onSessionExpired: () => ref.read(authProvider.notifier).onSessionExpired(),
+    ),
     ErrorInterceptor(),
     if (kDebugMode) SafeLogInterceptor(),
   ]);

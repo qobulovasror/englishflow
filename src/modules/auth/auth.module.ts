@@ -29,7 +29,12 @@ import { JwtConfig } from '../../config/configuration';
     MailerModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RefreshTokensService, AuthTokensService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    RefreshTokensService,
+    AuthTokensService,
+  ],
   exports: [AuthService, RefreshTokensService],
 })
 export class AuthModule {}

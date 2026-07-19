@@ -184,39 +184,66 @@ onMounted(fetchDecks)
 
     <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
 
-    <AdminTable :columns="columns" :loading="loading" :row-count="items.length" empty="No decks found">
+    <AdminTable
+      :columns="columns"
+      :loading="loading"
+      :row-count="items.length"
+      empty="No decks found"
+    >
       <tr
         v-for="d in items"
         :key="d.id"
         class="text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
       >
         <td class="px-4 py-3">
-          <router-link :to="`/admin/decks/${d.id}`" class="font-medium hover:text-primary-600 dark:hover:text-primary-400">
+          <router-link
+            :to="`/admin/decks/${d.id}`"
+            class="font-medium hover:text-primary-600 dark:hover:text-primary-400"
+          >
             {{ d.title }}
           </router-link>
-          <p v-if="d.description" class="text-xs text-gray-400 truncate max-w-xs">{{ d.description }}</p>
+          <p v-if="d.description" class="text-xs text-gray-400 truncate max-w-xs">
+            {{ d.description }}
+          </p>
         </td>
         <td class="px-4 py-3">
-          <span v-if="d.level" class="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500">{{ d.level }}</span>
+          <span
+            v-if="d.level"
+            class="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500"
+            >{{ d.level }}</span
+          >
           <span v-else class="text-gray-300 dark:text-gray-600">—</span>
         </td>
         <td class="px-4 py-3">
           <span
             class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-            :class="d.isSystem
-              ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300'"
+            :class="
+              d.isSystem
+                ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300'
+            "
           >
             {{ d.isSystem ? 'System' : 'User' }}
           </span>
         </td>
-        <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{{ d.ownerEmail ?? '—' }}</td>
+        <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
+          {{ d.ownerEmail ?? '—' }}
+        </td>
         <td class="px-4 py-3 text-right text-gray-500 dark:text-gray-400">{{ d.wordCount }}</td>
         <td class="px-4 py-3">
           <div class="flex items-center justify-end gap-2">
-            <router-link :to="`/admin/decks/${d.id}`" class="text-xs text-gray-500 hover:underline">Words</router-link>
-            <button class="text-xs text-primary-600 dark:text-primary-400 hover:underline" @click="openEdit(d)">Edit</button>
-            <button class="text-xs text-red-500 hover:underline" @click="deleteTarget = d">Delete</button>
+            <router-link :to="`/admin/decks/${d.id}`" class="text-xs text-gray-500 hover:underline"
+              >Words</router-link
+            >
+            <button
+              class="text-xs text-primary-600 dark:text-primary-400 hover:underline"
+              @click="openEdit(d)"
+            >
+              Edit
+            </button>
+            <button class="text-xs text-red-500 hover:underline" @click="deleteTarget = d">
+              Delete
+            </button>
           </div>
         </td>
       </tr>
@@ -231,10 +258,21 @@ onMounted(fetchDecks)
       @close="modalOpen = false"
     >
       <form class="space-y-4" @submit.prevent="submitForm">
-        <AppInput v-model="form.title" label="Title" required placeholder="e.g. Business English Essentials" />
-        <AppInput v-model="form.description" label="Description (optional)" placeholder="What is this deck about?" />
+        <AppInput
+          v-model="form.title"
+          label="Title"
+          required
+          placeholder="e.g. Business English Essentials"
+        />
+        <AppInput
+          v-model="form.description"
+          label="Description (optional)"
+          placeholder="What is this deck about?"
+        />
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Level (optional)</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >Level (optional)</label
+          >
           <select
             v-model="form.level"
             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none"
@@ -247,7 +285,11 @@ onMounted(fetchDecks)
           v-if="modalMode === 'edit' && !form.isSystem"
           class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"
         >
-          <input v-model="form.isPublic" type="checkbox" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+          <input
+            v-model="form.isPublic"
+            type="checkbox"
+            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
           Publicly visible
         </label>
         <p v-if="modalMode === 'create'" class="text-xs text-gray-400">

@@ -32,7 +32,9 @@ function buildPrismaMock() {
       rows.set(row.tokenHash, row);
       return row;
     }),
-    findUnique: jest.fn(async ({ where }: any) => rows.get(where.tokenHash) ?? null),
+    findUnique: jest.fn(
+      async ({ where }: any) => rows.get(where.tokenHash) ?? null,
+    ),
     // Mirrors the atomic conditional write in consume(): only stamps a row that
     // is the right type, still unused, and unexpired; returns the affected count.
     updateMany: jest.fn(async ({ where, data }: any) => {

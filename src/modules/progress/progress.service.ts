@@ -21,18 +21,47 @@ const LEECH_LAPSE_THRESHOLD = 4;
 export class ProgressService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getUserProgress(userId: string): Promise<ProgressResponseDto> {
-    // Start of the current UTC day — reviews on/after this count toward today.
-    const now = new Date();
-    const startOfTodayUtc = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  // Clamp a client-supplied timezone offset (minutes east of UTC) to the real
+  // ±14h range; anything missing/invalid falls back to UTC.
+  private normalizeOffset(minutes?: number): number {
+    if (minutes === undefined || Number.isNaN(minutes)) return 0;
+    return Math.max(-840, Math.min(840, Math.trunc(minutes)));
+  }
+
+  // The local calendar-day string (YYYY-MM-DD) an instant falls on for `offset`.
+  private localDay(instant: Date, offset: number): string {
+    return new Date(instant.getTime() + offset * 60000)
+      .toISOString()
+      .slice(0, 10);
+  }
+
+  // The UTC instant at which the local day containing `instant` begins.
+  private startOfLocalDayUtc(instant: Date, offset: number): Date {
+    const local = new Date(instant.getTime() + offset * 60000);
+    const localMidnight = Date.UTC(
+      local.getUTCFullYear(),
+      local.getUTCMonth(),
+      local.getUTCDate(),
     );
-    const todayUtcString = now.toISOString().slice(0, 10);
+    return new Date(localMidnight - offset * 60000);
+  }
+
+  async getUserProgress(
+    userId: string,
+    tzOffsetMinutes?: number,
+  ): Promise<ProgressResponseDto> {
+    const offset = this.normalizeOffset(tzOffsetMinutes);
+    const now = new Date();
+    // Day boundaries are computed in the caller's timezone so a user reviewing
+    // late evening / early morning local time isn't bucketed onto the wrong day
+    // (which would break streaks and today's goal for non-UTC users).
+    const startOfToday = this.startOfLocalDayUtc(now, offset);
+    const todayString = this.localDay(now, offset);
     // Streaks only need recent activity (current streak + up to a 1-year
     // longest), so bound the scan to the last 366 days instead of every review
     // the user has ever logged.
     const streakWindowStart = new Date(
-      startOfTodayUtc.getTime() - 366 * MS_PER_DAY,
+      startOfToday.getTime() - 366 * MS_PER_DAY,
     );
 
     const [
@@ -49,10 +78,17 @@ export class ProgressService {
     ] = await Promise.all([
       this.prisma.userWord.count({ where: { userId } }),
       this.prisma.userWord.count({ where: { userId, status: WordStatus.NEW } }),
-      this.prisma.userWord.count({ where: { userId, status: WordStatus.LEARNING } }),
-      this.prisma.userWord.count({ where: { userId, status: WordStatus.LEARNED } }),
+      this.prisma.userWord.count({
+        where: { userId, status: WordStatus.LEARNING },
+      }),
+      this.prisma.userWord.count({
+        where: { userId, status: WordStatus.LEARNED },
+      }),
       this.prisma.test.findMany({
-        where: { userId },
+        // Only graded tests: startTest persists a score:0 row up front, so
+        // counting in-progress/abandoned tests would pollute totals and drag
+        // the average toward zero.
+        where: { userId, submittedAt: { not: null } },
         orderBy: { createdAt: 'desc' },
         take: 10,
         select: {
@@ -62,9 +98,9 @@ export class ProgressService {
           _count: { select: { questions: true } },
         },
       }),
-      this.prisma.test.count({ where: { userId } }),
+      this.prisma.test.count({ where: { userId, submittedAt: { not: null } } }),
       this.prisma.test.aggregate({
-        where: { userId },
+        where: { userId, submittedAt: { not: null } },
         _avg: { score: true },
       }),
       this.prisma.user.findUnique({
@@ -72,7 +108,7 @@ export class ProgressService {
         select: { dailyGoal: true },
       }),
       this.prisma.review.count({
-        where: { userId, createdAt: { gte: startOfTodayUtc } },
+        where: { userId, createdAt: { gte: startOfToday } },
       }),
       this.prisma.review.findMany({
         where: { userId, createdAt: { gte: streakWindowStart } },
@@ -81,8 +117,10 @@ export class ProgressService {
     ]);
 
     const dailyGoal = user?.dailyGoal ?? 20;
-    const activeDays = reviewDays.map((r) => r.createdAt.toISOString().slice(0, 10));
-    const { current, longest } = computeStreaks(activeDays, todayUtcString);
+    const activeDays = reviewDays.map((r) =>
+      this.localDay(r.createdAt, offset),
+    );
+    const { current, longest } = computeStreaks(activeDays, todayString);
     const goalMet = todayCount >= dailyGoal;
 
     return plainToInstance(
@@ -118,18 +156,21 @@ export class ProgressService {
     );
   }
 
-  // Daily review counts across a trailing `days`-long window ending today (UTC),
-  // zero-filled so the client gets a continuous series.
-  async getTrends(userId: string, days: number): Promise<TrendPointDto[]> {
+  // Daily review counts across a trailing `days`-long window ending today (in
+  // the caller's timezone), zero-filled so the client gets a continuous series.
+  async getTrends(
+    userId: string,
+    days: number,
+    tzOffsetMinutes?: number,
+  ): Promise<TrendPointDto[]> {
+    const offset = this.normalizeOffset(tzOffsetMinutes);
     const now = new Date();
-    const startOfTodayUtc = Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-    );
+    const startOfToday = this.startOfLocalDayUtc(now, offset);
     // Include the whole first day of the window: today minus (days - 1) days.
-    const windowStart = new Date(startOfTodayUtc - (days - 1) * MS_PER_DAY);
-    const todayUtcString = now.toISOString().slice(0, 10);
+    const windowStart = new Date(
+      startOfToday.getTime() - (days - 1) * MS_PER_DAY,
+    );
+    const todayString = this.localDay(now, offset);
 
     const reviews = await this.prisma.review.findMany({
       where: { userId, createdAt: { gte: windowStart } },
@@ -138,8 +179,9 @@ export class ProgressService {
 
     const series = bucketByDay(
       reviews.map((r) => r.createdAt),
-      todayUtcString,
+      todayString,
       days,
+      offset,
     );
 
     return series.map((p) =>
@@ -151,6 +193,7 @@ export class ProgressService {
   async getDeckProgress(userId: string): Promise<DeckProgressDto[]> {
     const decks = await this.prisma.deck.findMany({
       where: {
+        deletedAt: null,
         OR: [{ enrollments: { some: { userId } } }, { createdById: userId }],
       },
       orderBy: [{ isSystem: 'desc' }, { title: 'asc' }],

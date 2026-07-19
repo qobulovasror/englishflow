@@ -6,7 +6,9 @@ const authStore = useAuthStore()
 </script>
 
 <template>
-  <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+  <header
+    class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50"
+  >
     <div class="flex items-center justify-between h-16 px-6">
       <div class="flex items-center gap-3">
         <h1 class="text-xl font-bold text-primary-600">EnglishFlow</h1>

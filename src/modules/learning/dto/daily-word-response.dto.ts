@@ -3,7 +3,10 @@ import { Expose } from 'class-transformer';
 import { WordStatus } from '@prisma/client';
 
 export class DailyWordResponseDto {
-  @ApiProperty({ format: 'uuid', description: 'UserWord id (use in /learning/review)' })
+  @ApiProperty({
+    format: 'uuid',
+    description: 'UserWord id (use in /learning/review)',
+  })
   @Expose()
   id: string;
 
@@ -49,7 +52,10 @@ export class ReviewResultDto {
   @Expose()
   repetitionCount: number;
 
-  @ApiProperty({ example: 6, description: 'Days until the next scheduled review' })
+  @ApiProperty({
+    example: 6,
+    description: 'Days until the next scheduled review',
+  })
   @Expose()
   interval: number;
 

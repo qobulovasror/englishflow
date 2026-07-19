@@ -147,6 +147,12 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  {
+    // Catch-all: any unmatched path renders a 404 page instead of a blank view.
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/pages/NotFoundPage.vue'),
+  },
 ]
 
 const router = createRouter({

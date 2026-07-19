@@ -21,7 +21,9 @@ withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-  <div class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+  <div
+    class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800"
+  >
     <table class="w-full text-sm">
       <thead>
         <tr class="border-b border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400">
@@ -44,7 +46,9 @@ withDefaults(defineProps<Props>(), {
           <td :colspan="columns.length" class="px-4 py-12 text-center text-gray-400">Loading…</td>
         </tr>
         <tr v-else-if="rowCount === 0">
-          <td :colspan="columns.length" class="px-4 py-12 text-center text-gray-400">{{ empty }}</td>
+          <td :colspan="columns.length" class="px-4 py-12 text-center text-gray-400">
+            {{ empty }}
+          </td>
         </tr>
         <slot v-else />
       </tbody>

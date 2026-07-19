@@ -10,7 +10,13 @@
  * Anything beyond these is a deliberate gap; add tests + extend together.
  */
 import { randomUUID } from 'node:crypto';
-import { AuthTokenType, CefrLevel, ReviewRating, Role, WordStatus } from '@prisma/client';
+import {
+  AuthTokenType,
+  CefrLevel,
+  ReviewRating,
+  Role,
+  WordStatus,
+} from '@prisma/client';
 
 export interface StoredUser {
   id: string;
@@ -169,7 +175,8 @@ export function buildPrismaStub() {
       return null;
     }),
     create: jest.fn(async ({ data }: any) => {
-      for (const u of users.values()) if (u.email === data.email) await unique(['email']);
+      for (const u of users.values())
+        if (u.email === data.email) await unique(['email']);
       counters.user += 1;
       const now = new Date();
       const u: StoredUser = {
@@ -203,12 +210,18 @@ export function buildPrismaStub() {
         });
       }
       // Mirror the schema's onDelete: Cascade relations.
-      for (const [k, t] of refreshTokens) if (t.userId === where.id) refreshTokens.delete(k);
-      for (const [k, t] of authTokens) if (t.userId === where.id) authTokens.delete(k);
-      for (const [k, uw] of userWords) if (uw.userId === where.id) userWords.delete(k);
-      for (const [k, r] of reviews) if (r.userId === where.id) reviews.delete(k);
-      for (const [k, e] of deckEnrollments) if (e.userId === where.id) deckEnrollments.delete(k);
-      for (const [k, w] of words) if (w.createdById === where.id) words.delete(k);
+      for (const [k, t] of refreshTokens)
+        if (t.userId === where.id) refreshTokens.delete(k);
+      for (const [k, t] of authTokens)
+        if (t.userId === where.id) authTokens.delete(k);
+      for (const [k, uw] of userWords)
+        if (uw.userId === where.id) userWords.delete(k);
+      for (const [k, r] of reviews)
+        if (r.userId === where.id) reviews.delete(k);
+      for (const [k, e] of deckEnrollments)
+        if (e.userId === where.id) deckEnrollments.delete(k);
+      for (const [k, w] of words)
+        if (w.createdById === where.id) words.delete(k);
       for (const [k, t] of tests) if (t.userId === where.id) tests.delete(k);
       users.delete(where.id);
       return existing;
@@ -218,8 +231,23 @@ export function buildPrismaStub() {
   // Applies the `{ createdById, userWords: { some: { userId, status } } }`
   // where shape used by GET /words (optionally with a status filter).
   function matchesWordWhere(w: StoredWord, where: any = {}): boolean {
+    if (where.id?.in && !where.id.in.includes(w.id)) return false;
+    if (typeof where.id === 'string' && w.id !== where.id) return false;
     if (where.createdById && w.createdById !== where.createdById) return false;
     if (where.deckId !== undefined && w.deckId !== where.deckId) return false;
+    // `word: { equals, mode: 'insensitive' }` (admin import dedup).
+    if (where.word?.equals !== undefined) {
+      const a = w.word.toLowerCase();
+      const b = String(where.word.equals).toLowerCase();
+      if (a !== b) return false;
+    }
+    // OR of clauses: match if ANY sub-clause matches (the outer scalar filters
+    // above still apply — Prisma ANDs them with the OR).
+    if (Array.isArray(where.OR)) {
+      if (!where.OR.some((clause: any) => matchesWordWhere(w, clause))) {
+        return false;
+      }
+    }
     const some = where.userWords?.some;
     if (some) {
       const hit = [...userWords.values()].some(
@@ -231,6 +259,30 @@ export function buildPrismaStub() {
       if (!hit) return false;
     }
     return true;
+  }
+
+  // Shared insert used by word.createMany / createManyAndReturn.
+  function insertWords(data: any): StoredWord[] {
+    const rows: any[] = Array.isArray(data) ? data : [data];
+    const created: StoredWord[] = [];
+    for (const d of rows) {
+      counters.word += 1;
+      const now = new Date();
+      const w: StoredWord = {
+        id: uuid('word', counters.word),
+        word: d.word,
+        translation: d.translation,
+        example: d.example ?? null,
+        audioUrl: d.audioUrl ?? null,
+        createdById: d.createdById,
+        deckId: d.deckId ?? null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      words.set(w.id, w);
+      created.push(w);
+    }
+    return created;
   }
 
   const word = {
@@ -252,24 +304,13 @@ export function buildPrismaStub() {
       return w;
     }),
     createMany: jest.fn(async ({ data }: any) => {
-      const rows: any[] = Array.isArray(data) ? data : [data];
-      for (const d of rows) {
-        counters.word += 1;
-        const now = new Date();
-        const w: StoredWord = {
-          id: uuid('word', counters.word),
-          word: d.word,
-          translation: d.translation,
-          example: d.example ?? null,
-          audioUrl: d.audioUrl ?? null,
-          createdById: d.createdById,
-          deckId: d.deckId ?? null,
-          createdAt: now,
-          updatedAt: now,
-        };
-        words.set(w.id, w);
-      }
-      return { count: rows.length };
+      const created = insertWords(data);
+      return { count: created.length };
+    }),
+    createManyAndReturn: jest.fn(async ({ data, select }: any) => {
+      const created = insertWords(data);
+      if (select?.id) return created.map((w) => ({ id: w.id }));
+      return created;
     }),
     findUnique: jest.fn(async ({ where }: any) => words.get(where.id) ?? null),
     update: jest.fn(async ({ where, data }: any) => {
@@ -299,9 +340,8 @@ export function buildPrismaStub() {
       return list;
     }),
     count: jest.fn(async (args: any = {}) => {
-      return [...words.values()].filter((w) =>
-        matchesWordWhere(w, args.where),
-      ).length;
+      return [...words.values()].filter((w) => matchesWordWhere(w, args.where))
+        .length;
     }),
     delete: jest.fn(async ({ where }: any) => {
       const w = words.get(where.id);
@@ -439,8 +479,12 @@ export function buildPrismaStub() {
       if (!where.OR.some((w: any) => deckMatches(d, w))) return false;
     }
     if (where.id !== undefined && d.id !== where.id) return false;
-    if (where.isSystem !== undefined && d.isSystem !== where.isSystem) return false;
-    if (where.isPublic !== undefined && d.isPublic !== where.isPublic) return false;
+    // Soft delete: `deletedAt: null` matches only rows that aren't archived.
+    if (where.deletedAt === null && (d as any).deletedAt) return false;
+    if (where.isSystem !== undefined && d.isSystem !== where.isSystem)
+      return false;
+    if (where.isPublic !== undefined && d.isPublic !== where.isPublic)
+      return false;
     if (where.createdById !== undefined && d.createdById !== where.createdById)
       return false;
     if (where.level !== undefined && d.level !== where.level) return false;
@@ -500,7 +544,8 @@ export function buildPrismaStub() {
     findUnique: jest.fn(async ({ where }: any) => decks.get(where.id) ?? null),
     findFirst: jest.fn(async (args: any = {}) => {
       for (const d of decks.values()) {
-        if (deckMatches(d, args.where)) return withDeckIncludes(d, args.include);
+        if (deckMatches(d, args.where))
+          return withDeckIncludes(d, args.include);
       }
       return null;
     }),
@@ -511,7 +556,8 @@ export function buildPrismaStub() {
       return list.map((d) => withDeckIncludes(d, args.include));
     }),
     count: jest.fn(async (args: any = {}) => {
-      return [...decks.values()].filter((d) => deckMatches(d, args.where)).length;
+      return [...decks.values()].filter((d) => deckMatches(d, args.where))
+        .length;
     }),
     update: jest.fn(async ({ where, data, include }: any) => {
       const existing = decks.get(where.id);
@@ -558,11 +604,15 @@ export function buildPrismaStub() {
       const where = args.where ?? {};
       let list = [...deckEnrollments.values()];
       if (where.userId) list = list.filter((e) => e.userId === where.userId);
+      if (typeof where.deckId === 'string') {
+        list = list.filter((e) => e.deckId === where.deckId);
+      }
       if (where.deckId?.in) {
         const ids: string[] = where.deckId.in;
         list = list.filter((e) => ids.includes(e.deckId));
       }
       if (args.select?.deckId) return list.map((e) => ({ deckId: e.deckId }));
+      if (args.select?.userId) return list.map((e) => ({ userId: e.userId }));
       return list;
     }),
     findUnique: jest.fn(async ({ where }: any) => {
@@ -588,6 +638,16 @@ export function buildPrismaStub() {
       deckEnrollments.set(e.id, e);
       return e;
     }),
+    count: jest.fn(async (args: any = {}) => {
+      const where = args.where ?? {};
+      let list = [...deckEnrollments.values()];
+      if (where.deckId) list = list.filter((e) => e.deckId === where.deckId);
+      if (where.userId?.not)
+        list = list.filter((e) => e.userId !== where.userId.not);
+      else if (where.userId)
+        list = list.filter((e) => e.userId === where.userId);
+      return list.length;
+    }),
   };
 
   const test = {
@@ -605,7 +665,9 @@ export function buildPrismaStub() {
       tests.set(t.id, t);
       const questions: StoredTestQuestion[] = [];
       if (data.questions?.create) {
-        for (const q of data.questions.create as Array<Omit<StoredTestQuestion, 'id' | 'testId'>>) {
+        for (const q of data.questions.create as Array<
+          Omit<StoredTestQuestion, 'id' | 'testId'>
+        >) {
           counters.testQuestion += 1;
           const tq: StoredTestQuestion = {
             id: uuid('tq', counters.testQuestion),
@@ -645,10 +707,30 @@ export function buildPrismaStub() {
       tests.set(where.id, updated);
       return updated;
     }),
+    updateMany: jest.fn(async ({ where, data }: any) => {
+      let count = 0;
+      for (const [id, t] of tests) {
+        if (
+          (!where.id || t.id === where.id) &&
+          (!where.userId || t.userId === where.userId) &&
+          (where.submittedAt === undefined ||
+            (where.submittedAt === null
+              ? t.submittedAt === null
+              : t.submittedAt !== null))
+        ) {
+          tests.set(id, { ...t, ...data, updatedAt: new Date() });
+          count += 1;
+        }
+      }
+      return { count };
+    }),
     findMany: jest.fn(async (args: any = {}) => {
       let list = [...tests.values()];
       if (args.where?.userId) {
         list = list.filter((t) => t.userId === args.where.userId);
+      }
+      if (args.where?.submittedAt?.not === null) {
+        list = list.filter((t) => t.submittedAt !== null);
       }
       if (args.orderBy?.createdAt === 'desc') {
         list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -672,12 +754,20 @@ export function buildPrismaStub() {
     }),
     count: jest.fn(async (args: any = {}) => {
       let list = [...tests.values()];
-      if (args.where?.userId) list = list.filter((t) => t.userId === args.where.userId);
+      if (args.where?.userId)
+        list = list.filter((t) => t.userId === args.where.userId);
+      if (args.where?.submittedAt?.not === null) {
+        list = list.filter((t) => t.submittedAt !== null);
+      }
       return list.length;
     }),
     aggregate: jest.fn(async (args: any = {}) => {
       let list = [...tests.values()];
-      if (args.where?.userId) list = list.filter((t) => t.userId === args.where.userId);
+      if (args.where?.userId)
+        list = list.filter((t) => t.userId === args.where.userId);
+      if (args.where?.submittedAt?.not === null) {
+        list = list.filter((t) => t.submittedAt !== null);
+      }
       const sum = list.reduce((acc, t) => acc + t.score, 0);
       return { _avg: { score: list.length === 0 ? null : sum / list.length } };
     }),
@@ -711,9 +801,42 @@ export function buildPrismaStub() {
       if (where.tokenHash) return refreshTokens.get(where.tokenHash) ?? null;
       return null;
     }),
+    update: jest.fn(async ({ where, data }: any) => {
+      for (const [hash, t] of refreshTokens) {
+        if (
+          (where.id && t.id === where.id) ||
+          (where.tokenHash && hash === where.tokenHash)
+        ) {
+          const updated = { ...t, ...data };
+          refreshTokens.set(hash, updated);
+          return updated;
+        }
+      }
+      const { Prisma } = await import('@prisma/client');
+      throw new Prisma.PrismaClientKnownRequestError('not found', {
+        code: 'P2025',
+        clientVersion: 'test',
+      });
+    }),
+    updateMany: jest.fn(async ({ where, data }: any) => {
+      let count = 0;
+      for (const [hash, t] of refreshTokens) {
+        const matchId = !where.id || t.id === where.id;
+        const matchRevoked =
+          where.revokedAt === null ? t.revokedAt === null : true;
+        if (matchId && matchRevoked) {
+          refreshTokens.set(hash, { ...t, ...data });
+          count += 1;
+        }
+      }
+      return { count };
+    }),
     delete: jest.fn(async ({ where }: any) => {
       for (const [hash, t] of refreshTokens) {
-        if ((where.id && t.id === where.id) || (where.tokenHash && hash === where.tokenHash)) {
+        if (
+          (where.id && t.id === where.id) ||
+          (where.tokenHash && hash === where.tokenHash)
+        ) {
           refreshTokens.delete(hash);
           return t;
         }
@@ -727,7 +850,17 @@ export function buildPrismaStub() {
     deleteMany: jest.fn(async ({ where }: any) => {
       let count = 0;
       for (const [hash, t] of refreshTokens) {
-        if (t.userId === where.userId) {
+        const matchUser = where.userId ? t.userId === where.userId : true;
+        const matchOr = where.OR
+          ? where.OR.some((c: any) =>
+              c.expiresAt?.lt
+                ? t.expiresAt < c.expiresAt.lt
+                : c.revokedAt?.not !== undefined
+                  ? t.revokedAt !== null
+                  : false,
+            )
+          : true;
+        if (matchUser && matchOr) {
           refreshTokens.delete(hash);
           count += 1;
         }
@@ -756,7 +889,8 @@ export function buildPrismaStub() {
       if (where.createdAt?.gte) {
         list = list.filter((r) => r.createdAt >= where.createdAt.gte);
       }
-      if (args.select?.createdAt) return list.map((r) => ({ createdAt: r.createdAt }));
+      if (args.select?.createdAt)
+        return list.map((r) => ({ createdAt: r.createdAt }));
       return list;
     }),
     count: jest.fn(async (args: any = {}) => {

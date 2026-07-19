@@ -10,6 +10,9 @@ class LearningState extends Equatable {
   final int knownCount;
   final int unknownCount;
   final bool isCompleted;
+  // Reviews that failed to reach the server (offline / error). Surfaced in the
+  // session summary so the user knows their progress wasn't fully saved.
+  final int failedReviews;
 
   const LearningState({
     this.dailyWords = const [],
@@ -20,6 +23,7 @@ class LearningState extends Equatable {
     this.knownCount = 0,
     this.unknownCount = 0,
     this.isCompleted = false,
+    this.failedReviews = 0,
   });
 
   DailyWordModel? get currentWord =>
@@ -38,6 +42,7 @@ class LearningState extends Equatable {
     int? knownCount,
     int? unknownCount,
     bool? isCompleted,
+    int? failedReviews,
     bool clearError = false,
   }) {
     return LearningState(
@@ -49,6 +54,7 @@ class LearningState extends Equatable {
       knownCount: knownCount ?? this.knownCount,
       unknownCount: unknownCount ?? this.unknownCount,
       isCompleted: isCompleted ?? this.isCompleted,
+      failedReviews: failedReviews ?? this.failedReviews,
     );
   }
 
@@ -62,5 +68,6 @@ class LearningState extends Equatable {
         knownCount,
         unknownCount,
         isCompleted,
+        failedReviews,
       ];
 }

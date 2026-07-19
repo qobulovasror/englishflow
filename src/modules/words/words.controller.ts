@@ -52,10 +52,7 @@ export class WordsController {
   @Get()
   @ApiOperation({ summary: 'List words owned by the current user (paginated)' })
   @ApiPaginatedResponse(WordResponseDto)
-  findAll(
-    @CurrentUser() user: { id: string },
-    @Query() query: WordQueryDto,
-  ) {
+  findAll(@CurrentUser() user: { id: string }, @Query() query: WordQueryDto) {
     return this.wordsService.findAllByUser(user.id, query);
   }
 

@@ -49,7 +49,9 @@ export class AdminUsersController {
   constructor(private readonly adminService: AdminService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List users with search, role filter and paging (admin)' })
+  @ApiOperation({
+    summary: 'List users with search, role filter and paging (admin)',
+  })
   @ApiPaginatedResponse(AdminUserResponseDto, { description: 'Page of users' })
   list(
     @Query() query: AdminUserQueryDto,

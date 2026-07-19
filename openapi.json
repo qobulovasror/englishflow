@@ -2029,7 +2029,20 @@
       "get": {
         "operationId": "ProgressController_getProgress",
         "summary": "Get vocabulary and test statistics for the current user",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "tzOffsetMinutes",
+            "required": false,
+            "in": "query",
+            "description": "Client timezone offset in minutes east of UTC (-new Date().getTimezoneOffset()). Buckets the streak and daily goal by local calendar date; defaults to UTC.",
+            "schema": {
+              "minimum": -840,
+              "maximum": 840,
+              "default": 0,
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -2084,6 +2097,18 @@
               "minimum": 1,
               "maximum": 365,
               "default": 30,
+              "type": "number"
+            }
+          },
+          {
+            "name": "tzOffsetMinutes",
+            "required": false,
+            "in": "query",
+            "description": "Client timezone offset in minutes east of UTC (-new Date().getTimezoneOffset()). Buckets days by local calendar date; defaults to UTC.",
+            "schema": {
+              "minimum": -840,
+              "maximum": 840,
+              "default": 0,
               "type": "number"
             }
           }
@@ -2891,6 +2916,71 @@
                     },
                     "data": {
                       "$ref": "#/components/schemas/AdminWordResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/admin/words/import": {
+      "post": {
+        "operationId": "AdminWordsController_importWords",
+        "summary": "Bulk-import curated words from a parsed CSV/JSON file (admin)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportWordsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Import summary (imported / skipped counts)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ImportWordsResultDto"
                     },
                     "timestamp": {
                       "type": "string",
@@ -5189,6 +5279,56 @@
         "required": [
           "word",
           "translation"
+        ]
+      },
+      "ImportWordsResultDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Imported 42 words, skipped 8 duplicates"
+          },
+          "received": {
+            "type": "number",
+            "example": 50,
+            "description": "Rows received in this request"
+          },
+          "imported": {
+            "type": "number",
+            "example": 42,
+            "description": "New words inserted"
+          },
+          "skipped": {
+            "type": "number",
+            "example": 8,
+            "description": "Rows skipped as duplicates (already present in the same scope)"
+          }
+        },
+        "required": [
+          "message",
+          "received",
+          "imported",
+          "skipped"
+        ]
+      },
+      "ImportWordsDto": {
+        "type": "object",
+        "properties": {
+          "deckId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Attach every imported word to this deck. Omit for standalone curated words."
+          },
+          "words": {
+            "description": "Parsed rows to import",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeckWordItemDto"
+            }
+          }
+        },
+        "required": [
+          "words"
         ]
       },
       "AdminDeckRowDto": {

@@ -61,13 +61,8 @@ export const adminService = {
   },
 
   users: {
-    async list(
-      params: AdminUserListParams = {},
-    ): Promise<PaginatedResponse<AdminUser>> {
-      const { data } = await api.get<PaginatedResponse<AdminUser>>(
-        '/admin/users',
-        { params },
-      )
+    async list(params: AdminUserListParams = {}): Promise<PaginatedResponse<AdminUser>> {
+      const { data } = await api.get<PaginatedResponse<AdminUser>>('/admin/users', { params })
       return data
     },
     async get(id: string): Promise<AdminUser> {
@@ -81,27 +76,18 @@ export const adminService = {
       return data
     },
     async verifyEmail(id: string): Promise<AdminUser> {
-      const { data } = await api.post<AdminUser>(
-        `/admin/users/${id}/verify-email`,
-      )
+      const { data } = await api.post<AdminUser>(`/admin/users/${id}/verify-email`)
       return data
     },
     async remove(id: string): Promise<{ message: string }> {
-      const { data } = await api.delete<{ message: string }>(
-        `/admin/users/${id}`,
-      )
+      const { data } = await api.delete<{ message: string }>(`/admin/users/${id}`)
       return data
     },
   },
 
   decks: {
-    async list(
-      params: AdminDeckListParams = {},
-    ): Promise<PaginatedResponse<AdminDeckRow>> {
-      const { data } = await api.get<PaginatedResponse<AdminDeckRow>>(
-        '/admin/decks',
-        { params },
-      )
+    async list(params: AdminDeckListParams = {}): Promise<PaginatedResponse<AdminDeckRow>> {
+      const { data } = await api.get<PaginatedResponse<AdminDeckRow>>('/admin/decks', { params })
       return data
     },
     async get(id: string): Promise<AdminDeckDetail> {
@@ -112,48 +98,27 @@ export const adminService = {
       const { data } = await api.post<Deck>('/admin/decks', payload)
       return data
     },
-    async update(
-      id: string,
-      payload: UpdateDeckPayload,
-    ): Promise<AdminDeckRow> {
+    async update(id: string, payload: UpdateDeckPayload): Promise<AdminDeckRow> {
       const { data } = await api.patch<AdminDeckRow>(`/admin/decks/${id}`, payload)
       return data
     },
-    async addWords(
-      id: string,
-      words: DeckWordInput[],
-    ): Promise<AddDeckWordsResult> {
-      const { data } = await api.post<AddDeckWordsResult>(
-        `/admin/decks/${id}/words`,
-        { words },
-      )
+    async addWords(id: string, words: DeckWordInput[]): Promise<AddDeckWordsResult> {
+      const { data } = await api.post<AddDeckWordsResult>(`/admin/decks/${id}/words`, { words })
       return data
     },
-    async removeWord(
-      id: string,
-      wordId: string,
-    ): Promise<{ message: string }> {
-      const { data } = await api.delete<{ message: string }>(
-        `/admin/decks/${id}/words/${wordId}`,
-      )
+    async removeWord(id: string, wordId: string): Promise<{ message: string }> {
+      const { data } = await api.delete<{ message: string }>(`/admin/decks/${id}/words/${wordId}`)
       return data
     },
     async remove(id: string): Promise<{ message: string }> {
-      const { data } = await api.delete<{ message: string }>(
-        `/admin/decks/${id}`,
-      )
+      const { data } = await api.delete<{ message: string }>(`/admin/decks/${id}`)
       return data
     },
   },
 
   words: {
-    async list(
-      params: AdminWordListParams = {},
-    ): Promise<PaginatedResponse<AdminWord>> {
-      const { data } = await api.get<PaginatedResponse<AdminWord>>(
-        '/admin/words',
-        { params },
-      )
+    async list(params: AdminWordListParams = {}): Promise<PaginatedResponse<AdminWord>> {
+      const { data } = await api.get<PaginatedResponse<AdminWord>>('/admin/words', { params })
       return data
     },
     async create(payload: CreateAdminWordPayload): Promise<AdminWord> {
@@ -161,23 +126,15 @@ export const adminService = {
       return data
     },
     async import(payload: ImportWordsPayload): Promise<ImportWordsResult> {
-      const { data } = await api.post<ImportWordsResult>(
-        '/admin/words/import',
-        payload,
-      )
+      const { data } = await api.post<ImportWordsResult>('/admin/words/import', payload)
       return data
     },
-    async update(
-      id: string,
-      payload: UpdateAdminWordPayload,
-    ): Promise<AdminWord> {
+    async update(id: string, payload: UpdateAdminWordPayload): Promise<AdminWord> {
       const { data } = await api.patch<AdminWord>(`/admin/words/${id}`, payload)
       return data
     },
     async remove(id: string): Promise<{ message: string }> {
-      const { data } = await api.delete<{ message: string }>(
-        `/admin/words/${id}`,
-      )
+      const { data } = await api.delete<{ message: string }>(`/admin/words/${id}`)
       return data
     },
   },

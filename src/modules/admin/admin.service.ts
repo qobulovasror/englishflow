@@ -85,8 +85,8 @@ export class AdminService {
       this.prisma.user.count({ where: { onboardedAt: { not: null } } }),
       this.prisma.user.count({ where: { createdAt: { gte: todayStart } } }),
       this.prisma.user.count({ where: { createdAt: { gte: weekAgo } } }),
-      this.prisma.deck.count(),
-      this.prisma.deck.count({ where: { isSystem: true } }),
+      this.prisma.deck.count({ where: { deletedAt: null } }),
+      this.prisma.deck.count({ where: { deletedAt: null, isSystem: true } }),
       this.prisma.word.count(),
       this.prisma.review.count(),
       this.prisma.review.count({ where: { createdAt: { gte: todayStart } } }),
@@ -115,7 +115,9 @@ export class AdminService {
 
   async signups(days = 30): Promise<SignupPointDto[]> {
     const window = Math.min(Math.max(days, 1), 365);
-    const since = startOfUtcToday(new Date(Date.now() - (window - 1) * MS_PER_DAY));
+    const since = startOfUtcToday(
+      new Date(Date.now() - (window - 1) * MS_PER_DAY),
+    );
 
     const users = await this.prisma.user.findMany({
       where: { createdAt: { gte: since } },
@@ -254,7 +256,9 @@ export class AdminService {
           ? {
               OR: [
                 { word: { contains: query.search, mode: 'insensitive' } },
-                { translation: { contains: query.search, mode: 'insensitive' } },
+                {
+                  translation: { contains: query.search, mode: 'insensitive' },
+                },
               ],
             }
           : {},
@@ -286,8 +290,8 @@ export class AdminService {
   /** Creates a curated word (no owner). Attaches to a deck when `deckId` is given. */
   async createWord(dto: CreateAdminWordDto): Promise<AdminWordResponseDto> {
     if (dto.deckId) {
-      const deck = await this.prisma.deck.findUnique({
-        where: { id: dto.deckId },
+      const deck = await this.prisma.deck.findFirst({
+        where: { id: dto.deckId, deletedAt: null },
       });
       if (!deck) throw new NotFoundException('Deck not found');
     }
@@ -351,7 +355,9 @@ export class AdminService {
     const deckId = dto.deckId ?? null;
 
     if (deckId) {
-      const deck = await this.prisma.deck.findUnique({ where: { id: deckId } });
+      const deck = await this.prisma.deck.findFirst({
+        where: { id: deckId, deletedAt: null },
+      });
       if (!deck) throw new NotFoundException('Deck not found');
     }
 
@@ -364,13 +370,22 @@ export class AdminService {
       return true;
     });
 
-    // 2) Skip rows already present in the same scope. The `word` match is an
-    //    exact-string `in` (bounded by the batch size); the final comparison is
-    //    case-insensitive on word+translation, catching same-cased re-imports.
-    const existing = await this.prisma.word.findMany({
-      where: { deckId, word: { in: batchUnique.map((w) => w.word) } },
-      select: { word: true, translation: true },
-    });
+    // 2) Skip rows already present in the same scope. The DB filter matches the
+    //    batch words case-INSENSITIVELY (bounded by the batch size) so the final
+    //    wordKey comparison — which lower-cases word+translation — reliably
+    //    catches cross-case re-imports like "Apple"/"apple".
+    const existing =
+      batchUnique.length === 0
+        ? []
+        : await this.prisma.word.findMany({
+            where: {
+              deckId,
+              OR: batchUnique.map((w) => ({
+                word: { equals: w.word, mode: 'insensitive' as const },
+              })),
+            },
+            select: { word: true, translation: true },
+          });
     const existingKeys = new Set(
       existing.map((e) => this.wordKey(e.word, e.translation)),
     );
@@ -379,15 +394,37 @@ export class AdminService {
     );
 
     if (toInsert.length > 0) {
-      await this.prisma.word.createMany({
-        data: toInsert.map((w) => ({
-          word: w.word,
-          translation: w.translation,
-          example: w.example,
-          audioUrl: w.audioUrl,
-          deckId,
-          createdById: null,
-        })),
+      await this.prisma.$transaction(async (tx) => {
+        const created = await tx.word.createManyAndReturn({
+          data: toInsert.map((w) => ({
+            word: w.word,
+            translation: w.translation,
+            example: w.example,
+            audioUrl: w.audioUrl,
+            deckId,
+            createdById: null,
+          })),
+          select: { id: true },
+        });
+
+        // Back-fill UserWord for anyone already enrolled in the target deck, so
+        // the just-imported words reach their learning list. Crossing only the
+        // new words against enrollees bounds the insert to the delta;
+        // skipDuplicates keeps it idempotent.
+        if (deckId) {
+          const enrollments = await tx.deckEnrollment.findMany({
+            where: { deckId },
+            select: { userId: true },
+          });
+          if (enrollments.length > 0) {
+            await tx.userWord.createMany({
+              data: enrollments.flatMap((e) =>
+                created.map((w) => ({ userId: e.userId, wordId: w.id })),
+              ),
+              skipDuplicates: true,
+            });
+          }
+        }
       });
     }
 
@@ -421,7 +458,9 @@ export class AdminService {
     return user;
   }
 
-  private async assertNotLastAdmin(tx: Prisma.TransactionClient): Promise<void> {
+  private async assertNotLastAdmin(
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
     const admins = await tx.user.count({ where: { role: Role.ADMIN } });
     if (admins <= 1) {
       throw new BadRequestException('Cannot remove the last remaining admin');

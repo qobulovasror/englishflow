@@ -1,8 +1,9 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { LoggerModule } from 'nestjs-pino';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { WordsModule } from './modules/words/words.module';
@@ -15,9 +16,10 @@ import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
-import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
+import { buildLoggerParams } from './common/logger/logger.config';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
+import { AppConfig } from './config/configuration';
 
 @Module({
   imports: [
@@ -29,6 +31,13 @@ import { envValidationSchema } from './config/env.validation';
       validationOptions: {
         abortEarly: false,
       },
+    }),
+    // Structured (pino) logging. Auto-logs every request with a request id and
+    // replaces the old RequestIdMiddleware + LoggingInterceptor.
+    LoggerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) =>
+        buildLoggerParams(config.getOrThrow<AppConfig>('app').nodeEnv),
     }),
     // Global rate limiting. Endpoints can override per-route with @Throttle()
     // or opt out with @SkipThrottle(). Auth endpoints attach a stricter
@@ -78,8 +87,4 @@ import { envValidationSchema } from './config/env.validation';
     },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RequestIdMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

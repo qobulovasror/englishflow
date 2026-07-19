@@ -1,8 +1,4 @@
-import axios, {
-  AxiosError,
-  AxiosResponse,
-  InternalAxiosRequestConfig,
-} from 'axios'
+import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import router from '@/router'
 
 export interface ApiSuccessEnvelope<T> {
@@ -21,8 +17,36 @@ export interface ApiErrorEnvelope {
   timestamp: string
 }
 
-const TOKEN_KEY = 'token'
-const USER_KEY = 'user'
+// The access token lives ONLY in memory — never localStorage, which any XSS can
+// read. On a page reload it's gone; the boot sequence silently re-mints it from
+// the httpOnly `refresh_token` cookie via silentRefresh(). This module is the
+// single source of truth for the Bearer header.
+let accessToken: string | null = null
+
+export function setAccessToken(token: string | null): void {
+  accessToken = token
+}
+
+export function getAccessToken(): string | null {
+  return accessToken
+}
+
+/**
+ * Session lifecycle hooks the auth store registers so the interceptor can keep
+ * the store's reactive state (`token`/`user`, and therefore `isAuthenticated`)
+ * in lockstep with what the interceptor does on refresh/expiry. Without this the
+ * interceptor could clear the token while the store still believed the user was
+ * authenticated — causing a login/redirect loop.
+ */
+interface SessionHandlers {
+  onRefreshed?: (accessToken: string, user: Record<string, unknown>) => void
+  onCleared?: () => void
+}
+let sessionHandlers: SessionHandlers = {}
+
+export function registerSessionHandlers(handlers: SessionHandlers): void {
+  sessionHandlers = handlers
+}
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -36,9 +60,8 @@ const api = axios.create({
 
 // ── Request: attach Bearer token ────────────────────────────────────────────
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY)
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`
   }
   return config
 })
@@ -63,23 +86,26 @@ interface RetriableRequest extends InternalAxiosRequestConfig {
 let refreshInFlight: Promise<string | null> | null = null
 
 function clearSession() {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(USER_KEY)
+  accessToken = null
+  sessionHandlers.onCleared?.()
 }
 
 /**
  * Calls /auth/refresh with `withCredentials` so the browser attaches the
- * `refresh_token` httpOnly cookie. The token itself never enters JS.
+ * `refresh_token` httpOnly cookie. The refresh token itself never enters JS.
  *
- * On success we get a new access token (in-memory) and the browser stores
- * the rotated refresh cookie transparently.
+ * On success we get a new access token (kept in memory) and the browser stores
+ * the rotated refresh cookie transparently. The registered `onRefreshed` hook
+ * pushes the fresh token + user into the auth store.
  */
 async function performRefresh(): Promise<string | null> {
   try {
-    const res = await axios.post<ApiSuccessEnvelope<{
-      accessToken: string
-      user: Record<string, unknown>
-    }>>(
+    const res = await axios.post<
+      ApiSuccessEnvelope<{
+        accessToken: string
+        user: Record<string, unknown>
+      }>
+    >(
       `${import.meta.env.VITE_API_URL}/auth/refresh`,
       {},
       {
@@ -88,8 +114,8 @@ async function performRefresh(): Promise<string | null> {
       },
     )
     const body = res.data.data
-    localStorage.setItem(TOKEN_KEY, body.accessToken)
-    localStorage.setItem(USER_KEY, JSON.stringify(body.user))
+    setAccessToken(body.accessToken)
+    sessionHandlers.onRefreshed?.(body.accessToken, body.user)
     return body.accessToken
   } catch {
     clearSession()

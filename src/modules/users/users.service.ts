@@ -5,7 +5,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { AuthTokenType, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -23,17 +23,26 @@ export class UsersService {
     private readonly decksService: DecksService,
   ) {}
 
+  // Emails are matched case-insensitively and stored canonically (trimmed,
+  // lower-cased) so `User@x.com` and `user@x.com` are the same account and a
+  // user can always log back in regardless of casing.
+  private static normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
   async create(dto: CreateUserDto) {
     return this.prisma.user.create({
       data: {
-        email: dto.email,
+        email: UsersService.normalizeEmail(dto.email),
         password: dto.password,
       },
     });
   }
 
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email } });
+    return this.prisma.user.findUnique({
+      where: { email: UsersService.normalizeEmail(email) },
+    });
   }
 
   async findById(id: string) {
@@ -77,8 +86,10 @@ export class UsersService {
       throw new UnauthorizedException('Current password is incorrect');
     }
 
+    const nextEmail = UsersService.normalizeEmail(dto.email as string);
+
     // Email unchanged: only a dailyGoal update (if any) remains to apply.
-    if (dto.email === user.email) {
+    if (nextEmail === user.email) {
       if (wantsGoalChange) {
         return this.prisma.user.update({
           where: { id },
@@ -96,7 +107,7 @@ export class UsersService {
         this.prisma.user.update({
           where: { id },
           data: {
-            email: dto.email,
+            email: nextEmail,
             passwordChangedAt: new Date(),
             ...(wantsGoalChange ? { dailyGoal: dto.dailyGoal } : {}),
           },
@@ -132,14 +143,11 @@ export class UsersService {
       // isn't visible before enrolling in any of them.
       const visible = await this.prisma.deck.findMany({
         where: {
+          deletedAt: null,
           AND: [
             { id: { in: deckIds } },
             {
-              OR: [
-                { isSystem: true },
-                { isPublic: true },
-                { createdById: id },
-              ],
+              OR: [{ isSystem: true }, { isPublic: true }, { createdById: id }],
             },
           ],
         },
@@ -167,7 +175,10 @@ export class UsersService {
   async changePassword(id: string, dto: ChangePasswordDto): Promise<void> {
     const user = await this.findByIdOrThrow(id);
 
-    const isCurrentValid = await bcrypt.compare(dto.currentPassword, user.password);
+    const isCurrentValid = await bcrypt.compare(
+      dto.currentPassword,
+      user.password,
+    );
     if (!isCurrentValid) {
       throw new UnauthorizedException('Current password is incorrect');
     }
@@ -179,18 +190,27 @@ export class UsersService {
       );
     }
 
-    const hashed = await bcrypt.hash(dto.newPassword, UsersService.BCRYPT_ROUNDS);
+    const hashed = await bcrypt.hash(
+      dto.newPassword,
+      UsersService.BCRYPT_ROUNDS,
+    );
 
     // Invalidate every existing session for this user:
     //   - bump `passwordChangedAt` so any access token issued before this
     //     moment is rejected by `JwtStrategy.validate`
     //   - delete all refresh tokens so the rotated chain can't be resumed
+    //   - spend any outstanding password-reset tokens so a link issued just
+    //     before this change can't be used afterwards
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id },
         data: { password: hashed, passwordChangedAt: new Date() },
       }),
       this.prisma.refreshToken.deleteMany({ where: { userId: id } }),
+      this.prisma.authToken.updateMany({
+        where: { userId: id, type: AuthTokenType.PASSWORD_RESET, usedAt: null },
+        data: { usedAt: new Date() },
+      }),
     ]);
   }
 
@@ -211,6 +231,12 @@ export class UsersService {
         data: { password: hashed, passwordChangedAt: new Date() },
       }),
       this.prisma.refreshToken.deleteMany({ where: { userId: id } }),
+      // Spend any other outstanding reset tokens so a second link can't reset
+      // the password again after this one.
+      this.prisma.authToken.updateMany({
+        where: { userId: id, type: AuthTokenType.PASSWORD_RESET, usedAt: null },
+        data: { usedAt: new Date() },
+      }),
     ]);
   }
 
@@ -230,7 +256,10 @@ export class UsersService {
   async deleteAccount(id: string, currentPassword: string): Promise<void> {
     const user = await this.findByIdOrThrow(id);
 
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Current password is incorrect');
     }

@@ -11,7 +11,10 @@ import {
 import { HttpAdapterHost } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
-import { AllExceptionsFilter, ErrorResponseBody } from './all-exceptions.filter';
+import {
+  AllExceptionsFilter,
+  ErrorResponseBody,
+} from './all-exceptions.filter';
 
 interface CapturedReply {
   status: number;
@@ -127,10 +130,10 @@ describe('AllExceptionsFilter', () => {
 
   it('maps Prisma P2025 (record not found) to 404', () => {
     const { filter, host, captured } = makeHarness();
-    const err = new Prisma.PrismaClientKnownRequestError(
-      'Record not found',
-      { code: 'P2025', clientVersion: 'x' },
-    );
+    const err = new Prisma.PrismaClientKnownRequestError('Record not found', {
+      code: 'P2025',
+      clientVersion: 'x',
+    });
 
     filter.catch(err, host);
 
@@ -140,10 +143,10 @@ describe('AllExceptionsFilter', () => {
 
   it('maps Prisma P2003 (FK violation) to 400', () => {
     const { filter, host, captured } = makeHarness();
-    const err = new Prisma.PrismaClientKnownRequestError(
-      'FK violation',
-      { code: 'P2003', clientVersion: 'x' },
-    );
+    const err = new Prisma.PrismaClientKnownRequestError('FK violation', {
+      code: 'P2003',
+      clientVersion: 'x',
+    });
 
     filter.catch(err, host);
 

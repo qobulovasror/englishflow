@@ -55,11 +55,7 @@ describe('bucketByDay', () => {
   it('ignores timestamps outside the window (boundary)', () => {
     // Window of 3 days ending today: 2026-06-27, -28, -29.
     // The day before the window start (-26) must not be counted.
-    const series = bucketByDay(
-      [at('2026-06-26'), at('2026-06-27')],
-      TODAY,
-      3,
-    );
+    const series = bucketByDay([at('2026-06-26'), at('2026-06-27')], TODAY, 3);
 
     expect(series).toEqual([
       { date: '2026-06-27', count: 1 },

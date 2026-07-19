@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWordDto } from './dto/create-word.dto';
@@ -101,14 +105,6 @@ export class WordsService {
     await this.prisma.word.delete({ where: { id } });
 
     return { message: 'Word deleted successfully' };
-  }
-
-  async getRandomWordsForUser(userId: string, count: number) {
-    return this.prisma.word.findMany({
-      where: { createdById: userId },
-      take: count,
-      orderBy: { createdAt: 'asc' },
-    });
   }
 
   private toDto(word: unknown): WordResponseDto {

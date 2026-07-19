@@ -20,9 +20,9 @@ onMounted(async () => {
   <div v-else-if="!data" class="center muted">Loading…</div>
   <div v-else class="dash">
     <div class="stats">
-      <div class="stat"><b>{{ data.progress.totalWords }}</b><span>Words</span></div>
+      <div class="stat"><b>{{ data.totalWords }}</b><span>Words</span></div>
       <div class="stat"><b>{{ data.dueToday }}</b><span>Due today</span></div>
-      <div class="stat"><b>{{ data.progress.currentStreak }}</b><span>Streak</span></div>
+      <div class="stat"><b>{{ data.currentStreak }}</b><span>Streak</span></div>
     </div>
 
     <button v-if="data.dueToday > 0" class="btn primary wide" @click="emit('review')">
@@ -30,8 +30,8 @@ onMounted(async () => {
     </button>
 
     <p class="muted small">
-      Reviewed today: {{ data.progress.todayReviewCount }} / {{ data.progress.dailyGoal }}
-      <span v-if="data.progress.goalMet">✓</span>
+      Reviewed today: {{ data.todayCount }} / {{ data.dailyGoal }}
+      <span v-if="data.goalMet">✓</span>
     </p>
 
     <h4 class="h">Recently added</h4>

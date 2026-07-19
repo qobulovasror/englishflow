@@ -236,8 +236,7 @@ function validatePassword(): boolean {
     pwFieldErrors.newPassword = 'Password must be at least 8 characters'
     ok = false
   } else if (!/^(?=.*[A-Za-z])(?=.*\d).+$/.test(pwForm.newPassword)) {
-    pwFieldErrors.newPassword =
-      'Password must contain at least one letter and one digit'
+    pwFieldErrors.newPassword = 'Password must contain at least one letter and one digit'
     ok = false
   } else if (pwForm.newPassword === pwForm.currentPassword) {
     pwFieldErrors.newPassword = 'New password must differ from the current one'
@@ -315,7 +314,10 @@ async function handlePasswordSubmit() {
           </div>
         </dl>
 
-        <div v-if="!isEmailVerified" class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+        <div
+          v-if="!isEmailVerified"
+          class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700"
+        >
           <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
             Verify your email address to secure your account.
           </p>
@@ -328,10 +330,7 @@ async function handlePasswordSubmit() {
             Send verification email
           </AppButton>
           <p v-if="verifyError" class="mt-2 text-sm text-red-500">{{ verifyError }}</p>
-          <p
-            v-if="verifySuccess"
-            class="mt-2 text-sm text-green-600 dark:text-green-400"
-          >
+          <p v-if="verifySuccess" class="mt-2 text-sm text-green-600 dark:text-green-400">
             {{ verifySuccess }}
           </p>
         </div>
@@ -362,10 +361,7 @@ async function handlePasswordSubmit() {
             {{ emailServerError }}
           </p>
 
-          <p
-            v-if="emailSuccess"
-            class="text-sm text-green-600 dark:text-green-400"
-          >
+          <p v-if="emailSuccess" class="text-sm text-green-600 dark:text-green-400">
             {{ emailSuccess }}
           </p>
 
@@ -393,8 +389,7 @@ async function handlePasswordSubmit() {
       <AppCard title="Daily goal" class="mb-6">
         <form @submit.prevent="handleGoalSubmit" class="space-y-4">
           <p class="text-sm text-gray-500 dark:text-gray-400">
-            How many words you aim to review each day. Used for your streak and
-            dashboard progress.
+            How many words you aim to review each day. Used for your streak and dashboard progress.
           </p>
 
           <AppInput
@@ -410,10 +405,7 @@ async function handlePasswordSubmit() {
             {{ goalServerError }}
           </p>
 
-          <p
-            v-if="goalSuccess"
-            class="text-sm text-green-600 dark:text-green-400"
-          >
+          <p v-if="goalSuccess" class="text-sm text-green-600 dark:text-green-400">
             {{ goalSuccess }}
           </p>
 
@@ -458,18 +450,11 @@ async function handlePasswordSubmit() {
             {{ pwServerError }}
           </p>
 
-          <p
-            v-if="pwSuccess"
-            class="text-sm text-green-600 dark:text-green-400"
-          >
+          <p v-if="pwSuccess" class="text-sm text-green-600 dark:text-green-400">
             {{ pwSuccess }}
           </p>
 
-          <AppButton
-            type="submit"
-            :loading="pwSubmitting"
-            :disabled="!isPwFilled || pwSubmitting"
-          >
+          <AppButton type="submit" :loading="pwSubmitting" :disabled="!isPwFilled || pwSubmitting">
             Update password
           </AppButton>
         </form>
@@ -482,13 +467,12 @@ async function handlePasswordSubmit() {
         <AppButton variant="danger" @click="authStore.logout()">Sign out</AppButton>
       </AppCard>
 
-      <div class="rounded-xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-gray-800 p-6">
-        <h3 class="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">
-          Delete account
-        </h3>
+      <div
+        class="rounded-xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-gray-800 p-6"
+      >
+        <h3 class="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">Delete account</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Permanently delete your account and all associated data. This action
-          cannot be undone.
+          Permanently delete your account and all associated data. This action cannot be undone.
         </p>
 
         <AppButton v-if="!deleteConfirming" variant="danger" @click="startDelete">
@@ -508,11 +492,7 @@ async function handlePasswordSubmit() {
           />
           <p v-if="deleteError" class="text-sm text-red-500">{{ deleteError }}</p>
           <div class="flex items-center gap-3">
-            <AppButton
-              type="submit"
-              variant="danger"
-              :loading="deleteSubmitting"
-            >
+            <AppButton type="submit" variant="danger" :loading="deleteSubmitting">
               Permanently delete
             </AppButton>
             <AppButton

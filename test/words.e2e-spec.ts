@@ -173,7 +173,7 @@ describe('Words (e2e)', () => {
         .expect(404);
     });
 
-    it('DELETE /words/:id of another user\'s word returns 403', async () => {
+    it("DELETE /words/:id of another user's word returns 403", async () => {
       // Create a word as user A
       const a = await registerUser(app);
       const created = await request(app.getHttpServer())

@@ -55,13 +55,19 @@ Then in Chrome: `chrome://extensions` → enable *Developer mode* → *Load unpa
 
 ## Configuration
 
-The backend base URL is set at build time from `WXT_API_URL` in [`.env`](./.env)
-(default `http://localhost:3000`). It is also injected into `host_permissions`,
-so **rebuild after changing it**. End users can override the URL at runtime in
-the popup's ⚙ Settings.
+The API base URL comes from `WXT_API_URL` (and the web-app URL from
+`WXT_WEB_URL`), resolved at build time and also injected into `host_permissions`,
+so **rebuild after changing it**. End users can override the API URL at runtime
+in the popup's ⚙ Settings.
 
-For a production build, point `WXT_API_URL` at your deployed API (e.g.
-`https://api.englishflow.app`) and rebuild.
+- `npm run dev` (development mode) uses [`.env`](./.env) → `http://localhost:3000`
+  (dev backend, routes at the root) and `http://localhost:5173` (dev web).
+- `npm run build` (production mode) uses [`.env.production`](./.env.production) →
+  `https://englishflow.mindcore.uz/api` (the deployed web app reverse-proxies
+  `/api/*` to the backend) and `https://englishflow.mindcore.uz` for the web app.
+
+Account **sign-up is done on the web app**, not in the extension — the login
+screen's "Sign up" link opens `${WXT_WEB_URL}/register` in a new tab.
 
 ## Scripts
 

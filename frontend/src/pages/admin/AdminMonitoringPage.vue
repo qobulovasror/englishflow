@@ -65,7 +65,9 @@ onMounted(load)
 <template>
   <div class="max-w-6xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
-      <p class="text-sm text-gray-500 dark:text-gray-400">Live system health and platform totals.</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Live system health and platform totals.
+      </p>
       <AppButton size="sm" variant="secondary" :loading="loading" @click="load">Refresh</AppButton>
     </div>
 
@@ -80,7 +82,9 @@ onMounted(load)
             <span class="w-3 h-3 rounded-full" :class="apiOk ? 'bg-green-500' : 'bg-red-500'" />
             <div>
               <p class="text-sm text-gray-500 dark:text-gray-400">API</p>
-              <p class="font-semibold text-gray-900 dark:text-white">{{ apiOk ? 'Operational' : 'Degraded' }}</p>
+              <p class="font-semibold text-gray-900 dark:text-white">
+                {{ apiOk ? 'Operational' : 'Degraded' }}
+              </p>
             </div>
           </div>
         </AppCard>
@@ -89,7 +93,9 @@ onMounted(load)
             <span class="w-3 h-3 rounded-full" :class="dbOk ? 'bg-green-500' : 'bg-red-500'" />
             <div>
               <p class="text-sm text-gray-500 dark:text-gray-400">Database</p>
-              <p class="font-semibold text-gray-900 dark:text-white">{{ dbOk ? 'Reachable' : 'Unreachable' }}</p>
+              <p class="font-semibold text-gray-900 dark:text-white">
+                {{ dbOk ? 'Reachable' : 'Unreachable' }}
+              </p>
             </div>
           </div>
         </AppCard>
@@ -106,12 +112,21 @@ onMounted(load)
 
       <!-- Platform totals -->
       <div v-if="overview">
-        <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wide">Platform totals</h2>
+        <h2
+          class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wide"
+        >
+          Platform totals
+        </h2>
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <StatCard label="Users" :value="overview.users.total" accent="primary" />
           <StatCard label="Decks" :value="overview.decks.total" accent="violet" />
           <StatCard label="Words" :value="overview.words.total" accent="sky" />
-          <StatCard label="Reviews" :value="overview.reviews.total" :sublabel="`${overview.reviews.today} today`" accent="green" />
+          <StatCard
+            label="Reviews"
+            :value="overview.reviews.total"
+            :sublabel="`${overview.reviews.today} today`"
+            accent="green"
+          />
           <StatCard label="Tests" :value="overview.tests.total" accent="amber" />
           <StatCard label="Admins" :value="overview.users.admins" accent="rose" />
         </div>
@@ -119,8 +134,8 @@ onMounted(load)
 
       <AppCard title="Maintenance">
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          Expired refresh tokens and spent one-time auth tokens are purged automatically
-          every night (03:00). No manual action is required.
+          Expired refresh tokens and spent one-time auth tokens are purged automatically every night
+          (03:00). No manual action is required.
         </p>
       </AppCard>
     </template>

@@ -3,7 +3,9 @@ import { WordsService } from './words.service';
 
 describe('WordsController', () => {
   let controller: WordsController;
-  let service: jest.Mocked<Pick<WordsService, 'create' | 'findAllByUser' | 'update' | 'remove'>>;
+  let service: jest.Mocked<
+    Pick<WordsService, 'create' | 'findAllByUser' | 'update' | 'remove'>
+  >;
   const user = { id: 'u1' };
 
   beforeEach(() => {

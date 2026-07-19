@@ -26,12 +26,16 @@ async function handleSubmit() {
     return
   }
   if (!/^(?=.*[A-Za-z])(?=.*\d).+$/.test(password.value)) {
-    validationError.value =
-      'Password must contain at least one letter and one digit'
+    validationError.value = 'Password must contain at least one letter and one digit'
     return
   }
 
-  await authStore.register(email.value, password.value)
+  try {
+    await authStore.register(email.value, password.value)
+  } catch {
+    // Store sets `error` (rendered below) and navigates on success; swallow the
+    // rethrow so it isn't an unhandled promise rejection.
+  }
 }
 </script>
 
@@ -47,7 +51,9 @@ async function handleSubmit() {
         <p class="text-gray-500 dark:text-gray-400 mt-2">Create your account</p>
       </div>
 
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+      <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8"
+      >
         <form @submit.prevent="handleSubmit" class="space-y-5">
           <AppInput
             v-model="email"
@@ -77,11 +83,7 @@ async function handleSubmit() {
             {{ validationError || authStore.error }}
           </p>
 
-          <AppButton
-            type="submit"
-            :loading="authStore.loading"
-            class="w-full"
-          >
+          <AppButton type="submit" :loading="authStore.loading" class="w-full">
             Create Account
           </AppButton>
         </form>

@@ -18,7 +18,6 @@ describe('AuthService', () => {
   let service: AuthService;
   let usersService: jest.Mocked<UsersService>;
   let jwtService: jest.Mocked<JwtService>;
-  let refreshTokens: jest.Mocked<RefreshTokensService>;
   let authTokens: jest.Mocked<AuthTokensService>;
   let mailer: jest.Mocked<MailerService>;
 
@@ -43,9 +42,10 @@ describe('AuthService', () => {
         {
           provide: RefreshTokensService,
           useValue: {
-            issue: jest
-              .fn()
-              .mockResolvedValue({ token: 'refresh-token', expiresAt: new Date() }),
+            issue: jest.fn().mockResolvedValue({
+              token: 'refresh-token',
+              expiresAt: new Date(),
+            }),
             rotate: jest.fn(),
             revoke: jest.fn(),
             revokeAllForUser: jest.fn(),
@@ -54,9 +54,10 @@ describe('AuthService', () => {
         {
           provide: AuthTokensService,
           useValue: {
-            issue: jest
-              .fn()
-              .mockResolvedValue({ token: 'opaque-token', expiresAt: new Date() }),
+            issue: jest.fn().mockResolvedValue({
+              token: 'opaque-token',
+              expiresAt: new Date(),
+            }),
             consume: jest.fn(),
           },
         },
@@ -67,7 +68,9 @@ describe('AuthService', () => {
         {
           provide: ConfigService,
           useValue: {
-            getOrThrow: jest.fn(() => ({ frontendUrl: 'http://localhost:5173' })),
+            getOrThrow: jest.fn(() => ({
+              frontendUrl: 'http://localhost:5173',
+            })),
           },
         },
       ],
@@ -76,7 +79,6 @@ describe('AuthService', () => {
     service = module.get(AuthService);
     usersService = module.get(UsersService);
     jwtService = module.get(JwtService);
-    refreshTokens = module.get(RefreshTokensService);
     authTokens = module.get(AuthTokensService);
     mailer = module.get(MailerService);
   });
@@ -245,7 +247,9 @@ describe('AuthService', () => {
     it('is a silent no-op for an unknown email (no enumeration)', async () => {
       usersService.findByEmail.mockResolvedValue(null);
 
-      await expect(service.forgotPassword('nobody@x.y')).resolves.toBeUndefined();
+      await expect(
+        service.forgotPassword('nobody@x.y'),
+      ).resolves.toBeUndefined();
 
       expect(authTokens.issue).not.toHaveBeenCalled();
       expect(mailer.send).not.toHaveBeenCalled();

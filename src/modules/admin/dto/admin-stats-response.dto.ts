@@ -6,13 +6,19 @@ export class AdminUserStatsDto {
   @ApiProperty({ example: 3 }) @Expose() admins: number;
   @ApiProperty({ example: 980 }) @Expose() verified: number;
   @ApiProperty({ example: 1100 }) @Expose() onboarded: number;
-  @ApiProperty({ example: 12, description: 'Signups since UTC midnight today' }) @Expose() newToday: number;
-  @ApiProperty({ example: 84, description: 'Signups in the last 7 days' }) @Expose() newThisWeek: number;
+  @ApiProperty({ example: 12, description: 'Signups since UTC midnight today' })
+  @Expose()
+  newToday: number;
+  @ApiProperty({ example: 84, description: 'Signups in the last 7 days' })
+  @Expose()
+  newThisWeek: number;
 }
 
 export class AdminDeckStatsDto {
   @ApiProperty({ example: 57 }) @Expose() total: number;
-  @ApiProperty({ example: 12, description: 'Curated system decks' }) @Expose() system: number;
+  @ApiProperty({ example: 12, description: 'Curated system decks' })
+  @Expose()
+  system: number;
 }
 
 export class AdminWordStatsDto {
@@ -21,7 +27,12 @@ export class AdminWordStatsDto {
 
 export class AdminReviewStatsDto {
   @ApiProperty({ example: 91000 }) @Expose() total: number;
-  @ApiProperty({ example: 320, description: 'Reviews since UTC midnight today' }) @Expose() today: number;
+  @ApiProperty({
+    example: 320,
+    description: 'Reviews since UTC midnight today',
+  })
+  @Expose()
+  today: number;
 }
 
 export class AdminTestStatsDto {

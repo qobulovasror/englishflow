@@ -1,12 +1,13 @@
 # EnglishFlow
 
-A vocabulary-learning platform with spaced repetition, quizzes, and progress tracking. Three coordinated clients share one API:
+A vocabulary-learning platform with spaced repetition (SM-2), quizzes, decks, and progress tracking. Coordinated clients share one API:
 
 | Layer | Stack | Path |
 |------|-------|------|
-| **Backend** | NestJS 10 · Prisma 5 · PostgreSQL 16 · JWT | `src/`, `prisma/` |
+| **Backend** | NestJS 10 · Prisma 5 · PostgreSQL 16 · JWT · RBAC | `src/`, `prisma/` |
 | **Web** | Vue 3 · Pinia · Vite · Tailwind | `frontend/` |
 | **Mobile** | Flutter 3.2 · Riverpod · Dio · GoRouter | `mobile/` |
+| **Extension** | WXT · Vue 3 (save words while browsing) | `extension/` |
 
 See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for request flow, response envelope, schema, and deployment notes.
 
@@ -81,7 +82,7 @@ flutter run --dart-define=BASE_URL=http://10.0.2.2:3000
 | `npm run dev` | Vite dev server |
 | `npm run build` | Production build |
 | `npm run type-check` | `vue-tsc --noEmit` |
-| `npm run generate:types` | Generate `src/types/api.ts` from `../openapi.json` |
+| `npm run lint` / `npm run format` | ESLint / Prettier |
 
 ### Mobile (`mobile/`)
 
@@ -95,16 +96,9 @@ flutter run --dart-define=BASE_URL=http://10.0.2.2:3000
 
 ## Keeping types in sync
 
-When backend DTOs change, regenerate the API contract for the web client:
+The web client's API types are hand-maintained in a single file, `frontend/src/types/index.ts`. When backend DTOs change, update the matching interface there. (`npm run openapi` at the repo root still writes `openapi.json`, used for Swagger docs and as the contract reference.)
 
-```bash
-npm run openapi                  # repo root → writes openapi.json
-cd frontend && npm run generate:types   # → frontend/src/types/api.ts
-```
-
-Generated types are imported via `frontend/src/types/api-helpers.ts`. Hand-written `frontend/src/types/index.ts` still exists for legacy code — migrate incrementally.
-
-The Flutter app does not currently use codegen; its models mirror the backend by convention. Run `flutter test` to catch shape drift early.
+The Flutter app likewise mirrors the backend by convention (no codegen). Run `flutter test` / `npm run type-check` to catch shape drift early.
 
 ---
 
@@ -115,7 +109,8 @@ englishflow/
 ├── src/                  NestJS backend
 │   ├── common/           Filters, interceptors, decorators, guards, DTOs, swagger helpers
 │   ├── config/           ConfigModule + Joi env validation
-│   ├── modules/          Feature modules (auth, users, words, learning, tests, progress)
+│   ├── modules/          Feature modules (auth, users, words, learning, tests,
+│   │                     progress, decks, admin, health, maintenance)
 │   └── prisma/           PrismaService + module
 ├── prisma/
 │   ├── schema.prisma     Source of truth for the database
@@ -125,7 +120,8 @@ englishflow/
 ├── mobile/               Flutter mobile client
 ├── scripts/
 │   └── export-openapi.ts Headless Swagger export (no DB needed)
-├── docker-compose.yml    Postgres + backend
+├── extension/            WXT + Vue browser extension
+├── docker-compose.yml    Postgres + backend + web (nginx)
 ├── Dockerfile            Multi-stage backend image
 ├── openapi.json          Generated — committed to keep clients in sync
 └── docs/ARCHITECTURE.md  Deeper system docs
@@ -141,8 +137,14 @@ englishflow/
 | `PORT` | no | `3000` | API listen port |
 | `DATABASE_URL` | **yes** | `postgresql://user:pw@host:5432/db?schema=public` | Validated as `postgres(ql)://...` |
 | `JWT_SECRET` | **yes** | (≥32 chars) | App refuses to boot below 32 chars |
-| `JWT_EXPIRES_IN` | no | `7d` | Forwarded to `JwtModule.signOptions` |
-| `CORS_ORIGIN` | no | `http://localhost:5173` | Comma-separated list allowed |
+| `JWT_EXPIRES_IN` | no | `15m` | Access-token TTL; keep short (clients rotate via `/auth/refresh`) |
+| `REFRESH_TOKEN_EXPIRES_IN_DAYS` | no | `30` | Refresh-token lifetime |
+| `CORS_ORIGIN` | no | `http://localhost:5173` | Comma-separated list of allowed origins |
+| `TRUST_PROXY` | no | `0` | Trusted reverse-proxy hops for client-IP (rate limiting); `1` behind nginx/CDN |
+| `FRONTEND_URL` | no | `http://localhost:5173` | Base URL for account-recovery email links (defaults to first `CORS_ORIGIN`) |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `MAIL_FROM` | no | (see `.env.example`) | Transactional email; unset in dev → mailer logs the message + link to the console |
+| `SENTRY_DSN` | no | (project DSN) | Enables Sentry error tracking; unset = disabled (no-op) |
+| `LOG_LEVEL` | no | `info` | pino level; `silent` under `NODE_ENV=test` |
 
 The Joi schema in `src/config/env.validation.ts` is the single source of truth — adding a variable requires updating the schema and `src/config/configuration.ts`.
 
@@ -176,15 +178,18 @@ All endpoints return one of these two envelopes:
 
 ## Testing
 
-- **Backend**: no test suite yet — see open work in `docs/ARCHITECTURE.md`.
-- **Frontend**: type-check via `npm run type-check`.
-- **Mobile**: `flutter test` runs unit tests under `mobile/test/`.
+- **Backend**: `npm test` (Jest unit) + `npm run test:e2e` (e2e vs in-memory Prisma stub); `npm run lint` + `npm run format:check` (ESLint + Prettier). CI additionally applies every migration to a real Postgres 16 (`migrations` job).
+- **Frontend**: `npm run type-check` (`vue-tsc`) + `npm run lint` + `npm run format:check` (ESLint `eslint-plugin-vue` + Prettier). No component test runner yet.
+- **Mobile**: `flutter analyze` + `flutter test` (unit/provider/widget tests under `mobile/test/`).
+- **Extension**: `npm run compile` (`vue-tsc --noEmit`) in `extension/`.
+
+See `docs/AUDIT.md` for the current quality/security backlog.
 
 ---
 
 ## Contributing
 
 1. Branch from `main`.
-2. Run lint/build/test for the layer you changed.
-3. If you change the backend API: `npm run openapi && cd frontend && npm run generate:types` and commit the regenerated `openapi.json` + `frontend/src/types/api.ts`.
+2. Run lint/build/test for the layer you changed (backend: `npm run lint && npm test && npm run test:e2e`; web: `npm run lint && npm run type-check`; mobile: `flutter analyze && flutter test`). Backend + web are ESLint + Prettier gated in CI.
+3. If you change the backend API: run `npm run openapi` and commit the regenerated `openapi.json`, and update the matching interface in `frontend/src/types/index.ts`.
 4. CI (`.github/workflows/ci.yml`) verifies the same on every push.

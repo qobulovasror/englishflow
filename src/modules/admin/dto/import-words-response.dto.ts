@@ -17,7 +17,8 @@ export class ImportWordsResultDto {
 
   @ApiProperty({
     example: 8,
-    description: 'Rows skipped as duplicates (already present in the same scope)',
+    description:
+      'Rows skipped as duplicates (already present in the same scope)',
   })
   @Expose()
   skipped: number;

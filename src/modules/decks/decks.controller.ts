@@ -178,7 +178,9 @@ export class DecksController {
   }
 
   @Delete(':id/words/:wordId')
-  @ApiOperation({ summary: 'Remove a word from a deck the current user created' })
+  @ApiOperation({
+    summary: 'Remove a word from a deck the current user created',
+  })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiParam({ name: 'wordId', format: 'uuid' })
   @ApiSuccessPrimitiveResponse({

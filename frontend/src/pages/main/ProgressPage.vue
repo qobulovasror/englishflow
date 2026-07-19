@@ -81,19 +81,27 @@ onMounted(() => {
         <AppCard title="Vocabulary">
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div class="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ progress.vocabulary.total }}</p>
+              <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                {{ progress.vocabulary.total }}
+              </p>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total</p>
             </div>
             <div class="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ progress.vocabulary.new }}</p>
+              <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {{ progress.vocabulary.new }}
+              </p>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">New</p>
             </div>
             <div class="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-              <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ progress.vocabulary.learning }}</p>
+              <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                {{ progress.vocabulary.learning }}
+              </p>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Learning</p>
             </div>
             <div class="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ progress.vocabulary.learned }}</p>
+              <p class="text-2xl font-bold text-green-600 dark:text-green-400">
+                {{ progress.vocabulary.learned }}
+              </p>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Learned</p>
             </div>
           </div>
@@ -101,7 +109,9 @@ onMounted(() => {
           <div>
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm text-gray-600 dark:text-gray-300">Overall mastery</span>
-              <span class="text-sm font-medium text-primary-600 dark:text-primary-400">{{ progress.vocabulary.progressPercentage }}%</span>
+              <span class="text-sm font-medium text-primary-600 dark:text-primary-400"
+                >{{ progress.vocabulary.progressPercentage }}%</span
+              >
             </div>
             <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
               <div
@@ -137,7 +147,9 @@ onMounted(() => {
         </div>
 
         <div v-if="trendsLoading" class="text-gray-500 dark:text-gray-400 py-6">Loading...</div>
-        <div v-else-if="trendsError" class="text-red-500 dark:text-red-400 py-6 text-sm">{{ trendsError }}</div>
+        <div v-else-if="trendsError" class="text-red-500 dark:text-red-400 py-6 text-sm">
+          {{ trendsError }}
+        </div>
         <div v-else-if="allZero" class="text-center py-10 text-gray-400 dark:text-gray-500">
           No reviews in the last {{ trendsDays }} days
         </div>
@@ -173,7 +185,9 @@ onMounted(() => {
       <!-- Per-deck Progress -->
       <AppCard title="Deck progress">
         <div v-if="decksLoading" class="text-gray-500 dark:text-gray-400 py-6">Loading...</div>
-        <div v-else-if="decksError" class="text-red-500 dark:text-red-400 py-6 text-sm">{{ decksError }}</div>
+        <div v-else-if="decksError" class="text-red-500 dark:text-red-400 py-6 text-sm">
+          {{ decksError }}
+        </div>
         <div v-else-if="!decks.length" class="text-center py-6 text-gray-400 dark:text-gray-500">
           No decks yet
         </div>
@@ -185,16 +199,23 @@ onMounted(() => {
           >
             <div class="flex items-center justify-between mb-2 gap-2">
               <div class="flex items-center gap-2 min-w-0">
-                <span class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{{ deck.title }}</span>
+                <span class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{{
+                  deck.title
+                }}</span>
                 <span
                   v-if="deck.level"
                   class="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
-                  :class="levelBadgeClass[deck.level] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'"
+                  :class="
+                    levelBadgeClass[deck.level] ??
+                    'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                  "
                 >
                   {{ deck.level }}
                 </span>
               </div>
-              <span class="text-sm font-medium text-primary-600 dark:text-primary-400 shrink-0">{{ deck.progressPercentage }}%</span>
+              <span class="text-sm font-medium text-primary-600 dark:text-primary-400 shrink-0"
+                >{{ deck.progressPercentage }}%</span
+              >
             </div>
             <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 mb-2">
               <div
@@ -203,9 +224,22 @@ onMounted(() => {
               />
             </div>
             <div class="flex gap-4 text-xs text-gray-500 dark:text-gray-400">
-              <span><span class="text-blue-600 dark:text-blue-400 font-medium">{{ deck.new }}</span> new</span>
-              <span><span class="text-yellow-600 dark:text-yellow-400 font-medium">{{ deck.learning }}</span> learning</span>
-              <span><span class="text-green-600 dark:text-green-400 font-medium">{{ deck.learned }}</span> learned</span>
+              <span
+                ><span class="text-blue-600 dark:text-blue-400 font-medium">{{ deck.new }}</span>
+                new</span
+              >
+              <span
+                ><span class="text-yellow-600 dark:text-yellow-400 font-medium">{{
+                  deck.learning
+                }}</span>
+                learning</span
+              >
+              <span
+                ><span class="text-green-600 dark:text-green-400 font-medium">{{
+                  deck.learned
+                }}</span>
+                learned</span
+              >
             </div>
           </div>
         </div>
@@ -214,7 +248,9 @@ onMounted(() => {
       <!-- Leeches -->
       <AppCard title="Words to review">
         <div v-if="leechesLoading" class="text-gray-500 dark:text-gray-400 py-6">Loading...</div>
-        <div v-else-if="leechesError" class="text-red-500 dark:text-red-400 py-6 text-sm">{{ leechesError }}</div>
+        <div v-else-if="leechesError" class="text-red-500 dark:text-red-400 py-6 text-sm">
+          {{ leechesError }}
+        </div>
         <div v-else-if="!leeches.length" class="text-center py-6 text-gray-400 dark:text-gray-500">
           Nothing to review — great work!
         </div>
@@ -225,8 +261,12 @@ onMounted(() => {
             class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg gap-3"
           >
             <div class="min-w-0">
-              <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{{ leech.word }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ leech.translation }}</p>
+              <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
+                {{ leech.word }}
+              </p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 truncate">
+                {{ leech.translation }}
+              </p>
             </div>
             <span
               class="text-xs font-semibold px-3 py-1 rounded-full shrink-0 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"

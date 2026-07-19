@@ -44,10 +44,7 @@ async function verify() {
     }
   } catch (e) {
     state.value = 'error'
-    errorMessage.value = extractErrorMessage(
-      e,
-      'This verification link is invalid or has expired.',
-    )
+    errorMessage.value = extractErrorMessage(e, 'This verification link is invalid or has expired.')
   }
 }
 
@@ -66,21 +63,51 @@ onMounted(verify)
         <p class="text-gray-500 dark:text-gray-400 mt-2">Email verification</p>
       </div>
 
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 text-center">
+      <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 text-center"
+      >
         <!-- Loading -->
         <div v-if="state === 'loading'" class="space-y-4">
-          <svg class="animate-spin h-8 w-8 mx-auto text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          <svg
+            class="animate-spin h-8 w-8 mx-auto text-primary-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            />
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
           </svg>
           <p class="text-sm text-gray-500 dark:text-gray-400">Verifying your email…</p>
         </div>
 
         <!-- Success -->
         <div v-else-if="state === 'success'" class="space-y-4">
-          <div class="w-14 h-14 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <svg class="w-7 h-7 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          <div
+            class="w-14 h-14 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center"
+          >
+            <svg
+              class="w-7 h-7 text-green-600 dark:text-green-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
           <div>
@@ -99,9 +126,16 @@ onMounted(verify)
 
         <!-- Error -->
         <div v-else class="space-y-4">
-          <div class="w-14 h-14 mx-auto rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+          <div
+            class="w-14 h-14 mx-auto rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center"
+          >
             <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </div>
           <div>
@@ -111,10 +145,14 @@ onMounted(verify)
           <p class="text-sm text-gray-500 dark:text-gray-400">
             <template v-if="isAuthenticated">
               Request a fresh link from your
-              <router-link to="/profile" class="text-primary-600 hover:underline font-medium">profile</router-link>.
+              <router-link to="/profile" class="text-primary-600 hover:underline font-medium"
+                >profile</router-link
+              >.
             </template>
             <template v-else>
-              <router-link to="/login" class="text-primary-600 hover:underline font-medium">Sign in</router-link>
+              <router-link to="/login" class="text-primary-600 hover:underline font-medium"
+                >Sign in</router-link
+              >
               and request a new link from your profile.
             </template>
           </p>

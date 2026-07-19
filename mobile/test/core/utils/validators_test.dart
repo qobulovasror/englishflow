@@ -16,6 +16,11 @@ void main() {
     test('accepts a well-formed address', () {
       expect(Validators.email('student@example.com'), isNull);
     });
+
+    test('accepts long / modern TLDs', () {
+      expect(Validators.email('a@studio.photography'), isNull);
+      expect(Validators.email('user@my.museum'), isNull);
+    });
   });
 
   group('Validators.password', () {

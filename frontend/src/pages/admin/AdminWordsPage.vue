@@ -10,11 +10,7 @@ import ConfirmDialog from '@/components/admin/ConfirmDialog.vue'
 import AppButton from '@/components/AppButton.vue'
 import AppInput from '@/components/AppInput.vue'
 import type { AdminDeckRow, AdminWord } from '@/types'
-import {
-  parseVocabFile,
-  chunkRows,
-  type ParsedVocab,
-} from '@/utils/parseVocabFile'
+import { parseVocabFile, chunkRows, type ParsedVocab } from '@/utils/parseVocabFile'
 
 const columns: AdminTableColumn[] = [
   { key: 'word', label: 'Word' },
@@ -239,7 +235,12 @@ onMounted(fetchWords)
 
     <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
 
-    <AdminTable :columns="columns" :loading="loading" :row-count="items.length" empty="No words found">
+    <AdminTable
+      :columns="columns"
+      :loading="loading"
+      :row-count="items.length"
+      empty="No words found"
+    >
       <tr
         v-for="w in items"
         :key="w.id"
@@ -254,8 +255,15 @@ onMounted(fetchWords)
         </td>
         <td class="px-4 py-3">
           <div class="flex items-center justify-end gap-2">
-            <button class="text-xs text-primary-600 dark:text-primary-400 hover:underline" @click="openEdit(w)">Edit</button>
-            <button class="text-xs text-red-500 hover:underline" @click="deleteTarget = w">Delete</button>
+            <button
+              class="text-xs text-primary-600 dark:text-primary-400 hover:underline"
+              @click="openEdit(w)"
+            >
+              Edit
+            </button>
+            <button class="text-xs text-red-500 hover:underline" @click="deleteTarget = w">
+              Delete
+            </button>
           </div>
         </td>
       </tr>
@@ -270,9 +278,22 @@ onMounted(fetchWords)
     >
       <form class="space-y-4" @submit.prevent="submitForm">
         <AppInput v-model="form.word" label="Word" required placeholder="serendipity" />
-        <AppInput v-model="form.translation" label="Translation" required placeholder="kutilmagan yoqimli kashfiyot" />
-        <AppInput v-model="form.example" label="Example (optional)" placeholder="Finding that book was pure serendipity." />
-        <AppInput v-model="form.audioUrl" label="Audio URL (optional)" placeholder="https://…/word.mp3" />
+        <AppInput
+          v-model="form.translation"
+          label="Translation"
+          required
+          placeholder="kutilmagan yoqimli kashfiyot"
+        />
+        <AppInput
+          v-model="form.example"
+          label="Example (optional)"
+          placeholder="Finding that book was pure serendipity."
+        />
+        <AppInput
+          v-model="form.audioUrl"
+          label="Audio URL (optional)"
+          placeholder="https://…/word.mp3"
+        />
         <p v-if="formError" class="text-sm text-red-500">{{ formError }}</p>
       </form>
       <template #footer>
@@ -299,8 +320,8 @@ onMounted(fetchWords)
         <p class="text-sm text-gray-500 dark:text-gray-400">
           Upload a <strong>CSV</strong> or <strong>JSON</strong> file. Columns:
           <code class="text-xs">word, translation, example, audioUrl</code>
-          (only <em>word</em> and <em>translation</em> are required). Duplicates
-          of existing words are skipped.
+          (only <em>word</em> and <em>translation</em> are required). Duplicates of existing words
+          are skipped.
         </p>
 
         <div>
@@ -389,9 +410,9 @@ onMounted(fetchWords)
           v-if="importResult"
           class="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3 text-sm text-green-700 dark:text-green-300"
         >
-          Imported <strong>{{ importResult.imported }}</strong>,
-          skipped <strong>{{ importResult.skipped }}</strong>
-          (of {{ importResult.received }} received).
+          Imported <strong>{{ importResult.imported }}</strong
+          >, skipped <strong>{{ importResult.skipped }}</strong> (of
+          {{ importResult.received }} received).
         </div>
 
         <p v-if="importError" class="text-sm text-red-500">{{ importError }}</p>

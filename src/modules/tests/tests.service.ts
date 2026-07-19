@@ -20,20 +20,29 @@ export class TestsService {
 
   async startTest(userId: string): Promise<StartTestResponseDto> {
     // Draw from the user's learning list (UserWord), not words they authored —
-    // so words added by enrolling in a deck are testable too. We pull a wider
-    // pool than we need so the wrong-answer distractors have variety.
-    const userWords = await this.prisma.userWord.findMany({
+    // so words added by enrolling in a deck are testable too. Fetch just the ids
+    // (cheap), then randomly sample a pool: without random sampling Postgres
+    // returns the same earliest rows every time, so a user with hundreds of
+    // words would be quizzed forever on their first ~10. We pull a wider pool
+    // than we need so the wrong-answer distractors have variety.
+    const wordRefs = await this.prisma.userWord.findMany({
       where: { userId },
-      take: this.TEST_QUESTION_COUNT * 2,
-      include: { word: true },
+      select: { wordId: true },
     });
-    const words = userWords.map((uw) => uw.word);
 
-    if (words.length < this.TEST_QUESTION_COUNT) {
+    if (wordRefs.length < this.TEST_QUESTION_COUNT) {
       throw new BadRequestException(
         `You need at least ${this.TEST_QUESTION_COUNT} words to start a test`,
       );
     }
+
+    const pooledIds = shuffle(wordRefs.map((r) => r.wordId)).slice(
+      0,
+      this.TEST_QUESTION_COUNT * 2,
+    );
+    const words = await this.prisma.word.findMany({
+      where: { id: { in: pooledIds } },
+    });
 
     const testWords = shuffle(words).slice(0, this.TEST_QUESTION_COUNT);
 
@@ -110,23 +119,36 @@ export class TestsService {
       const isCorrect =
         selectedAnswer !== null && selectedAnswer === q.correctAnswer;
       if (isCorrect) score++;
-      return { id: q.id, wordId: q.wordId, selectedAnswer, correctAnswer: q.correctAnswer };
+      return {
+        id: q.id,
+        wordId: q.wordId,
+        selectedAnswer,
+        correctAnswer: q.correctAnswer,
+      };
     });
 
-    // Persist the picks and the final score atomically, stamping submittedAt so
-    // the test can never be graded twice.
-    await this.prisma.$transaction([
-      ...graded.map((g) =>
-        this.prisma.testQuestion.update({
-          where: { id: g.id },
-          data: { selectedAnswer: g.selectedAnswer },
-        }),
-      ),
-      this.prisma.test.update({
-        where: { id: test.id },
+    // Persist the picks and the final score atomically. The submit-once guard
+    // must be atomic: the early `test.submittedAt` check above is only a fast
+    // path — two concurrent submits could both pass it. Claiming the row with a
+    // conditional `updateMany (submittedAt: null)` lets exactly one win; the
+    // loser sees count 0 and is rejected before any question rows are written.
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.test.updateMany({
+        where: { id: test.id, userId, submittedAt: null },
         data: { score, submittedAt: new Date() },
-      }),
-    ]);
+      });
+      if (claimed.count === 0) {
+        throw new BadRequestException('This test has already been submitted');
+      }
+      await Promise.all(
+        graded.map((g) =>
+          tx.testQuestion.update({
+            where: { id: g.id },
+            data: { selectedAnswer: g.selectedAnswer },
+          }),
+        ),
+      );
+    });
 
     const total = test.questions.length;
 

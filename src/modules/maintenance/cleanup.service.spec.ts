@@ -20,21 +20,23 @@ describe('CleanupService', () => {
   beforeEach(async () => {
     prisma = buildPrismaMock();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CleanupService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [CleanupService, { provide: PrismaService, useValue: prisma }],
     }).compile();
     service = module.get(CleanupService);
   });
 
   describe('purgeExpiredTokens', () => {
-    it('deletes expired refresh tokens (expiresAt < now)', async () => {
+    it('deletes refresh tokens that are expired OR revoked', async () => {
       await service.purgeExpiredTokens();
 
       expect(prisma.refreshToken.deleteMany).toHaveBeenCalledTimes(1);
       const where = prisma.refreshToken.deleteMany.mock.calls[0][0].where;
-      expect(where).toEqual({ expiresAt: { lt: expect.any(Date) } });
+      expect(where).toEqual({
+        OR: [
+          { expiresAt: { lt: expect.any(Date) } },
+          { revokedAt: { not: null } },
+        ],
+      });
     });
 
     it('deletes auth tokens that are expired OR already used', async () => {
@@ -43,7 +45,10 @@ describe('CleanupService', () => {
       expect(prisma.authToken.deleteMany).toHaveBeenCalledTimes(1);
       const where = prisma.authToken.deleteMany.mock.calls[0][0].where;
       expect(where).toEqual({
-        OR: [{ expiresAt: { lt: expect.any(Date) } }, { usedAt: { not: null } }],
+        OR: [
+          { expiresAt: { lt: expect.any(Date) } },
+          { usedAt: { not: null } },
+        ],
       });
     });
 
@@ -59,7 +64,8 @@ describe('CleanupService', () => {
       const after = Date.now();
 
       const refreshCutoff: Date =
-        prisma.refreshToken.deleteMany.mock.calls[0][0].where.expiresAt.lt;
+        prisma.refreshToken.deleteMany.mock.calls[0][0].where.OR[0].expiresAt
+          .lt;
       const authCutoff: Date =
         prisma.authToken.deleteMany.mock.calls[0][0].where.OR[0].expiresAt.lt;
 

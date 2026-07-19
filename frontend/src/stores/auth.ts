@@ -2,30 +2,22 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authService } from '@/services/auth.service'
 import { usersService } from '@/services/users.service'
-import { extractErrorMessage, silentRefresh } from '@/services/api'
-import type {
-  ChangePasswordPayload,
-  OnboardingPayload,
-  UpdateProfilePayload,
-  User,
-} from '@/types'
+import {
+  extractErrorMessage,
+  silentRefresh,
+  setAccessToken,
+  registerSessionHandlers,
+} from '@/services/api'
+import type { ChangePasswordPayload, OnboardingPayload, UpdateProfilePayload, User } from '@/types'
 import router from '@/router'
 
-const TOKEN_KEY = 'token'
-const USER_KEY = 'user'
-
-function readStoredUser(): User | null {
-  try {
-    const raw = localStorage.getItem(USER_KEY)
-    return raw ? (JSON.parse(raw) as User) : null
-  } catch {
-    return null
-  }
-}
-
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(readStoredUser())
-  const token = ref<string | null>(localStorage.getItem(TOKEN_KEY))
+  // No localStorage: the access token lives in memory (in api.ts) and the user
+  // is re-fetched from the refresh cookie on boot. This store is the single
+  // reactive mirror the UI reads; the api interceptor keeps it in sync via the
+  // registered session handlers below.
+  const user = ref<User | null>(null)
+  const token = ref<string | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -33,21 +25,33 @@ export const useAuthStore = defineStore('auth', () => {
 
   function persistUser(nextUser: User) {
     user.value = nextUser
-    localStorage.setItem(USER_KEY, JSON.stringify(nextUser))
   }
 
   function persistSession(nextUser: User, nextAccessToken: string) {
     token.value = nextAccessToken
-    localStorage.setItem(TOKEN_KEY, nextAccessToken)
+    setAccessToken(nextAccessToken)
     persistUser(nextUser)
   }
 
   function clearSession() {
     user.value = null
     token.value = null
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+    setAccessToken(null)
   }
+
+  // Let the api interceptor drive the reactive session state. On a silent
+  // refresh it hands us the fresh token + user; on refresh failure / terminal
+  // 401 it clears us — keeping `isAuthenticated` truthful so guards don't loop.
+  registerSessionHandlers({
+    onRefreshed: (nextAccessToken, nextUser) => {
+      token.value = nextAccessToken
+      user.value = nextUser as unknown as User
+    },
+    onCleared: () => {
+      user.value = null
+      token.value = null
+    },
+  })
 
   async function register(email: string, password: string) {
     loading.value = true
@@ -89,18 +93,10 @@ export const useAuthStore = defineStore('auth', () => {
    * correct state.
    */
   async function tryRestore(): Promise<void> {
+    // silentRefresh() triggers performRefresh(), whose onRefreshed hook sets
+    // token + user for us on success. On failure we make sure we're cleared.
     const newToken = await silentRefresh()
-    if (newToken) {
-      const raw = localStorage.getItem(USER_KEY)
-      token.value = newToken
-      if (raw) {
-        try {
-          user.value = JSON.parse(raw)
-        } catch {
-          /* ignore */
-        }
-      }
-    } else {
+    if (!newToken) {
       clearSession()
     }
   }

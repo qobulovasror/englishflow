@@ -11,15 +11,19 @@ type MockedPrisma = {
     update: jest.Mock;
     delete: jest.Mock;
   };
-  deck: { count: jest.Mock; findUnique: jest.Mock };
+  deck: { count: jest.Mock; findUnique: jest.Mock; findFirst: jest.Mock };
   word: {
     count: jest.Mock;
     findMany: jest.Mock;
     findUnique: jest.Mock;
     create: jest.Mock;
+    createMany: jest.Mock;
+    createManyAndReturn: jest.Mock;
     update: jest.Mock;
     delete: jest.Mock;
   };
+  deckEnrollment: { findMany: jest.Mock };
+  userWord: { createMany: jest.Mock };
   review: { count: jest.Mock };
   test: { count: jest.Mock };
   $transaction: jest.Mock;
@@ -54,15 +58,21 @@ describe('AdminService', () => {
         update: jest.fn(),
         delete: jest.fn().mockResolvedValue({}),
       },
-      deck: { count: jest.fn(), findUnique: jest.fn() },
+      deck: { count: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn() },
       word: {
         count: jest.fn(),
-        findMany: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn(),
         create: jest.fn(),
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
+        createManyAndReturn: jest.fn(async ({ data }: { data: unknown[] }) =>
+          data.map((_, i) => ({ id: `w${i + 1}` })),
+        ),
         update: jest.fn(),
         delete: jest.fn().mockResolvedValue({}),
       },
+      deckEnrollment: { findMany: jest.fn().mockResolvedValue([]) },
+      userWord: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
       review: { count: jest.fn() },
       test: { count: jest.fn() },
       $transaction: jest.fn((input: unknown) =>
@@ -187,7 +197,7 @@ describe('AdminService', () => {
 
   describe('createWord', () => {
     it('throws when the target deck does not exist', async () => {
-      prisma.deck.findUnique.mockResolvedValue(null);
+      prisma.deck.findFirst.mockResolvedValue(null);
       await expect(
         service.createWord({
           word: 'a',
@@ -237,6 +247,47 @@ describe('AdminService', () => {
       await expect(service.deleteWord('missing')).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('importWords', () => {
+    it('back-fills UserWord for enrollees when importing into a deck', async () => {
+      prisma.deck.findFirst.mockResolvedValue({ id: 'd1' });
+      // word.findMany = dedup existing-check (none exist). The inserted words'
+      // ids come from createManyAndReturn (w1, w2).
+      prisma.word.findMany.mockResolvedValue([]);
+      prisma.deckEnrollment.findMany.mockResolvedValue([{ userId: 'a' }]);
+
+      const result = await service.importWords({
+        deckId: 'd1',
+        words: [
+          { word: 'cat', translation: 'mushuk' },
+          { word: 'dog', translation: 'it' },
+        ],
+      } as never);
+
+      expect(prisma.word.createManyAndReturn).toHaveBeenCalled();
+      expect(prisma.userWord.createMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skipDuplicates: true,
+          data: expect.arrayContaining([
+            { userId: 'a', wordId: 'w1' },
+            { userId: 'a', wordId: 'w2' },
+          ]),
+        }),
+      );
+      expect(result.imported).toBe(2);
+    });
+
+    it('does not back-fill when importing without a deckId', async () => {
+      prisma.word.findMany.mockResolvedValueOnce([]); // dedup check only
+
+      const result = await service.importWords({
+        words: [{ word: 'cat', translation: 'mushuk' }],
+      } as never);
+
+      expect(prisma.userWord.createMany).not.toHaveBeenCalled();
+      expect(result.imported).toBe(1);
     });
   });
 });

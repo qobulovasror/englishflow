@@ -26,8 +26,8 @@ import * as request from 'supertest';
 
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { Logger as PinoLogger } from 'nestjs-pino';
 import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter';
-import { LoggingInterceptor } from '../src/common/interceptors/logging.interceptor';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor';
 import {
   MailerService,
@@ -72,13 +72,15 @@ function buildPrismaStub() {
   let authTokenCounter = 0;
 
   const user = {
-    findUnique: jest.fn(async ({ where }: { where: { id?: string; email?: string } }) => {
-      if (where.id) return users.get(where.id) ?? null;
-      if (where.email) {
-        for (const u of users.values()) if (u.email === where.email) return u;
-      }
-      return null;
-    }),
+    findUnique: jest.fn(
+      async ({ where }: { where: { id?: string; email?: string } }) => {
+        if (where.id) return users.get(where.id) ?? null;
+        if (where.email) {
+          for (const u of users.values()) if (u.email === where.email) return u;
+        }
+        return null;
+      },
+    ),
     create: jest.fn(
       async ({ data }: { data: { email: string; password: string } }) => {
         for (const u of users.values()) {
@@ -220,7 +222,8 @@ function buildPrismaStub() {
         let count = 0;
         for (const t of authTokens.values()) {
           if (
-            (where.tokenHash === undefined || t.tokenHash === where.tokenHash) &&
+            (where.tokenHash === undefined ||
+              t.tokenHash === where.tokenHash) &&
             (where.type === undefined || t.type === where.type) &&
             (where.usedAt !== null || t.usedAt === null) &&
             (where.expiresAt?.gt === undefined || t.expiresAt > now)
@@ -258,15 +261,65 @@ function buildPrismaStub() {
       async ({ where }: { where: { tokenHash?: string; id?: string } }) => {
         if (where.tokenHash) return refreshTokens.get(where.tokenHash) ?? null;
         if (where.id) {
-          for (const t of refreshTokens.values()) if (t.id === where.id) return t;
+          for (const t of refreshTokens.values())
+            if (t.id === where.id) return t;
         }
         return null;
+      },
+    ),
+    update: jest.fn(
+      async ({
+        where,
+        data,
+      }: {
+        where: { id?: string; tokenHash?: string };
+        data: Partial<StoredRefreshToken>;
+      }) => {
+        for (const [hash, t] of refreshTokens) {
+          if (
+            (where.id && t.id === where.id) ||
+            (where.tokenHash && hash === where.tokenHash)
+          ) {
+            const updated = { ...t, ...data };
+            refreshTokens.set(hash, updated);
+            return updated;
+          }
+        }
+        const { Prisma } = await import('@prisma/client');
+        throw new Prisma.PrismaClientKnownRequestError('not found', {
+          code: 'P2025',
+          clientVersion: 'test',
+        });
+      },
+    ),
+    updateMany: jest.fn(
+      async ({
+        where,
+        data,
+      }: {
+        where: { id?: string; revokedAt?: Date | null };
+        data: Partial<StoredRefreshToken>;
+      }) => {
+        let count = 0;
+        for (const [hash, t] of refreshTokens) {
+          const matchId = !where.id || t.id === where.id;
+          const matchRevoked =
+            where.revokedAt === null ? t.revokedAt === null : true;
+          if (matchId && matchRevoked) {
+            refreshTokens.set(hash, { ...t, ...data });
+            count += 1;
+          }
+        }
+        return { count };
       },
     ),
     delete: jest.fn(
       async ({ where }: { where: { id?: string; tokenHash?: string } }) => {
         for (const [hash, t] of refreshTokens) {
-          if ((where.id && t.id === where.id) || (where.tokenHash && hash === where.tokenHash)) {
+          if (
+            (where.id && t.id === where.id) ||
+            (where.tokenHash && hash === where.tokenHash)
+          ) {
             refreshTokens.delete(hash);
             return t;
           }
@@ -345,6 +398,7 @@ describe('Auth (e2e)', () => {
       .compile();
 
     app = moduleRef.createNestApplication({ bufferLogs: true });
+    app.useLogger(app.get(PinoLogger));
 
     app.useGlobalPipes(
       new ValidationPipe({
@@ -355,7 +409,6 @@ describe('Auth (e2e)', () => {
       }),
     );
     app.useGlobalInterceptors(
-      new LoggingInterceptor(),
       new TransformInterceptor(),
       new ClassSerializerInterceptor(app.get(Reflector)),
     );
@@ -448,7 +501,6 @@ describe('Auth (e2e)', () => {
 
   describe('POST /auth/refresh', () => {
     let refreshToken: string;
-    let originalAccessToken: string;
 
     beforeAll(async () => {
       const res = await request(app.getHttpServer())
@@ -456,7 +508,6 @@ describe('Auth (e2e)', () => {
         .send({ email: 'dan@example.com', password: 'StrongPass!1' })
         .expect(201);
       refreshToken = res.body.data.refreshToken;
-      originalAccessToken = res.body.data.accessToken;
     });
 
     it('rotates the refresh token and issues a fresh access token', async () => {
@@ -494,7 +545,9 @@ describe('Auth (e2e)', () => {
     it('rejects unknown refresh tokens with 401', async () => {
       await request(app.getHttpServer())
         .post('/auth/refresh')
-        .send({ refreshToken: 'made-up-token-that-does-not-exist-' + Date.now() })
+        .send({
+          refreshToken: 'made-up-token-that-does-not-exist-' + Date.now(),
+        })
         .expect(401);
     });
   });
@@ -637,7 +690,7 @@ describe('Auth (e2e)', () => {
         .expect(401);
     });
 
-    it('all of the user\'s refresh tokens are revoked', async () => {
+    it("all of the user's refresh tokens are revoked", async () => {
       const tokensForUser = [...prismaStub._refreshTokens.values()].filter(
         (t) => t.userId === userId,
       );

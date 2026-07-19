@@ -5,6 +5,7 @@ import {
   IsArray,
   IsString,
   IsUUID,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 
@@ -16,8 +17,11 @@ export class TestAnswerDto {
   @IsUUID()
   wordId: string;
 
-  @ApiProperty({ example: 'kutilmagan yoqimli kashfiyot' })
+  @ApiProperty({ example: 'kutilmagan yoqimli kashfiyot', maxLength: 200 })
   @IsString()
+  // Options are translations (≤200 chars); cap the field so a client can't
+  // persist arbitrarily large strings into test_questions.selectedAnswer.
+  @MaxLength(200)
   selectedAnswer: string;
 }
 

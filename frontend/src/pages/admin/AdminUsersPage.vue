@@ -162,14 +162,22 @@ onMounted(fetchUsers)
 
     <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
 
-    <AdminTable :columns="columns" :loading="loading" :row-count="items.length" empty="No users found">
+    <AdminTable
+      :columns="columns"
+      :loading="loading"
+      :row-count="items.length"
+      empty="No users found"
+    >
       <tr
         v-for="u in items"
         :key="u.id"
         class="text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
       >
         <td class="px-4 py-3">
-          <router-link :to="`/admin/users/${u.id}`" class="font-medium hover:text-primary-600 dark:hover:text-primary-400">
+          <router-link
+            :to="`/admin/users/${u.id}`"
+            class="font-medium hover:text-primary-600 dark:hover:text-primary-400"
+          >
             {{ u.email }}
           </router-link>
           <span v-if="isSelf(u)" class="ml-2 text-[11px] text-gray-400">(you)</span>
@@ -177,18 +185,24 @@ onMounted(fetchUsers)
         <td class="px-4 py-3">
           <span
             class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-            :class="u.role === 'ADMIN'
-              ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300'"
+            :class="
+              u.role === 'ADMIN'
+                ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300'
+            "
           >
             {{ u.role }}
           </span>
         </td>
         <td class="px-4 py-3">
-          <span v-if="u.emailVerifiedAt" class="text-green-600 dark:text-green-400 text-xs">✓ Verified</span>
+          <span v-if="u.emailVerifiedAt" class="text-green-600 dark:text-green-400 text-xs"
+            >✓ Verified</span
+          >
           <span v-else class="text-gray-400 text-xs">Unverified</span>
         </td>
-        <td class="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ fmtDate(u.createdAt) }}</td>
+        <td class="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+          {{ fmtDate(u.createdAt) }}
+        </td>
         <td class="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">
           {{ u.counts.words }} words · {{ u.counts.reviews }} reviews
         </td>

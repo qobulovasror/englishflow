@@ -10,7 +10,10 @@ export class TestQuestionDto {
   @Expose()
   word: string;
 
-  @ApiProperty({ type: [String], example: ['kutilmagan yoqimli kashfiyot', 'jadval', 'iqtisodiy', 'lazzat'] })
+  @ApiProperty({
+    type: [String],
+    example: ['kutilmagan yoqimli kashfiyot', 'jadval', 'iqtisodiy', 'lazzat'],
+  })
   @Expose()
   options: string[];
 }
@@ -38,7 +41,10 @@ export class TestQuestionResultDto {
   @Expose()
   wordId: string;
 
-  @ApiProperty({ nullable: true, description: 'Null if the question was left unanswered' })
+  @ApiProperty({
+    nullable: true,
+    description: 'Null if the question was left unanswered',
+  })
   @Expose()
   selectedAnswer: string | null;
 
