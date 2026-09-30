@@ -182,7 +182,15 @@ describe('PostgreSQL integration', () => {
   });
 
   it('deletes an account while preserving other learners’ history and archiving its deck', async () => {
-    await prisma.userWord.create({ data: { userId: learnerId, wordId } });
+    // Earlier integration cases use the same learner/word fixture. Reset the
+    // history this assertion owns and reuse the unique progress row so the
+    // case also passes after another test has already introduced this card.
+    await prisma.review.deleteMany({ where: { userId: learnerId, wordId } });
+    await prisma.userWord.upsert({
+      where: { userId_wordId: { userId: learnerId, wordId } },
+      update: {},
+      create: { userId: learnerId, wordId },
+    });
     await prisma.review.create({
       data: { userId: learnerId, wordId, rating: ReviewRating.GOOD },
     });
