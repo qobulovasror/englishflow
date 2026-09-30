@@ -130,7 +130,14 @@ async function handle(
         return ok({ done: true, sessionCleared });
       }
       case 'OPEN_POPUP':
-        return ok({ done: await openPopup() });
+        return ok({ done: await openPopup(msg.view ?? 'dashboard') });
+      case 'CONSUME_POPUP_VIEW': {
+        const stored = await browser.storage.local.get('ef_popup_initial_view');
+        await browser.storage.local.remove('ef_popup_initial_view');
+        return ok({
+          view: stored.ef_popup_initial_view === 'review' ? 'review' : 'dashboard',
+        });
+      }
       default:
         return { ok: false, error: `Unknown message: ${(msg as { type: string }).type}` };
     }
@@ -139,15 +146,17 @@ async function handle(
   }
 }
 
-async function openPopup(): Promise<boolean> {
+async function openPopup(view: 'dashboard' | 'review' = 'dashboard'): Promise<boolean> {
   const action = browser.action as unknown as { openPopup?: () => Promise<void> };
   try {
     if (action.openPopup) {
+      await browser.storage.local.set({ ef_popup_initial_view: view });
       await action.openPopup();
       return true;
     }
   } catch {
     // openPopup needs a user gesture and isn't available everywhere.
   }
+  await browser.storage.local.remove('ef_popup_initial_view');
   return false;
 }

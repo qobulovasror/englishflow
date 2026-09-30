@@ -17,8 +17,10 @@ const definition = ref('');
 const decks = ref<Deck[]>([]);
 const deckId = ref('');
 const alsoLearn = ref(false);
+const reviewOpenError = ref('');
 
 const canSave = computed(() => word.value.trim() !== '' && translation.value.trim() !== '');
+const canReview = computed(() => !deckId.value || alsoLearn.value);
 
 onMounted(async () => {
   const auth = await sendMessage('AUTH_STATE');
@@ -82,6 +84,16 @@ function openLogin() {
   void sendMessage('OPEN_POPUP');
   closePanel();
 }
+
+async function openReview() {
+  reviewOpenError.value = '';
+  const result = await sendMessage('OPEN_POPUP', { view: 'review' });
+  if (result.ok && result.data.done) {
+    closePanel();
+  } else {
+    reviewOpenError.value = 'Open EnglishFlow from the browser toolbar to review.';
+  }
+}
 </script>
 
 <template>
@@ -102,6 +114,9 @@ function openLogin() {
     <div v-else-if="phase === 'saved'" class="ef-body ef-center">
       <div class="ef-check">✓</div>
       <p class="ef-msg">Saved to your vocabulary</p>
+      <button v-if="canReview" class="ef-btn ef-primary" @click="openReview">Open today’s review</button>
+      <p v-if="reviewOpenError" class="ef-error">{{ reviewOpenError }}</p>
+      <p v-if="!canReview" class="ef-hint">Add this word to your study list to review it.</p>
     </div>
 
     <!-- Form -->

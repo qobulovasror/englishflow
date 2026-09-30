@@ -90,6 +90,7 @@ enum ReviewRating {
 model Review {
   id        String       @id @default(uuid())
   rating    ReviewRating
+  requestId String?      @unique
   createdAt DateTime     @default(now())
 
   userId String

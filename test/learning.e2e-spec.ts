@@ -54,13 +54,38 @@ describe('Learning daily plan (e2e)', () => {
       first.body.data.map((card: { id: string }) => card.id),
     );
 
-    for (const card of first.body.data) {
+    for (const [index, card] of first.body.data.entries()) {
       await request(app.getHttpServer())
         .post('/learning/review')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ userWordId: card.id, rating: 'GOOD' })
+        .send({
+          userWordId: card.id,
+          rating: 'GOOD',
+          ...(index === 0
+            ? { requestId: '123e4567-e89b-42d3-a456-426614174000' }
+            : {}),
+        })
         .expect(200);
+      if (index === 0) {
+        await request(app.getHttpServer())
+          .post('/learning/review')
+          .set('Authorization', `Bearer ${accessToken}`)
+          .send({
+            userWordId: card.id,
+            rating: 'GOOD',
+            requestId: '123e4567-e89b-42d3-a456-426614174000',
+          })
+          .expect((response) => {
+            if (response.status !== 200) {
+              throw new Error(
+                `Retry review failed: ${JSON.stringify(response.body)}`,
+              );
+            }
+          });
+      }
     }
+
+    expect(await prisma.review.count({ where: { userId } })).toBe(3);
 
     const afterCompletion = await request(app.getHttpServer())
       .get('/learning/daily?tzOffsetMinutes=300')

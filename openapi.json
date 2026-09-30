@@ -4634,6 +4634,11 @@
             ],
             "example": "GOOD",
             "description": "Recall quality. AGAIN = failed (re-learn), HARD/GOOD/EASY = successful recall feeding the SM-2 schedule."
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique client review id, used to safely retry offline sync."
           }
         },
         "required": [

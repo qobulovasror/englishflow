@@ -65,12 +65,13 @@ Ushbu hujjat tahlilda belgilangan ishlarni bosqichma-bosqich bajarish ro‘yxati
 
 ## 4-bosqich — Mobil ilovada internetsiz ishlash va brauzer kengaytmasi
 
-**Holat: rejalashtirilgan**
+**Holat: taqrizdan o‘tdi; saqlanmoqda**
 
-- [ ] Mobil ma’lumot saqlash va takrorlash hodisalarini takrorlamasdan sinxronlash usulini loyihalash.
-- [ ] Internetsiz takrorlash, keyin yuborish navbati, ziddiyatlarni hal qilish va sinxronlash holatini ko‘rsatishni qo‘shish.
-- [ ] Kengaytma tokenlarini ajratish, sayt ruxsatlari, API manzilini tekshirish va faqat kerakli sahifada ishga tushirishni ko‘rib chiqish.
-- [ ] So‘z saqlanganini tasdiqlash, tarjimani tuzatish va kengaytma ichidan takrorlashni yaxshilash.
+- [x] Hive’dagi mahalliy kesh va javoblar navbati server so‘rovlaridan ajratildi; kesh va navbatning kaliti foydalanuvchi identifikatoriga bog‘landi.
+- [x] Takrorlash natijalari UUID so‘rov identifikatori bilan saqlanadi. API bir xil identifikatorni qayta olganda SM-2 va jurnalni ikkinchi marta o‘zgartirmaydi; migratsiya hamda unit va E2E tekshiruvlari qo‘shildi.
+- [x] Internetsiz holatda kunlik kartalarni Hive keshidan davom ettirish, yuborilmagan javoblarni navbatga qo‘yish va navbatdagilar sonini ko‘rsatish qo‘shildi; internet qaytgach darsni ochishda yuborish qayta uriniladi.
+- [x] Kengaytma auditida tokenlar fon servisidagi storage bilan cheklangani, URL manzili HTTPS/localhost bilan tasdiqlanishi, server almashganda sessiya o‘chirilishi va tanlov faqat faol sahifadan olinishi tasdiqlandi.
+- [x] Saqlash panelidagi tarjimani foydalanuvchi tahrirlay oladi va saqlagach bugungi takrorlashni ochish tugmasi bor.
 
 ## 5-bosqich — Foydalanuvchini qaytishga undash
 

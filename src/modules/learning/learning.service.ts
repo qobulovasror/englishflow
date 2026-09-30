@@ -150,63 +150,107 @@ export class LearningService {
     // the daily count and streaks read from the log, so it must never drift from
     // the card state. Reading inside the transaction (not before) also keeps the
     // SM-2 input current.
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const userWord = await tx.userWord.findFirst({
+    let updated: Prisma.UserWordGetPayload<{ include: { word: true } }>;
+    try {
+      updated = await this.prisma.$transaction(async (tx) => {
+        if (dto.requestId) {
+          const alreadyApplied = await tx.review.findUnique({
+            where: { requestId: dto.requestId },
+          });
+          if (alreadyApplied) {
+            if (alreadyApplied.userId !== userId) {
+              throw new NotFoundException('Review request not found');
+            }
+            const existingCard = await tx.userWord.findFirst({
+              where: { id: dto.userWordId, userId },
+              include: { word: true },
+            });
+            if (!existingCard) {
+              throw new NotFoundException(
+                'Word not found in your learning list',
+              );
+            }
+            return existingCard;
+          }
+        }
+        const userWord = await tx.userWord.findFirst({
+          where: { id: dto.userWordId, userId },
+          include: { word: true },
+        });
+
+        if (!userWord) {
+          throw new NotFoundException('Word not found in your learning list');
+        }
+
+        // Idempotency guard against double-taps / retries: a repeat review of the
+        // same card within REVIEW_DEDUP_MS is a no-op (returning the current
+        // state) so it can't inflate today's count/streak or re-grade from stale
+        // state.
+        if (
+          userWord.lastReviewedAt &&
+          now.getTime() - userWord.lastReviewedAt.getTime() <
+            this.REVIEW_DEDUP_MS
+        ) {
+          return userWord;
+        }
+
+        const next = sm2(
+          {
+            repetitionCount: userWord.repetitionCount,
+            easeFactor: userWord.easeFactor,
+            interval: userWord.interval,
+            lapses: userWord.lapses,
+          },
+          dto.rating,
+          now,
+        );
+
+        const result = await tx.userWord.update({
+          where: { id: userWord.id },
+          data: {
+            repetitionCount: next.repetitionCount,
+            easeFactor: next.easeFactor,
+            interval: next.interval,
+            lapses: next.lapses,
+            nextReviewAt: next.nextReviewAt,
+            status: this.statusFor(next.interval),
+            lastReviewedAt: now,
+          },
+          include: { word: true },
+        });
+
+        await tx.review.create({
+          data: {
+            userId,
+            wordId: userWord.wordId,
+            requestId: dto.requestId,
+            // Rating (SM-2 util enum) is value-identical to ReviewRating (Prisma).
+            rating: dto.rating as unknown as ReviewRating,
+          },
+        });
+
+        return result;
+      });
+    } catch (error) {
+      // Two retries may race before either transaction creates its request row.
+      // The unique requestId index elects one winner; the loser reads that
+      // committed result and responds as an idempotent retry.
+      if (!dto.requestId || (error as { code?: string }).code !== 'P2002') {
+        throw error;
+      }
+      const alreadyApplied = await this.prisma.review.findUnique({
+        where: { requestId: dto.requestId },
+      });
+      if (!alreadyApplied || alreadyApplied.userId !== userId) throw error;
+      const recoveredCard = await this.prisma.userWord.findFirst({
         where: { id: dto.userWordId, userId },
         include: { word: true },
       });
-
-      if (!userWord) {
+      if (!recoveredCard) {
         throw new NotFoundException('Word not found in your learning list');
       }
-
-      // Idempotency guard against double-taps / retries: a repeat review of the
-      // same card within REVIEW_DEDUP_MS is a no-op (returning the current
-      // state) so it can't inflate today's count/streak or re-grade from stale
-      // state.
-      if (
-        userWord.lastReviewedAt &&
-        now.getTime() - userWord.lastReviewedAt.getTime() < this.REVIEW_DEDUP_MS
-      ) {
-        return userWord;
-      }
-
-      const next = sm2(
-        {
-          repetitionCount: userWord.repetitionCount,
-          easeFactor: userWord.easeFactor,
-          interval: userWord.interval,
-          lapses: userWord.lapses,
-        },
-        dto.rating,
-        now,
-      );
-
-      const result = await tx.userWord.update({
-        where: { id: userWord.id },
-        data: {
-          repetitionCount: next.repetitionCount,
-          easeFactor: next.easeFactor,
-          interval: next.interval,
-          lapses: next.lapses,
-          nextReviewAt: next.nextReviewAt,
-          status: this.statusFor(next.interval),
-          lastReviewedAt: now,
-        },
-        include: { word: true },
-      });
-
-      await tx.review.create({
-        data: {
-          userId,
-          wordId: userWord.wordId,
-          // Rating (SM-2 util enum) is value-identical to ReviewRating (Prisma).
-          rating: dto.rating as unknown as ReviewRating,
-        },
-      });
-
-      return result;
-    });
+      updated = recoveredCard;
+    }
 
     return plainToInstance(
       ReviewResultDto,

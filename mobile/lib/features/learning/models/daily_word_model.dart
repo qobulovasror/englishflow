@@ -45,6 +45,20 @@ class DailyWordModel extends Equatable {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'wordId': wordId,
+        'word': word,
+        'translation': translation,
+        'pronunciation': pronunciation,
+        'partOfSpeech': partOfSpeech,
+        'collocations': collocations,
+        'example': example,
+        'audioUrl': audioUrl,
+        'status': status,
+        'repetitionCount': repetitionCount,
+      };
+
   @override
   List<Object?> get props => [
         id,

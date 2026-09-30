@@ -27,7 +27,14 @@ export interface MessageMap {
   REVIEW: { req: { userWordId: string; rating: Rating }; res: ReviewResult };
   GET_API_URL: { req: Record<never, never>; res: { apiUrl: string } };
   SET_API_URL: { req: { apiUrl: string }; res: { done: true; sessionCleared: boolean } };
-  OPEN_POPUP: { req: Record<never, never>; res: { done: boolean } };
+  OPEN_POPUP: {
+    req: { view?: 'dashboard' | 'review' };
+    res: { done: boolean };
+  };
+  CONSUME_POPUP_VIEW: {
+    req: Record<never, never>;
+    res: { view: 'dashboard' | 'review' };
+  };
 }
 
 export type MessageType = keyof MessageMap;

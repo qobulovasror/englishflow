@@ -110,6 +110,7 @@ export interface StoredReview {
   userId: string;
   wordId: string;
   rating: ReviewRating;
+  requestId: string | null;
   createdAt: Date;
 }
 
@@ -399,13 +400,13 @@ export function buildPrismaStub() {
       userWords.set(uw.id, uw);
       return uw;
     }),
-    findFirst: jest.fn(async ({ where }: any) => {
+    findFirst: jest.fn(async ({ where, include }: any) => {
       for (const uw of userWords.values()) {
         if (
           (!where.id || uw.id === where.id) &&
           (!where.userId || uw.userId === where.userId)
         ) {
-          return uw;
+          return include?.word ? { ...uw, word: words.get(uw.wordId) } : uw;
         }
       }
       return null;
@@ -984,11 +985,17 @@ export function buildPrismaStub() {
         userId: data.userId,
         wordId: data.wordId,
         rating: data.rating,
+        requestId: data.requestId ?? null,
         createdAt: data.createdAt ?? new Date(),
       };
       reviews.set(r.id, r);
       return r;
     }),
+    findUnique: jest.fn(
+      async ({ where }: any) =>
+        [...reviews.values()].find((r) => r.requestId === where.requestId) ??
+        null,
+    ),
     findMany: jest.fn(async (args: any = {}) => {
       const where = args.where ?? {};
       let list = [...reviews.values()];

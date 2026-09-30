@@ -16,6 +16,7 @@ type MockedPrisma = {
   };
   review: {
     create: jest.Mock;
+    findUnique: jest.Mock;
   };
   $transaction: jest.Mock;
 };
@@ -71,6 +72,7 @@ describe('LearningService', () => {
       },
       review: {
         create: jest.fn().mockResolvedValue({ id: 'r1' }),
+        findUnique: jest.fn().mockResolvedValue(null),
       },
       // Interactive transactions call back with the stub itself as the
       // transaction client.
@@ -326,8 +328,50 @@ describe('LearningService', () => {
         expect.any(Function),
       );
       expect(prisma.review.create).toHaveBeenCalledWith({
-        data: { userId: 'u1', wordId: 'w1', rating: Rating.GOOD },
+        data: {
+          userId: 'u1',
+          wordId: 'w1',
+          rating: Rating.GOOD,
+          requestId: undefined,
+        },
       });
+    });
+
+    it('returns current card state for an already synced request id', async () => {
+      prisma.review.findUnique.mockResolvedValue({
+        id: 'r1',
+        userId: 'u1',
+        requestId: 'req-1',
+      });
+      prisma.userWord.findFirst.mockResolvedValue(makeUserWord());
+
+      await service.reviewWord(
+        { userWordId: 'uw1', rating: Rating.GOOD, requestId: 'req-1' },
+        'u1',
+      );
+
+      expect(prisma.userWord.update).not.toHaveBeenCalled();
+      expect(prisma.review.create).not.toHaveBeenCalled();
+    });
+
+    it('recovers a concurrent duplicate request after the unique-index winner commits', async () => {
+      prisma.$transaction.mockRejectedValueOnce({ code: 'P2002' });
+      prisma.review.findUnique.mockResolvedValue({
+        id: 'r1',
+        userId: 'u1',
+        requestId: 'req-race',
+      });
+      prisma.userWord.findFirst.mockResolvedValue(
+        makeUserWord({ status: WordStatus.LEARNING, repetitionCount: 1 }),
+      );
+
+      const result = await service.reviewWord(
+        { userWordId: 'uw1', rating: Rating.GOOD, requestId: 'req-race' },
+        'u1',
+      );
+
+      expect(result).toMatchObject({ id: 'uw1', repetitionCount: 1 });
+      expect(prisma.userWord.update).not.toHaveBeenCalled();
     });
 
     it('returns a ReviewResultDto with only the documented fields', async () => {

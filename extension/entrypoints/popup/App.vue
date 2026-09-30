@@ -14,6 +14,8 @@ const user = ref<User | null>(null);
 const view = ref<View>('dashboard');
 
 onMounted(async () => {
+  const initialView = await sendMessage('CONSUME_POPUP_VIEW');
+  if (initialView.ok) view.value = initialView.data.view;
   const res = await sendMessage('AUTH_STATE');
   user.value = res.ok && res.data.authenticated ? (res.data.user ?? null) : null;
   loading.value = false;
@@ -21,7 +23,6 @@ onMounted(async () => {
 
 function onLoggedIn(u: User) {
   user.value = u;
-  view.value = 'dashboard';
 }
 function onLoggedOut() {
   user.value = null;

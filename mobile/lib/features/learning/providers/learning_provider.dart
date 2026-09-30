@@ -23,11 +23,15 @@ class LearningNotifier extends StateNotifier<LearningState> {
       isFlipped: false,
     );
     try {
+      final pendingReviews = await _learningService.syncQueuedReviews();
+      final rejectedReviews = await _learningService.rejectedReviewCount();
       final words = await _learningService.getDailyWords();
       state = state.copyWith(
         dailyWords: words,
         isLoading: false,
         isCompleted: words.isEmpty,
+        failedReviews: pendingReviews,
+        rejectedReviews: rejectedReviews,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -42,16 +46,29 @@ class LearningNotifier extends StateNotifier<LearningState> {
     final currentWord = state.currentWord;
     if (currentWord == null) return;
 
-    // Send the review without blocking the UI, but DON'T silently swallow a
-    // failure: count it so the session summary can tell the user their progress
-    // wasn't fully saved (instead of pretending every review synced).
-    _learningService
-        .reviewWord(userWordId: currentWord.id, rating: rating)
-        .catchError((_) {
+    // Persist the event locally before advancing so offline answers survive
+    // process death. Each event keeps one idempotency key through every retry.
+    try {
+      final pending = await _learningService.queueReview(
+        userWordId: currentWord.id,
+        rating: rating,
+      );
+      if (mounted) state = state.copyWith(failedReviews: pending);
+      final stillPending = await _learningService.syncQueuedReviews();
+      final rejected = await _learningService.rejectedReviewCount();
       if (mounted) {
-        state = state.copyWith(failedReviews: state.failedReviews + 1);
+        state = state.copyWith(
+          failedReviews: stillPending,
+          rejectedReviews: rejected,
+        );
       }
-    });
+    } catch (error) {
+      if (mounted) {
+        state = state.copyWith(
+            error: 'Javob saqlanmadi. Qayta urinib ko‘ring: $error');
+      }
+      return;
+    }
 
     // AGAIN is the only "didn't recall" grade; the rest count as known for the
     // session summary.
@@ -70,5 +87,10 @@ class LearningNotifier extends StateNotifier<LearningState> {
 
   void reset() {
     state = const LearningState();
+  }
+
+  Future<void> discardRejectedReviews() async {
+    await _learningService.discardRejectedReviews();
+    if (mounted) state = state.copyWith(rejectedReviews: 0);
   }
 }

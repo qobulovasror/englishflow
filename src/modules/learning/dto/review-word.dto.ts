@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import { Rating } from '../../../common/utils/sm2';
 
 export class ReviewWordDto {
@@ -19,4 +19,13 @@ export class ReviewWordDto {
   })
   @IsEnum(Rating)
   rating: Rating;
+
+  @ApiProperty({
+    required: false,
+    format: 'uuid',
+    description: 'Unique client review id, used to safely retry offline sync.',
+  })
+  @IsOptional()
+  @IsUUID()
+  requestId?: string;
 }

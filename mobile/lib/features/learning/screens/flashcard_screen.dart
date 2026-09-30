@@ -378,10 +378,25 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             if (state.failedReviews > 0) ...[
               const SizedBox(height: 16),
               Text(
-                '${state.failedReviews} review(s) could not be saved — '
-                'check your connection.',
+                '${state.failedReviews} ta javob qurilmada navbatda. '
+                'Internet tiklanganda avtomatik yuboriladi.',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.body.copyWith(color: AppColors.error),
+              ),
+            ],
+            if (state.rejectedReviews > 0) ...[
+              const SizedBox(height: 12),
+              Text(
+                '${state.rejectedReviews} ta javob server tomonidan qabul qilinmadi. '
+                'Keyingi javoblar yuborishda davom etadi.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.body.copyWith(color: AppColors.error),
+              ),
+              TextButton(
+                onPressed: () => ref
+                    .read(learningProvider.notifier)
+                    .discardRejectedReviews(),
+                child: const Text('Rad etilgan javoblarni o‘chirish'),
               ),
             ],
             const SizedBox(height: 48),
