@@ -96,6 +96,10 @@ enum ReviewRating {
 model Review {
   id        String       @id @default(uuid())
   rating    ReviewRating
+  // Captured at review time so retention can be segmented by schedule. Null
+  // marks a row written before interval capture was deployed; 0 is a real step.
+  intervalBefore Int?
+  intervalAfter  Int?
   requestId String?      @unique
   createdAt DateTime     @default(now())
 

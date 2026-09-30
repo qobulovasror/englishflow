@@ -100,10 +100,11 @@ Ushbu hujjat tahlilda belgilangan ishlarni bosqichma-bosqich bajarish ro‘yxati
 
 ## 7-bosqich — Ishga tushirishga tayyorgarlik va tizim parvarishi
 
-**Holat: rejalashtirilgan**
+**Holat: o‘lchash va kuzatish tayyor; FSRS sinovi yetarli haqiqiy ma’lumotni kutadi**
 
-- [ ] Yaratilgan API va dastur turlarini muvofiqlashtirish, qo‘lda takrorlangan turlarni xavfsiz kamaytirish.
-- [ ] Kirish, o‘rganish va xato holatlari uchun muhim web saqlagichlari hamda tarkibiy qismlariga tekshiruv qo‘shish.
-- [ ] API xatolari, xat yetkazish, sinxronlash navbati va ma’lumotlar bazasi holatini kuzatish.
-- [ ] SM-2 bo‘yicha boshlang‘ich eslab qolish natijalarini o‘lchash; yetarli ma’lumot to‘plangach FSRSni kichik guruhda alohida taqqoslash. Har ikki algoritm uchun jadvalni alohida saqlab, sinov guruhini avvalgi jadvalga xavfsiz qaytarish yo‘lini belgilash.
-- [ ] README, arxitektura, audit va yangilanish qaydlarini amalda ishlayotgan imkoniyatlarga moslab yangilash.
+- [x] OpenAPI shartnomasi backend’dan `npm run openapi` bilan qayta yaratiladi va CI eskirgan `openapi.json`ni rad etadi. Web API turlari bitta qo‘lda yuritiladigan faylda, Flutter modellari esa turlar tekshiruvi/testlar bilan moslanadi; olib tashlangan ikkinchi, ishlatilmaydigan TypeScript codegen qayta kiritilmadi.
+- [x] Web’da mavzu tanlovi saqlanishi va kirish tokeni faqat xotirada turishi uchun yengil saqlagich sinovlari qo‘shilib CI’ga ulandi. Login hamda asosiy sahifalar uchun web build va turlar tekshiruvi; mobil o‘rganish/sinxronlash uchun provider va service testlari mavjud.
+- [x] Backend so‘rov ID’li tuzilmali log, 5xx xatolar uchun ixtiyoriy Sentry va DB tayyorligini tekshiruvchi `/health/ready` endpointiga ega. SMTP xatolari loglanadi, ammo ishonchli yuborish navbati yo‘q; mobil offline review navbati qurilmada saqlanib, pending/rejected sonlari ilovada ko‘rinadi. Bu chegaralar ekspluatatsiya hujjatlarida yozildi.
+- [x] Har bir yangi review uchun SM-2 oldingi/keyingi rejalashtirilgan intervali saqlanadi; tarixiy va rollout vaqtida eski server yozgan qatorlar `NULL` (noma’lum) bo‘ladi, haqiqiy yangi karta esa `0`dan boshlanadi. `scripts/srs-baseline.sql` ko‘rsatkichi rollout tugagan vaqtdan kesib olinadi.
+- [ ] FSRS sinovi hali ishga tushirilmadi: bazaviy ma’lumot to‘plangach, kamida 10 000 yangi review va 500 o‘rganuvchi, taqqoslanayotgan har bir interval guruhida 200 ta natija talab qilinadi. Shundan keyin alohida jadval/scheduler, kichik tasodifiy guruh va server tomondagi qaytariladigan guruh almashishi alohida bosqich bo‘ladi. Hozir SM-2 yagona faol jadval bo‘lib qoladi.
+- [x] README va arxitektura hujjatlari kuzatuv, email yetkazish cheklovi, mobil offline navbat, to‘plam importi va SRS o‘lchoviga moslashtirildi. Eski audit topilmalari tarixiy hujjat bo‘lib qoladi; ulardagi ochiq masalalar kod bilan qayta tasdiqlanishi kerak.

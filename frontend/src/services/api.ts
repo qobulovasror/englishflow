@@ -1,5 +1,8 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import router from '@/router'
+import { getAccessToken, setAccessToken } from './access-token'
+
+export { getAccessToken, setAccessToken } from './access-token'
 
 export interface ApiSuccessEnvelope<T> {
   success: true
@@ -21,16 +24,6 @@ export interface ApiErrorEnvelope {
 // read. On a page reload it's gone; the boot sequence silently re-mints it from
 // the httpOnly `refresh_token` cookie via silentRefresh(). This module is the
 // single source of truth for the Bearer header.
-let accessToken: string | null = null
-
-export function setAccessToken(token: string | null): void {
-  accessToken = token
-}
-
-export function getAccessToken(): string | null {
-  return accessToken
-}
-
 /**
  * Session lifecycle hooks the auth store registers so the interceptor can keep
  * the store's reactive state (`token`/`user`, and therefore `isAuthenticated`)
@@ -60,6 +53,7 @@ const api = axios.create({
 
 // ── Request: attach Bearer token ────────────────────────────────────────────
 api.interceptors.request.use((config) => {
+  const accessToken = getAccessToken()
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`
   }
@@ -86,7 +80,7 @@ interface RetriableRequest extends InternalAxiosRequestConfig {
 let refreshInFlight: Promise<string | null> | null = null
 
 function clearSession() {
-  accessToken = null
+  setAccessToken(null)
   sessionHandlers.onCleared?.()
 }
 

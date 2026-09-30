@@ -314,7 +314,7 @@ describe('LearningService', () => {
 
     it('appends a review log row in the same transaction', async () => {
       prisma.userWord.findFirst.mockResolvedValue(
-        makeUserWord({ wordId: 'w1' }),
+        makeUserWord({ wordId: 'w1', interval: 1, repetitionCount: 1 }),
       );
       captureUpdate();
 
@@ -332,6 +332,8 @@ describe('LearningService', () => {
           userId: 'u1',
           wordId: 'w1',
           rating: Rating.GOOD,
+          intervalBefore: 1,
+          intervalAfter: 6,
           requestId: undefined,
         },
       });

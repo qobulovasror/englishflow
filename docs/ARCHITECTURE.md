@@ -132,10 +132,10 @@ npm run prisma:migrate   # = prisma migrate deploy
 | `RefreshToken` | One row per refresh token (kept after rotation until revoked/expired) | `tokenHash @unique` (SHA-256), `expiresAt`, `revokedAt`, FK→User cascade |
 | `AuthToken` | Single-use email tokens (`PASSWORD_RESET`, `EMAIL_VERIFY`) | `type`, `tokenHash @unique` (SHA-256), `expiresAt`, `usedAt` |
 | `Word` | A vocabulary entry | `createdById?` FK, `deckId?` FK, `audioUrl?` |
-| `Deck` | A curated (system) or user-built collection of words | `isSystem`, `isPublic`, `level?`, `createdById?` |
+| `Deck` | A curated (system) or user-built collection of words | `isSystem`, `isPublic`, `level?`, `topics`, `learningGoal?`, `qualityScore`, `createdById?` |
 | `DeckEnrollment` | Tracks which decks a user joined | unique `(userId, deckId)` |
 | `UserWord` | Per-user learning state for a word (SM-2) | `status WordStatus`, `repetitionCount`, `easeFactor`, `interval`, `nextReviewAt`, `lapses`, `lastReviewedAt`; unique `(userId, wordId)` |
-| `Review` | Append-only log of each grading action (powers streaks/trends) | `rating ReviewRating`, `createdAt`, FKs→User/Word |
+| `Review` | Append-only log of each grading action (powers streaks/trends and SRS measurement) | `rating ReviewRating`, `intervalBefore`, `intervalAfter`, `createdAt`, FKs→User/Word |
 | `Test` | A quiz session | `score`, `submittedAt?` (null while in progress; set once at submit) |
 | `TestQuestion` | One graded question inside a `Test` | `correctAnswer` (server-only key), `selectedAnswer?`, FKs to `test` and `word` |
 
@@ -200,7 +200,7 @@ Component  →  Pinia store action  →  service (axios)  →  api.ts intercepto
 - `extractErrorMessage()` in `services/api.ts` reads the normalized error envelope.
 - **Token storage**: access token lives in Pinia state (memory) — never `localStorage`. The refresh token lives in an `httpOnly` cookie that the browser sends automatically; JS cannot read it. On app boot the auth store calls `/auth/refresh`; the cookie restores the session if it's still valid.
 - **Silent refresh on 401**: the axios response interceptor catches 401, hits `/auth/refresh` once, retries the original request with the new access token. Concurrent 401s share a single in-flight refresh promise.
-- Types live in a single hand-maintained file, `src/types/index.ts` (imported app-wide via `@/types`). The previous unused, drift-prone generated `api.ts`/`api-helpers.ts` and the `generate:types` codegen were removed; keep `index.ts` in step with the backend DTOs by hand when the API changes.
+- Frontend API response types live in one hand-maintained file, `src/types/index.ts`. The backend publishes `openapi.json`; CI regenerates it and fails if it is stale. Update the matching client type with each DTO change. No OpenAPI-to-TypeScript code generator is currently used because older generated types mishandled nullable fields.
 
 ---
 
@@ -284,17 +284,14 @@ For production:
 
 ---
 
-## Known gaps / open work
+## Known gaps / operational limits
 
-Now-implemented (previously listed here): RBAC (`User.role` + `RolesGuard` + `/admin/*`), refresh-token cleanup cron, email verification + password reset (both reuse `passwordChangedAt`), and mobile provider/widget tests. Backend coverage is now ~80%+.
+- Transactional email uses SMTP when configured. Delivery failures are logged and are not retried through a durable queue; production operators should monitor mailer errors and use a provider with delivery reporting.
+- Mobile review events are queued locally and retried with idempotency IDs. The app exposes pending/rejected counts; the queue itself is on-device and is not included in server health metrics.
+- Pino emits request-ID tagged structured logs; Sentry captures server errors when `SENTRY_DSN` is configured. `/health/ready` checks the database. Configure alerts in those services; the application does not ship a metrics dashboard.
+- `Review.intervalBefore`/`intervalAfter` now capture the SM-2 schedule around each new review. Run `scripts/srs-baseline.sql` after the migration to inspect recall ratings by scheduled interval. Historical reviews and rows written by an older app instance during rollout have a null interval and are excluded; a real first review has interval `0`.
+- FSRS has not been enabled. Consider a randomized, opt-in pilot only after at least 10,000 post-cutover reviews from 500 learners, with at least 200 observations in each interval band being compared. Store its schedule independently; keep SM-2 authoritative and make rollback a server-side cohort switch.
+- Anki support is UTF-8 text/TSV field mapping only (`Front`/`Back` or `Word`/`Translation`, optional `Example`/`Pronunciation`). Media and `.apkg` packages are not imported.
+- Teacher/classroom tools remain outside the scope until demand is confirmed. See `docs/IMPLEMENTATION_PLAN.md` for the active follow-up list.
 
-Still open (see `docs/AUDIT.md` for the full, severity-ranked backlog):
-
-- **Soft deletes / audit log** — `User` / `Deck` / `Word` deletes cascade hard; deleting a shared deck erases enrolled users' `UserWord`/`Review` rows. `DecksService.remove` now blocks deleting a deck other users are enrolled in as a stopgap; full soft-delete is pending.
-- **ESLint / Prettier** — scripts reference them but they aren't installed or wired into CI.
-- **Structured logging / error tracking** — plain-text Nest logger; no JSON logs, metrics, or Sentry yet.
-- **Real-DB e2e** — Jest e2e run against an in-memory stub; only the CI `migrations` job touches real Postgres.
-- **Web codegen** — API types are hand-maintained in `types/index.ts` (the unused generated `api.ts` was removed). Reintroducing OpenAPI→TS codegen would require fixing the backend DTO nullable annotations first (the old generated output mis-typed nullable strings).
-- **Mobile codegen / offline sync** — Flutter models mirror DTOs by convention; no offline review queue.
-- **Account lockout** — throttler slows brute force but doesn't lock the account.
-- **Timezone-aware analytics** — progress/trends accept a `tzOffsetMinutes` param (default UTC); clients must send it to get local-day streaks.
+Other security and product opportunities from the 2026 audit are tracked in `docs/AUDIT.md`; verify each item against current code before treating it as unresolved.

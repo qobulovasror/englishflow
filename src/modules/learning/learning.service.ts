@@ -224,6 +224,8 @@ export class LearningService {
             userId,
             wordId: userWord.wordId,
             requestId: dto.requestId,
+            intervalBefore: userWord.interval,
+            intervalAfter: next.interval,
             // Rating (SM-2 util enum) is value-identical to ReviewRating (Prisma).
             rating: dto.rating as unknown as ReviewRating,
           },

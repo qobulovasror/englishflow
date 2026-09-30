@@ -74,6 +74,7 @@ flutter run --dart-define=BASE_URL=http://10.0.2.2:3000
 | `npm run prisma:migrate` | Apply pending migrations (production-safe) |
 | `npm run prisma:generate` | Regenerate Prisma client types |
 | `npm run openapi` | Export Swagger to `openapi.json` |
+| `psql "$DATABASE_URL" -v srs_cutover_at='YYYY-MM-DD HH:MM:SS+00' -f scripts/srs-baseline.sql` | Measure new SM-2 review outcomes after deploying the interval-metrics migration |
 
 ### Frontend (`frontend/`)
 
@@ -83,6 +84,7 @@ flutter run --dart-define=BASE_URL=http://10.0.2.2:3000
 | `npm run build` | Production build |
 | `npm run type-check` | `vue-tsc --noEmit` |
 | `npm run lint` / `npm run format` | ESLint / Prettier |
+| `npm run test:stores` | Check theme persistence and in-memory auth-token storage |
 
 ### Mobile (`mobile/`)
 
@@ -99,6 +101,16 @@ flutter run --dart-define=BASE_URL=http://10.0.2.2:3000
 The web client's API types are hand-maintained in a single file, `frontend/src/types/index.ts`. When backend DTOs change, update the matching interface there. (`npm run openapi` at the repo root still writes `openapi.json`, used for Swagger docs and as the contract reference.)
 
 The Flutter app likewise mirrors the backend by convention (no codegen). Run `flutter test` / `npm run type-check` to catch shape drift early.
+
+### Vocabulary transfer and discovery
+
+On the web **My Words** page, CSV/TSV files can be previewed and imported (up to 500 rows and 2 MB); malformed and duplicate rows are identified before import. CSV and Anki-compatible UTF-8 text exports are available. Anki maps `Front`/`Back` (or `Word`/`Translation`) plus optional `Example` and `Pronunciation`. Media and `.apkg` files are outside the current import scope. The Library supports CEFR, topic, learning-goal, and quality/popularity filters; visible shared decks can be copied to a private deck.
+
+### Operations and SM-2 measurement
+
+API request logs include a request ID. Configure `SENTRY_DSN` to send server errors to Sentry, SMTP variables for transactional email, and monitor `/health/ready` for database readiness. Email errors are logged but are not stored in a retry queue. Mobile offline reviews stay in the device queue until accepted or explicitly rejected.
+
+After deploying the `review_interval_metrics` migration and finishing the application rollout, note that time and run `scripts/srs-baseline.sql` with it as `srs_cutover_at`. The report groups recall ratings by scheduled interval. It excludes older and rollout-window rows whose interval is unknown; a genuine first review is recorded as interval 0. Keep SM-2 active until the report contains at least 10,000 known-interval reviews from 500 learners and each compared interval band has 200 or more observations; any later FSRS test should use a separate schedule and a reversible server-side cohort assignment.
 
 ---
 

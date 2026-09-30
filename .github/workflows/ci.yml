@@ -59,7 +59,7 @@ jobs:
         run: |
           npm run openapi
           if ! git diff --quiet openapi.json; then
-            echo "::error::openapi.json is stale. Run 'npm run openapi && cd frontend && npm run generate:types' and commit the result."
+            echo "::error::openapi.json is stale. Run 'npm run openapi' and commit the updated API contract."
             git --no-pager diff openapi.json
             exit 1
           fi
@@ -135,6 +135,10 @@ jobs:
 
       - name: Type-check
         run: npm run type-check
+        working-directory: frontend
+
+      - name: Store smoke tests
+        run: npm run test:stores
         working-directory: frontend
 
       - name: Build
