@@ -49,6 +49,7 @@ export interface StoredDeck {
   level: CefrLevel | null;
   isSystem: boolean;
   isPublic: boolean;
+  deletedAt: Date | null;
   createdById: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -326,6 +327,19 @@ export function buildPrismaStub() {
       words.set(where.id, updated);
       return updated;
     }),
+    updateMany: jest.fn(async ({ where, data }: any) => {
+      let count = 0;
+      for (const [id, existing] of words) {
+        if (
+          where.createdById === undefined ||
+          existing.createdById === where.createdById
+        ) {
+          words.set(id, { ...existing, ...data, updatedAt: new Date() });
+          count += 1;
+        }
+      }
+      return { count };
+    }),
     findMany: jest.fn(async (args: any = {}) => {
       let list = [...words.values()].filter((w) =>
         matchesWordWhere(w, args.where),
@@ -447,6 +461,9 @@ export function buildPrismaStub() {
       if (args.where?.userId) {
         list = list.filter((uw) => uw.userId === args.where.userId);
       }
+      if (args.where?.wordId) {
+        list = list.filter((uw) => uw.wordId === args.where.wordId);
+      }
       if (args.where?.status) {
         list = list.filter((uw) => uw.status === args.where.status);
       }
@@ -534,6 +551,7 @@ export function buildPrismaStub() {
         level: data.level ?? null,
         isSystem: data.isSystem ?? false,
         isPublic: data.isPublic ?? false,
+        deletedAt: data.deletedAt ?? null,
         createdById: data.createdById ?? null,
         createdAt: now,
         updatedAt: now,
@@ -571,6 +589,20 @@ export function buildPrismaStub() {
       const updated = { ...existing, ...data, updatedAt: new Date() };
       decks.set(where.id, updated);
       return withDeckIncludes(updated, include);
+    }),
+    updateMany: jest.fn(async ({ where, data }: any) => {
+      let count = 0;
+      for (const [id, existing] of decks) {
+        if (
+          (!where.createdById || existing.createdById === where.createdById) &&
+          (where.deletedAt === undefined ||
+            (where.deletedAt === null ? existing.deletedAt === null : true))
+        ) {
+          decks.set(id, { ...existing, ...data, updatedAt: new Date() });
+          count += 1;
+        }
+      }
+      return { count };
     }),
     delete: jest.fn(async ({ where }: any) => {
       const d = decks.get(where.id);
@@ -781,6 +813,14 @@ export function buildPrismaStub() {
       testQuestions.set(where.id, updated);
       return updated;
     }),
+    count: jest.fn(async (args: any = {}) => {
+      const where = args.where ?? {};
+      return [...testQuestions.values()].filter(
+        (q) =>
+          (!where.wordId || q.wordId === where.wordId) &&
+          (!where.testId || q.testId === where.testId),
+      ).length;
+    }),
   };
 
   const refreshToken = {
@@ -886,6 +926,7 @@ export function buildPrismaStub() {
       const where = args.where ?? {};
       let list = [...reviews.values()];
       if (where.userId) list = list.filter((r) => r.userId === where.userId);
+      if (where.wordId) list = list.filter((r) => r.wordId === where.wordId);
       if (where.createdAt?.gte) {
         list = list.filter((r) => r.createdAt >= where.createdAt.gte);
       }

@@ -68,8 +68,7 @@ class QuizResultScreen extends ConsumerWidget {
                     Text('correct', style: AppTextStyles.caption),
                   ],
                 ),
-                progressColor:
-                    isPassing ? AppColors.success : AppColors.orange,
+                progressColor: isPassing ? AppColors.success : AppColors.orange,
                 backgroundColor: AppColors.border,
                 circularStrokeCap: CircularStrokeCap.round,
                 animation: true,
@@ -90,8 +89,9 @@ class QuizResultScreen extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    ref.read(testProvider.notifier).reset();
+                  onPressed: () async {
+                    await ref.read(testProvider.notifier).reset();
+                    if (!context.mounted) return;
                     context.go('/home');
                   },
                   child: const Text('Back to Home'),
@@ -101,8 +101,9 @@ class QuizResultScreen extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () {
-                    ref.read(testProvider.notifier).reset();
+                  onPressed: () async {
+                    await ref.read(testProvider.notifier).reset();
+                    if (!context.mounted) return;
                     context.pushReplacement('/quiz');
                   },
                   child: const Text('Try Again'),

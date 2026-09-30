@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWordDto } from './dto/create-word.dto';
 import { UpdateWordDto } from './dto/update-word.dto';
@@ -92,17 +93,46 @@ export class WordsService {
   }
 
   async remove(id: string, userId: string): Promise<{ message: string }> {
-    const word = await this.prisma.word.findUnique({ where: { id } });
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            const word = await tx.word.findUnique({ where: { id } });
+            if (!word) throw new NotFoundException('Word not found');
+            if (word.createdById !== userId) {
+              throw new ForbiddenException(
+                'You can only delete your own words',
+              );
+            }
 
-    if (!word) {
-      throw new NotFoundException('Word not found');
+            const [progressCount, reviewCount, quizQuestionCount] =
+              await Promise.all([
+                tx.userWord.count({ where: { wordId: id } }),
+                tx.review.count({ where: { wordId: id } }),
+                tx.testQuestion.count({ where: { wordId: id } }),
+              ]);
+            if (
+              word.deckId ||
+              progressCount + reviewCount + quizQuestionCount > 0
+            ) {
+              // Preserve history and remove the word from its owner's collection.
+              await tx.word.update({
+                where: { id },
+                data: { deckId: null, createdById: null },
+              });
+            } else {
+              await tx.word.delete({ where: { id } });
+            }
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+        break;
+      } catch (error) {
+        if ((error as { code?: string }).code !== 'P2034' || attempt >= 2) {
+          throw error;
+        }
+      }
     }
-
-    if (word.createdById !== userId) {
-      throw new ForbiddenException('You can only delete your own words');
-    }
-
-    await this.prisma.word.delete({ where: { id } });
 
     return { message: 'Word deleted successfully' };
   }

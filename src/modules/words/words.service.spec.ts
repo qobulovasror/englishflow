@@ -11,8 +11,11 @@ type MockedPrisma = {
     update: jest.Mock;
     findMany: jest.Mock;
     count: jest.Mock;
+    delete: jest.Mock;
   };
-  userWord: { create: jest.Mock };
+  userWord: { create: jest.Mock; count: jest.Mock };
+  review: { count: jest.Mock };
+  testQuestion: { count: jest.Mock };
   $transaction: jest.Mock;
 };
 
@@ -42,8 +45,14 @@ describe('WordsService', () => {
         update: jest.fn(),
         findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn().mockResolvedValue(0),
+        delete: jest.fn().mockResolvedValue({}),
       },
-      userWord: { create: jest.fn().mockResolvedValue({}) },
+      userWord: {
+        create: jest.fn().mockResolvedValue({}),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      review: { count: jest.fn().mockResolvedValue(0) },
+      testQuestion: { count: jest.fn().mockResolvedValue(0) },
       $transaction: jest.fn((input: unknown) =>
         typeof input === 'function'
           ? (input as (tx: unknown) => unknown)(prisma)
@@ -115,6 +124,40 @@ describe('WordsService', () => {
         service.update('w1', { word: 'x' }, 'u1'),
       ).rejects.toBeInstanceOf(ForbiddenException);
       expect(prisma.word.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('remove', () => {
+    it('detaches a word in a deck to preserve other learners’ progress', async () => {
+      prisma.word.findUnique.mockResolvedValue(makeWord({ deckId: 'd1' }));
+
+      await service.remove('w1', 'u1');
+
+      expect(prisma.word.update).toHaveBeenCalledWith({
+        where: { id: 'w1' },
+        data: { deckId: null, createdById: null },
+      });
+      expect(prisma.word.delete).not.toHaveBeenCalled();
+    });
+
+    it('deletes an unshared personal word', async () => {
+      prisma.word.findUnique.mockResolvedValue(makeWord({ deckId: null }));
+
+      await service.remove('w1', 'u1');
+
+      expect(prisma.word.delete).toHaveBeenCalledWith({ where: { id: 'w1' } });
+      expect(prisma.word.update).not.toHaveBeenCalled();
+    });
+
+    it('preserves a deckless word when learners have progress', async () => {
+      prisma.word.findUnique.mockResolvedValue(makeWord({ deckId: null }));
+      prisma.userWord.count.mockResolvedValue(1);
+      await service.remove('w1', 'u1');
+      expect(prisma.word.update).toHaveBeenCalledWith({
+        where: { id: 'w1' },
+        data: { deckId: null, createdById: null },
+      });
+      expect(prisma.word.delete).not.toHaveBeenCalled();
     });
   });
 

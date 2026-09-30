@@ -237,7 +237,16 @@ export class AdminService {
           await this.assertNotLastAdmin(tx);
         }
 
-        // Cascade relations remove all owned rows (words, progress, tokens…).
+        // Archive owned decks and preserve their words before the account
+        // cascade. Other enrollees keep valid word references and history.
+        await tx.deck.updateMany({
+          where: { createdById: id, deletedAt: null },
+          data: { createdById: null, deletedAt: new Date() },
+        });
+        await tx.word.updateMany({
+          where: { createdById: id },
+          data: { createdById: null },
+        });
         await tx.user.delete({ where: { id } });
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -338,10 +347,41 @@ export class AdminService {
   }
 
   async deleteWord(id: string): Promise<{ message: string }> {
-    const existing = await this.prisma.word.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException('Word not found');
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            const existing = await tx.word.findUnique({ where: { id } });
+            if (!existing) throw new NotFoundException('Word not found');
 
-    await this.prisma.word.delete({ where: { id } });
+            const [progressCount, reviewCount, quizQuestionCount] =
+              await Promise.all([
+                tx.userWord.count({ where: { wordId: id } }),
+                tx.review.count({ where: { wordId: id } }),
+                tx.testQuestion.count({ where: { wordId: id } }),
+              ]);
+            if (
+              existing.deckId ||
+              progressCount + reviewCount + quizQuestionCount > 0
+            ) {
+              // Keep existing learners' progress and history intact.
+              await tx.word.update({
+                where: { id },
+                data: { deckId: null, createdById: null },
+              });
+            } else {
+              await tx.word.delete({ where: { id } });
+            }
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+        break;
+      } catch (error) {
+        if ((error as { code?: string }).code !== 'P2034' || attempt >= 2) {
+          throw error;
+        }
+      }
+    }
     return { message: 'Word deleted' };
   }
 

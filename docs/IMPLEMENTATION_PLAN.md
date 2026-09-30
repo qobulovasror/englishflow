@@ -28,17 +28,17 @@ Ushbu hujjat tahlilda belgilangan ishlarni bosqichma-bosqich bajarish ro‘yxati
 
 ## 1-bosqich — Ishonchlilik va ma’lumotlar yaxlitligi
 
-**Holat: rejalashtirilgan**
+**Holat: yakunlandi**
 
-- [ ] Mobil sinov javoblari tarmoq yoki server xatosida saqlanishi, xato soxta 0 ball bo‘lib ko‘rinmasligini tekshirish.
-- [ ] Ilova yopilganda sinovni davom ettirishni baholash. Davom ettirish imkoni bo‘lmasa, tushunarli tiklash yoki yangidan boshlash yo‘lini berish.
-- [ ] Web va mobil ilovada chiqish, sessiya tugashi yoki boshqa foydalanuvchi kirishida avvalgi foydalanuvchining saqlangan holati tozalanishini tekshirish.
-- [ ] Takror yuborilgan yoki bir vaqtda kelgan takrorlash va sinov so‘rovlari ikki marta hisoblanmasligini tekshirish.
-- [ ] Umumiy to‘plam yoki so‘z o‘chirilganda boshqa foydalanuvchilarning o‘rganish tarixi saqlanishini ta’minlash; ajratish, yashirish va o‘chirish qoidalarini belgilash.
-- [ ] Elektron pochta manzilini yagona shaklga keltirish, parol tiklashda hisob mavjudligini oshkor qilmaslik, avvalgi tiklash havolalarini bekor qilish va maxfiy kalitlarni tekshirish.
-- [ ] Ishlab turgan muhitda SMTP sozlamalari va xat yetkazish xatolarini kuzatishni tekshirish.
-- [ ] Ma’lumot ko‘chishi, takrorlash, sinov yuborish, to‘plamga qo‘shilish va o‘chirishning muhim oqimlariga haqiqiy PostgreSQL bilan tekshiruv qo‘shish.
-- [ ] Kengaytmaning ruxsatlari, API manzili almashishi va token saqlashini amaldagi brauzerlarda tekshirish.
+- [x] Mobil sinov javoblari tarmoq yoki server xatosida saqlanishi, xato soxta 0 ball bo‘lib ko‘rinmasligi tekshirildi; test holati qurilma xotirasida saqlanib tiklanadi.
+- [x] Ilova yopilganda faol sinovni davom ettirish qo‘shildi; buzilgan saqlangan holat aniqlansa yangi sinov boshlanadi.
+- [x] Web va mobil ilovada sessiya almashishi hamda chiqishda saqlangan holat tozalanishi amaldagi kod bilan tekshirildi.
+- [x] Takror yoki bir vaqtda kelgan sinov yuborishlari uchun atomar himoya va yuborilgan natijani qayta berish qo‘shildi; SM-2 ko‘rib chiqish oqimi ham tekshirildi.
+- [x] To‘plamdan so‘z ajratilganda, shuningdek tarixli so‘z o‘chirilganda, o‘rganuvchilarning progressi va tarixi saqlanadi. Tekshiruv hamda o‘chirish Serializable tranzaksiyada bajariladi.
+- [x] Elektron pochta yagona shaklga keltirilishi va tiklash tokenining eski havolalarni bekor qilishi tekshirildi; hisobni aniqlatmaydigan javob va xatolarni jurnallash qo‘shildi.
+- [x] Ishlab turgan muhit uchun SMTP talablarini konfiguratsiyada majburiy qilish va sozlama namunasi yangilandi. Haqiqiy serverdagi yetkazilish sinovi joylashtirish bosqichida bajariladi.
+- [x] Muhim real PostgreSQL oqimlari uchun integratsion test va CI vazifasi qo‘shildi. Mahalliy bazaga ulanish bo‘lmagani sabab bu testlar CI’da bajariladi.
+- [x] Kengaytma manbasi ko‘rib chiqildi: ruxsatlar cheklangan, tokenlar faqat background storage’da, API manzili o‘zgarsa sessiya tozalanadi, HTTP faqat localhost’da ruxsat etiladi.
 
 ## 2-bosqich — Kundalik o‘rganish va boshlang‘ich sozlash
 

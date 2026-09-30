@@ -34,10 +34,20 @@ class TokenStorage {
 
   Future<String?> getUserData() => _storage.read(key: AppConstants.userKey);
 
+  Future<void> saveQuizDraft(String draft) =>
+      _storage.write(key: AppConstants.quizDraftKey, value: draft);
+
+  Future<String?> getQuizDraft() =>
+      _storage.read(key: AppConstants.quizDraftKey);
+
+  Future<void> clearQuizDraft() =>
+      _storage.delete(key: AppConstants.quizDraftKey);
+
   Future<void> clearAll() async {
     await _storage.delete(key: AppConstants.tokenKey);
     await _storage.delete(key: AppConstants.refreshTokenKey);
     await _storage.delete(key: AppConstants.userKey);
+    await clearQuizDraft();
   }
 
   Future<bool> hasToken() async {

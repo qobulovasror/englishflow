@@ -30,8 +30,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         title: Text('Quiz', style: AppTextStyles.heading2),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () {
-            ref.read(testProvider.notifier).reset();
+          onPressed: () async {
+            await ref.read(testProvider.notifier).reset();
+            if (!mounted) return;
             context.pop();
           },
         ),
@@ -86,8 +87,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
             child: LinearProgressIndicator(
               value: state.progressPercent,
               backgroundColor: AppColors.border,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.orange),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.orange),
               minHeight: 8,
             ),
           ),
@@ -181,9 +181,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                             color: isSelected
                                 ? AppColors.primary
                                 : AppColors.textPrimary,
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.w400,
+                            fontWeight:
+                                isSelected ? FontWeight.w700 : FontWeight.w400,
                           ),
                         ),
                       ),
@@ -203,9 +202,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
               onPressed: state.selectedOption != null
                   ? () async {
                       if (state.isLastQuestion) {
-                        final score = await ref
-                            .read(testProvider.notifier)
-                            .submitQuiz();
+                        final score =
+                            await ref.read(testProvider.notifier).submitQuiz();
                         if (!mounted) return;
                         if (score != null) {
                           context.pushReplacement('/quiz-result', extra: {

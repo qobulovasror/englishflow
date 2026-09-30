@@ -249,9 +249,9 @@ export class UsersService {
   }
 
   /**
-   * Permanently deletes the account after re-verifying the current password.
-   * The schema's `onDelete: Cascade` relations remove all owned rows (words,
-   * progress, tokens, enrollments, reviews).
+   * Deletes the account after re-verifying the password. User-owned decks are
+   * archived and content ownership is detached first, so other learners' word
+   * schedules and history survive the account's cascade deletion.
    */
   async deleteAccount(id: string, currentPassword: string): Promise<void> {
     const user = await this.findByIdOrThrow(id);
@@ -264,6 +264,16 @@ export class UsersService {
       throw new UnauthorizedException('Current password is incorrect');
     }
 
-    await this.prisma.user.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.deck.updateMany({
+        where: { createdById: id, deletedAt: null },
+        data: { createdById: null, deletedAt: new Date() },
+      });
+      await tx.word.updateMany({
+        where: { createdById: id },
+        data: { createdById: null },
+      });
+      await tx.user.delete({ where: { id } });
+    });
   }
 }

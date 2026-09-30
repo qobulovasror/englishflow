@@ -98,11 +98,17 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Generate Prisma client
+        run: npx prisma generate
+
       - name: Apply migrations to a fresh database
         run: npx prisma migrate deploy
 
       - name: Verify migrations are applied with no drift
         run: npx prisma migrate status
+
+      - name: PostgreSQL integration tests
+        run: npm run test:db -- --ci --reporters=default
 
   # ─── Frontend: install → lint → type-check → build ───────────────────────
   frontend:

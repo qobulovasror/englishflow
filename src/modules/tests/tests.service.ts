@@ -104,7 +104,7 @@ export class TestsService {
       throw new NotFoundException('Test not found');
     }
     if (test.submittedAt) {
-      throw new BadRequestException('This test has already been submitted');
+      return this.submittedResult(test);
     }
 
     // The client's picks, keyed by wordId. Answers for words that aren't part
@@ -132,23 +132,33 @@ export class TestsService {
     // path — two concurrent submits could both pass it. Claiming the row with a
     // conditional `updateMany (submittedAt: null)` lets exactly one win; the
     // loser sees count 0 and is rejected before any question rows are written.
-    await this.prisma.$transaction(async (tx) => {
-      const claimed = await tx.test.updateMany({
-        where: { id: test.id, userId, submittedAt: null },
-        data: { score, submittedAt: new Date() },
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        const claimed = await tx.test.updateMany({
+          where: { id: test.id, userId, submittedAt: null },
+          data: { score, submittedAt: new Date() },
+        });
+        if (claimed.count === 0) {
+          throw new BadRequestException('Test submission raced');
+        }
+        await Promise.all(
+          graded.map((g) =>
+            tx.testQuestion.update({
+              where: { id: g.id },
+              data: { selectedAnswer: g.selectedAnswer },
+            }),
+          ),
+        );
       });
-      if (claimed.count === 0) {
-        throw new BadRequestException('This test has already been submitted');
-      }
-      await Promise.all(
-        graded.map((g) =>
-          tx.testQuestion.update({
-            where: { id: g.id },
-            data: { selectedAnswer: g.selectedAnswer },
-          }),
-        ),
-      );
-    });
+    } catch (error) {
+      // A concurrent retry may have committed after our initial read.
+      const latest = await this.prisma.test.findFirst({
+        where: { id: dto.testId, userId },
+        include: { questions: true },
+      });
+      if (latest?.submittedAt) return this.submittedResult(latest);
+      throw error;
+    }
 
     const total = test.questions.length;
 
@@ -160,6 +170,27 @@ export class TestsService {
         total,
         percentage: total > 0 ? Math.round((score / total) * 100) : 0,
         questions: graded,
+      },
+      { excludeExtraneousValues: true },
+    );
+  }
+
+  private submittedResult(test: any): SubmitTestResponseDto {
+    const score = test.score;
+    const total = test.questions.length;
+    return plainToInstance(
+      SubmitTestResponseDto,
+      {
+        testId: test.id,
+        score,
+        total,
+        percentage: total > 0 ? Math.round((score / total) * 100) : 0,
+        questions: test.questions.map((q: any) => ({
+          id: q.id,
+          wordId: q.wordId,
+          selectedAnswer: q.selectedAnswer,
+          correctAnswer: q.correctAnswer,
+        })),
       },
       { excludeExtraneousValues: true },
     );

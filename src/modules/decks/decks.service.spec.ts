@@ -26,6 +26,7 @@ type MockedPrisma = {
     createManyAndReturn: jest.Mock;
     findMany: jest.Mock;
     findUnique: jest.Mock;
+    update: jest.Mock;
     delete: jest.Mock;
   };
   userWord: { createMany: jest.Mock };
@@ -75,6 +76,7 @@ describe('DecksService', () => {
         ),
         findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn(),
+        update: jest.fn().mockResolvedValue({}),
         delete: jest.fn().mockResolvedValue({}),
       },
       userWord: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
@@ -534,7 +536,7 @@ describe('DecksService', () => {
   });
 
   describe('removeWord', () => {
-    it('deletes a word that belongs to the owned deck', async () => {
+    it('detaches a word and preserves learning history', async () => {
       prisma.deck.findFirst.mockResolvedValue(
         makeDeck({ isSystem: false, createdById: 'u1' }),
       );
@@ -542,7 +544,11 @@ describe('DecksService', () => {
 
       const result = await service.removeWord('d1', 'w1', 'u1');
 
-      expect(prisma.word.delete).toHaveBeenCalledWith({ where: { id: 'w1' } });
+      expect(prisma.word.update).toHaveBeenCalledWith({
+        where: { id: 'w1' },
+        data: { deckId: null },
+      });
+      expect(prisma.word.delete).not.toHaveBeenCalled();
       expect(result.message).toBe('Word removed from deck');
     });
 
@@ -559,6 +565,23 @@ describe('DecksService', () => {
         NotFoundException,
       );
       expect(prisma.word.delete).not.toHaveBeenCalled();
+      expect(prisma.word.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('adminRemoveWord', () => {
+    it('detaches a word from a shared deck without deleting it', async () => {
+      prisma.deck.findFirst.mockResolvedValue(makeDeck());
+      prisma.word.findUnique.mockResolvedValue({ id: 'w1', deckId: 'd1' });
+
+      const result = await service.adminRemoveWord('d1', 'w1');
+
+      expect(prisma.word.update).toHaveBeenCalledWith({
+        where: { id: 'w1' },
+        data: { deckId: null },
+      });
+      expect(prisma.word.delete).not.toHaveBeenCalled();
+      expect(result.message).toBe('Word removed from deck');
     });
   });
 });

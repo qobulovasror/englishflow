@@ -29,6 +29,12 @@ class QuizQuestion extends Equatable {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+        'wordId': wordId,
+        'word': word,
+        'options': options,
+      };
+
   @override
   List<Object?> get props => [wordId, word, options];
 }

@@ -114,6 +114,7 @@ describe('TestsService', () => {
       return {
         id: 't1',
         userId: 'u1',
+        score: 0,
         submittedAt: null,
         questions: [
           {
@@ -146,24 +147,38 @@ describe('TestsService', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
-    it('refuses to grade an already-submitted test (fast path)', async () => {
+    it('returns the original result for an already-submitted retry', async () => {
       prisma.test.findFirst.mockResolvedValue({
         ...pendingTest(),
+        score: 2,
         submittedAt: new Date(),
+        questions: pendingTest().questions.map((q, i) => ({
+          ...q,
+          selectedAnswer: i < 2 ? q.correctAnswer : null,
+        })),
       });
 
-      await expect(
-        service.submitTest(submitDto('t1'), 'u1'),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      const result = await service.submitTest(submitDto('t1'), 'u1');
+      expect(result.score).toBe(2);
+      expect(result.questions[0].selectedAnswer).toBe('translation0');
     });
 
-    it('rejects a concurrent double-submit when the atomic claim wins 0 rows', async () => {
-      prisma.test.findFirst.mockResolvedValue(pendingTest());
+    it('returns the committed result when a concurrent retry loses the claim', async () => {
+      prisma.test.findFirst
+        .mockResolvedValueOnce(pendingTest())
+        .mockResolvedValueOnce({
+          ...pendingTest(),
+          score: 1,
+          submittedAt: new Date(),
+          questions: pendingTest().questions.map((q, i) => ({
+            ...q,
+            selectedAnswer: i === 0 ? q.correctAnswer : null,
+          })),
+        });
       prisma.test.updateMany.mockResolvedValue({ count: 0 });
 
-      await expect(
-        service.submitTest(submitDto('t1'), 'u1'),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      const result = await service.submitTest(submitDto('t1'), 'u1');
+      expect(result.score).toBe(1);
       expect(prisma.testQuestion.update).not.toHaveBeenCalled();
     });
 

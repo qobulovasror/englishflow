@@ -67,6 +67,12 @@ function buildPrismaStub() {
   const users = new Map<string, StoredUser>();
   const refreshTokens = new Map<string, StoredRefreshToken>(); // keyed by hash
   const authTokens = new Map<string, StoredAuthToken>(); // keyed by hash
+  const deck = {
+    updateMany: jest.fn(async () => ({ count: 0 })),
+  };
+  const word = {
+    updateMany: jest.fn(async () => ({ count: 0 })),
+  };
   let userCounter = 0;
   let tokenCounter = 0;
   let authTokenCounter = 0;
@@ -348,6 +354,8 @@ function buildPrismaStub() {
     onModuleInit: async () => undefined,
     onModuleDestroy: async () => undefined,
     user,
+    deck,
+    word,
     refreshToken,
     authToken,
     // Supports both transaction shapes: the array form (await each op) and the

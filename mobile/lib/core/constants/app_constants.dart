@@ -25,6 +25,7 @@ class AppConstants {
   static const String tokenKey = 'access_token';
   static const String refreshTokenKey = 'refresh_token';
   static const String userKey = 'user_data';
+  static const String quizDraftKey = 'quiz_draft';
   static const String cacheBox = 'englishflow_cache';
 
   // Pagination

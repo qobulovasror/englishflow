@@ -301,8 +301,12 @@ export class DecksService {
       throw new NotFoundException('Word not found in this deck');
     }
 
-    // Cascades remove the word's UserWord and testQuestion rows.
-    await this.prisma.word.delete({ where: { id: wordId } });
+    // Detach instead of deleting: enrolled users may have learning schedules,
+    // reviews, or quiz history tied to this word. Their progress stays usable.
+    await this.prisma.word.update({
+      where: { id: wordId },
+      data: { deckId: null },
+    });
 
     return { message: 'Word removed from deck' };
   }
@@ -483,7 +487,7 @@ export class DecksService {
     return this.toAdminRow(updated);
   }
 
-  /** Removes a single word from ANY deck. */
+  /** Detaches a single word from ANY deck while preserving learning history. */
   async adminRemoveWord(
     id: string,
     wordId: string,
@@ -500,7 +504,10 @@ export class DecksService {
       throw new NotFoundException('Word not found in this deck');
     }
 
-    await this.prisma.word.delete({ where: { id: wordId } });
+    await this.prisma.word.update({
+      where: { id: wordId },
+      data: { deckId: null },
+    });
 
     return { message: 'Word removed from deck' };
   }

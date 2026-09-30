@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -20,6 +21,7 @@ import { AppConfig } from '../../config/configuration';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private static readonly BCRYPT_ROUNDS = 12;
   // Bcrypt hash of an unguessable random string; used to keep the timing of a
   // missing-user login indistinguishable from a wrong-password login. The
@@ -31,6 +33,10 @@ export class AuthService {
   // Token lifetimes: a reset link is short-lived; verification can wait a day.
   private static readonly PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
   private static readonly EMAIL_VERIFY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+  // Keep the public recovery response time independent of whether an account
+  // exists. Mail delivery runs after the response path so SMTP latency cannot
+  // expose the account lookup result.
+  private static readonly RECOVERY_RESPONSE_FLOOR_MS = 250;
 
   constructor(
     private readonly usersService: UsersService,
@@ -108,26 +114,40 @@ export class AuthService {
    * the endpoint can't be used to enumerate accounts.
    */
   async forgotPassword(email: string): Promise<void> {
-    const user = await this.usersService.findByEmail(email);
-    if (!user) {
-      return;
+    const startedAt = Date.now();
+    try {
+      const user = await this.usersService.findByEmail(email);
+      if (user) {
+        const { token } = await this.authTokens.issue(
+          user.id,
+          AuthTokenType.PASSWORD_RESET,
+          AuthService.PASSWORD_RESET_TTL_MS,
+        );
+
+        const link = `${this.frontendUrl()}/reset-password?token=${token}`;
+        void this.mailer
+          .send({
+            to: user.email,
+            subject: 'Reset your EnglishFlow password',
+            text:
+              `We received a request to reset your password.\n\n` +
+              `Reset it here (valid for 1 hour): ${link}\n\n` +
+              `If you didn't request this, you can safely ignore this email.`,
+          })
+          .catch(() =>
+            this.logger.error('Password reset email delivery failed'),
+          );
+      }
+    } catch {
+      // Keep the public response identical on lookup and token-store failures.
+      this.logger.error('Password reset request could not be processed');
+    } finally {
+      const remaining =
+        AuthService.RECOVERY_RESPONSE_FLOOR_MS - (Date.now() - startedAt);
+      if (remaining > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
     }
-
-    const { token } = await this.authTokens.issue(
-      user.id,
-      AuthTokenType.PASSWORD_RESET,
-      AuthService.PASSWORD_RESET_TTL_MS,
-    );
-
-    const link = `${this.frontendUrl()}/reset-password?token=${token}`;
-    await this.mailer.send({
-      to: user.email,
-      subject: 'Reset your EnglishFlow password',
-      text:
-        `We received a request to reset your password.\n\n` +
-        `Reset it here (valid for 1 hour): ${link}\n\n` +
-        `If you didn't request this, you can safely ignore this email.`,
-    });
   }
 
   /**

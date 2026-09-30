@@ -149,7 +149,7 @@ describe('Words (e2e)', () => {
       expect(tooLarge.body.errors.join(' ')).toMatch(/limit/i);
     });
 
-    it('DELETE /words/:id removes a word the user owns', async () => {
+    it('DELETE /words/:id detaches a word that already has learner progress', async () => {
       const created = await request(app.getHttpServer())
         .post('/words')
         .set('Authorization', `Bearer ${token}`)
@@ -163,7 +163,7 @@ describe('Words (e2e)', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(prisma._stores.words.has(wordId)).toBe(false);
+      expect(prisma._stores.words.get(wordId)?.createdById).toBeNull();
     });
 
     it('DELETE /words/:id returns 404 for an unknown id', async () => {

@@ -26,6 +26,10 @@ type MockedPrisma = {
   };
   deck: {
     findMany: jest.Mock;
+    updateMany: jest.Mock;
+  };
+  word: {
+    updateMany: jest.Mock;
   };
   $transaction: jest.Mock;
 };
@@ -67,9 +71,13 @@ describe('UsersService', () => {
       },
       deck: {
         findMany: jest.fn().mockResolvedValue([]),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
-      $transaction: jest.fn(async (ops: Promise<unknown>[]) =>
-        Promise.all(ops),
+      word: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      $transaction: jest.fn((input: unknown) =>
+        typeof input === 'function'
+          ? (input as (tx: unknown) => unknown)(prisma)
+          : Promise.all(input as Promise<unknown>[]),
       ),
     };
     decks = { enroll: jest.fn().mockResolvedValue({}) };
@@ -385,6 +393,14 @@ describe('UsersService', () => {
       ).resolves.toBeUndefined();
 
       expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: 'u1' } });
+      expect(prisma.deck.updateMany).toHaveBeenCalledWith({
+        where: { createdById: 'u1', deletedAt: null },
+        data: { createdById: null, deletedAt: expect.any(Date) },
+      });
+      expect(prisma.word.updateMany).toHaveBeenCalledWith({
+        where: { createdById: 'u1' },
+        data: { createdById: null },
+      });
     });
   });
 });
