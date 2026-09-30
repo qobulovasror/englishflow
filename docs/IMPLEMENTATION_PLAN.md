@@ -1,99 +1,100 @@
-# EnglishFlow implementation plan
+# EnglishFlow tizimini rivojlantirish rejasi
 
-This plan turns the product review into staged, reviewable work. Keep each phase small enough to review and commit independently. Update its status only after implementation and review.
+Ushbu hujjat tahlilda belgilangan ishlarni bosqichma-bosqich bajarish ro‘yxatidir. Har bir bosqich tekshiriladi, mustaqil taqrizchiga ko‘rsatiladi, zarur tuzatishlar kiritiladi va keyin saqlanadi.
 
-## Working rules
+## Ish tartibi
 
-- Confirm existing code before implementing an item; audit notes may be stale.
-- Preserve unrelated workspace changes.
-- Run the relevant checks for each implementation phase and fix regressions before committing.
-- Get an independent code review for every phase; fix findings before committing.
-- Do not ship behavioral changes without a rollback or migration plan where data is involved.
+- Auditdagi ma’lumotlarni o‘zgarmas haqiqat deb qabul qilmaymiz; avval amaldagi kod bilan solishtiramiz.
+- Har bir o‘zgarishni tegishli tekshiruvlardan o‘tkazamiz va topilgan xatolarni tuzatamiz.
+- Har bir bosqichni alohida ko‘rib chiqish oson bo‘ladigan hajmda saqlaymiz va mustaqil taqrizchiga tekshirtiramiz.
+- Ma’lumotlarga ta’sir qiladigan o‘zgarishlar uchun ko‘chirish hamda orqaga qaytarish tartibini belgilaymiz.
+- Ishga aloqasi bo‘lmagan foydalanuvchi o‘zgarishlarini saqlaymiz va bu ishlarning saqlangan nusxalariga qo‘shmaymiz.
 
-## Phase 0 — Baseline and plan alignment
+## 0-bosqich — Boshlang‘ich holat va reja
 
-**Status: complete**
+**Holat: yakunlandi**
 
-- [x] Compare the highest-risk audit and roadmap claims with current code.
-- [x] Keep this plan as the execution checklist; preserve the pre-existing untracked `docs/ANALYSIS.md` without editing or staging it.
-- [x] Record the baseline findings below. Build and test commands are reserved for implementation phases where they validate a code change.
+- [x] Audit va yo‘l xaritasidagi muhim ma’lumotlar kod bilan solishtirildi.
+- [x] Ushbu hujjat asosiy ishlar ro‘yxatiga aylandi; avvaldan mavjud `docs/ANALYSIS.md` fayli o‘zgartirilmadi.
+- [x] Dastlabki tekshiruv xulosalari qayd etildi.
 
-### Baseline findings
+### Dastlabki tekshiruv xulosalari
 
-- Already present in code: refresh-token reuse detection, mobile quiz retry with answers retained in memory, mobile session-expiry reset, and a stable mobile router. Do not reimplement these; verify them while changing adjacent flows.
-- Email delivery is configurable through SMTP environment settings. Production configuration and delivery monitoring still need validation; this is not an unimplemented mailer from scratch.
-- Still confirmed: the 20-card new-word limit applies per `/learning/daily` response, not as a per-user daily cap; removing a word from an enrolled deck hard-deletes it and cascades learning history; mobile quiz answers are not persisted across app termination.
-- Documentation differs in age and claims. Treat code plus targeted checks as authoritative, then reconcile the older audit and roadmap after the relevant work lands.
-- Workspace condition: `docs/ANALYSIS.md` was already untracked before this work and is intentionally preserved.
+- Kodda refresh tokenni qayta ishlatishni aniqlash, mobil sinov yuborilmasa javoblarni qayta urinishgacha xotirada saqlash, sessiya tugaganda mobil kirish holatini tozalash va mobil yo‘naltirgichni qayta yaratmaslik imkoniyatlari mavjud. Bularni qaytadan yozmaymiz; tegishli qismlarni o‘zgartirganda tekshiramiz.
+- Elektron xat jo‘natishni SMTP sozlamalari bilan yoqish mumkin. Ishlab turgan muhitdagi sozlama va yetkazilishni kuzatish hali tekshirilishi kerak.
+- Tasdiqlangan kamchiliklar: 20 ta yangi so‘zlik cheklov bitta `/learning/daily` javobiga taalluqli; umumiy to‘plamdan so‘z o‘chirish uning o‘zini va bog‘liq o‘rganish tarixini o‘chirishi mumkin; mobil ilova yopilsa faol sinov javoblari xotiradan yo‘qoladi.
+- Audit va yo‘l xaritasida eski yoki zid ma’lumotlar bor. Har bir mavzu bo‘yicha ish boshlaganda amaldagi kodni tekshirib, hujjatlardagi holatni yangilaymiz.
+- Ish boshida `docs/ANALYSIS.md` avvaldan mavjud va git tomonidan kuzatilmaydigan fayl edi. Uni o‘zgartirmaymiz va bu ishlarning saqlangan nusxalariga qo‘shmaymiz.
 
-## Phase 1 — Reliability and data integrity
+## 1-bosqich — Ishonchlilik va ma’lumotlar yaxlitligi
 
-**Status: planned**
+**Holat: rejalashtirilgan**
 
-- [ ] Verify mobile quiz answers survive submission/network errors and errors are never displayed as a zero score.
-- [ ] Verify logout, expired sessions, and account switching clear user-scoped cached state on web and mobile.
-- [ ] Verify review and quiz submission are idempotent under retries and concurrent requests.
-- [ ] Prevent shared deck/word deletion from silently destroying other users' learning history; define detach/archive/delete behavior.
-- [ ] Verify email normalization, password recovery anti-enumeration, reset/verification token invalidation, and production secret validation.
-- [ ] Connect a production email transport through configuration, with safe local development behavior.
-- [ ] Add PostgreSQL-backed integration coverage for migrations, transactions, review, quiz submission, and deck enrollment/deletion.
-- [ ] Recheck extension permissions, API-origin changes, and token storage against current browser APIs.
+- [ ] Mobil sinov javoblari tarmoq yoki server xatosida saqlanishi, xato soxta 0 ball bo‘lib ko‘rinmasligini tekshirish.
+- [ ] Ilova yopilganda sinovni davom ettirishni baholash. Davom ettirish imkoni bo‘lmasa, tushunarli tiklash yoki yangidan boshlash yo‘lini berish.
+- [ ] Web va mobil ilovada chiqish, sessiya tugashi yoki boshqa foydalanuvchi kirishida avvalgi foydalanuvchining saqlangan holati tozalanishini tekshirish.
+- [ ] Takror yuborilgan yoki bir vaqtda kelgan takrorlash va sinov so‘rovlari ikki marta hisoblanmasligini tekshirish.
+- [ ] Umumiy to‘plam yoki so‘z o‘chirilganda boshqa foydalanuvchilarning o‘rganish tarixi saqlanishini ta’minlash; ajratish, yashirish va o‘chirish qoidalarini belgilash.
+- [ ] Elektron pochta manzilini yagona shaklga keltirish, parol tiklashda hisob mavjudligini oshkor qilmaslik, avvalgi tiklash havolalarini bekor qilish va maxfiy kalitlarni tekshirish.
+- [ ] Ishlab turgan muhitda SMTP sozlamalari va xat yetkazish xatolarini kuzatishni tekshirish.
+- [ ] Ma’lumot ko‘chishi, takrorlash, sinov yuborish, to‘plamga qo‘shilish va o‘chirishning muhim oqimlariga haqiqiy PostgreSQL bilan tekshiruv qo‘shish.
+- [ ] Kengaytmaning ruxsatlari, API manzili almashishi va token saqlashini amaldagi brauzerlarda tekshirish.
 
-## Phase 2 — Daily learning and onboarding
+## 2-bosqich — Kundalik o‘rganish va boshlang‘ich sozlash
 
-**Status: planned**
+**Holat: rejalashtirilgan**
 
-- [ ] Add learning-goal selection (purpose, daily time/new-word target) to onboarding and profile settings.
-- [ ] Enforce the daily new-word limit across all requests, using the user's local calendar day.
-- [ ] Make the dashboard show due reviews, new words, estimated time, and one primary start action.
-- [ ] Clarify the four review ratings, show session progress, and provide clear completion/error/retry states.
-- [ ] Ensure due-review backlogs can be worked through in manageable sessions without misrepresenting completion.
+- [ ] Dastlabki sozlash hamda profilda o‘rganish maqsadi va kunlik vaqt/yangi so‘z miqdorini tanlash imkonini qo‘shish.
+- [ ] Kunlik yangi so‘z chegarasini barcha so‘rovlar bo‘yicha va foydalanuvchining mahalliy kuni asosida hisoblash.
+- [ ] Bosh sahifada bugun takrorlanadigan so‘zlar, yangi so‘zlar, taxminiy vaqt va bitta aniq boshlash tugmasini ko‘rsatish.
+- [ ] To‘rtta baholash tugmasining ma’nosini tushuntirish; dars jarayoni, yakun, xato va qayta urinish holatlarini aniq ko‘rsatish.
+- [ ] Ko‘p kechikkan takrorlashlarni qismlarga bo‘lib bajarish imkonini berish va tugallanmagan ishni tugallangan deb ko‘rsatmaslik.
 
-## Phase 3 — Stronger learning practice and content
+## 3-bosqich — Kuchliroq mashqlar va so‘z mazmuni
 
-**Status: planned**
+**Holat: rejalashtirilgan**
 
-- [ ] Add optional recall directions, typed answers, cloze/context questions, and listening practice.
-- [ ] Enrich vocabulary with IPA, part of speech, collocations, examples, and reviewed translations/audio.
-- [ ] Surface difficult words and quiz mistakes as targeted practice.
-- [ ] Measure current SM-2 outcomes before experimenting with FSRS; preserve existing schedules and provide a rollback path.
-- [ ] Add content review and quality controls for admin-managed vocabulary.
+- [ ] Inglizchadan ona tiliga, teskari yo‘nalishda eslash, yozib javob berish, gapni to‘ldirish va tinglab tanish mashqlarini tanlov sifatida qo‘shish.
+- [ ] So‘zlarni talaffuz yozuvi, so‘z turkumi, birikmalar, misol gap va tekshirilgan tarjima bilan boyitish.
+- [ ] Qiyin so‘zlar va sinovda noto‘g‘ri javob berilgan so‘zlarni maqsadli takrorlashga taklif qilish.
+- [ ] Hozirgi SM-2 natijalarini o‘lchagandan keyin FSRS usulini sinash; avvalgi jadvalni saqlash va ortga qaytarish yo‘lini tayyorlash.
+- [ ] Administrator boshqaradigan so‘zlar uchun tahrirlash va sifat nazoratini qo‘shish.
 
-## Phase 4 — Mobile offline and browser extension
+## 4-bosqich — Mobil ilovada internetsiz ishlash va brauzer kengaytmasi
 
-**Status: planned**
+**Holat: rejalashtirilgan**
 
-- [ ] Design local mobile storage and an idempotent review-event sync protocol.
-- [ ] Support offline review, queued submissions, conflict handling, and visible sync status.
-- [ ] Verify extension token isolation, host permissions, API URL validation, and on-demand page injection.
-- [ ] Improve save confirmation, translation correction, and one-tap review from the extension.
+- [ ] Mobil ma’lumot saqlash va takrorlash hodisalarini takrorlamasdan sinxronlash usulini loyihalash.
+- [ ] Internetsiz takrorlash, keyin yuborish navbati, ziddiyatlarni hal qilish va sinxronlash holatini ko‘rsatishni qo‘shish.
+- [ ] Kengaytma tokenlarini ajratish, sayt ruxsatlari, API manzilini tekshirish va faqat kerakli sahifada ishga tushirishni ko‘rib chiqish.
+- [ ] So‘z saqlanganini tasdiqlash, tarjimani tuzatish va kengaytma ichidan takrorlashni yaxshilash.
 
-## Phase 5 — Return-use features
+## 5-bosqich — Foydalanuvchini qaytishga undash
 
-**Status: planned**
+**Holat: rejalashtirilgan**
 
-- [ ] Add opt-in reminders with user-selected timing, quiet days, frequency controls, and easy disable.
-- [ ] Add learning-based milestones/rewards without penalizing missed days.
-- [ ] Consider friend challenges before public leaderboards; all social participation remains optional.
-- [ ] Instrument onboarding completion, first-session completion, D7/D30 return, session completion, and notification opt-out.
-- [ ] Evaluate features with controlled rollouts and learning/retention outcomes, not time-in-app alone.
+- [ ] Foydalanuvchi tanlagan vaqtda ishlaydigan, dam olish kunlari, tezlik chegarasi va oson o‘chirish sozlamasi bor eslatmalarni qo‘shish.
+- [ ] Tanaffusni jazolamaydigan, haqiqiy o‘rganish yutug‘iga asoslangan nishon va rag‘batlar qo‘shish.
+- [ ] Ommaviy reytingdan oldin do‘st bilan shaxsiy bellashuv imkonini baholash; ijtimoiy imkoniyatlar ixtiyoriy bo‘lishi kerak.
+- [ ] Dastlabki sozlashni tugatish, birinchi darsni yakunlash, 7/30 kun ichida qaytish, darsni tashlab ketish va eslatmalarni o‘chirish ko‘rsatkichlarini yig‘ish.
+- [ ] Imkoniyatlarni ilovada o‘tkazilgan vaqt bilan emas, o‘rganish natijasi va qaytish ko‘rsatkichlari bilan cheklangan sinovda baholash.
 
-## Phase 6 — Portability and shared content
+## 6-bosqich — Ma’lumot ko‘chirish va to‘plam ulashish
 
-**Status: planned**
+**Holat: rejalashtirilgan**
 
-- [ ] Add validated CSV import/export with preview, duplicate handling, and recoverable errors.
-- [ ] Evaluate Anki-compatible import/export and document supported fields.
-- [ ] Add safe deck sharing/copying with clear ownership, visibility, and moderation rules.
-- [ ] Improve discovery by CEFR level, topic, goal, and content quality.
-- [ ] Evaluate teacher/classroom features only after validating the need and access model.
+- [ ] CSV fayllaridan olish/chiqarish, oldindan ko‘rish, takroriy va xato qatorlarni tuzatish imkonini qo‘shish.
+- [ ] Anki bilan mos ma’lumot olib kirish/chiqarishni baholab, qo‘llab-quvvatlanadigan maydonlarni hujjatlashtirish.
+- [ ] Egalik, ko‘rinish va nazorat qoidalari aniq bo‘lgan xavfsiz to‘plam ulashish va nusxalashni qo‘shish.
+- [ ] CEFR darajasi, mavzu, o‘rganish maqsadi va mazmun sifati bo‘yicha qidirish hamda saralashni qo‘shish.
+- [ ] O‘qituvchi va sinf boshqaruvi imkoniyatlarini talab tasdiqlangandan keyin alohida baholash.
 
-## Phase 7 — Release readiness and maintenance
+## 7-bosqich — Ishga tushirishga tayyorgarlik va tizim parvarishi
 
-**Status: planned**
+**Holat: rejalashtirilgan**
 
-- [ ] Keep generated API/client types in sync and reduce duplicate type definitions safely.
-- [ ] Add focused web component/store checks for critical learning, auth, and failure states.
-- [ ] Add operational dashboards/alerts for API errors, failed email, sync backlog, and database health.
-- [ ] Verify backup/restore, migration rollback strategy, privacy/data deletion, and production deployment steps.
-- [ ] Refresh README, architecture, audit, and release notes to match shipped behavior.
+- [ ] Yaratilgan API va dastur turlarini muvofiqlashtirish, qo‘lda takrorlangan turlarni xavfsiz kamaytirish.
+- [ ] Kirish, o‘rganish va xato holatlari uchun muhim web saqlagichlari hamda tarkibiy qismlariga tekshiruv qo‘shish.
+- [ ] API xatolari, xat yetkazish, sinxronlash navbati va ma’lumotlar bazasi holatini kuzatish.
+- [ ] Zaxira nusxa, tiklash, ma’lumotlar bazasi o‘zgarishini ortga qaytarish, ma’lumotni o‘chirish so‘rovlari va ishlab turgan muhitga joylashni tekshirish.
+- [ ] README, arxitektura, audit va yangilanish qaydlarini amalda ishlayotgan imkoniyatlarga moslab yangilash.
