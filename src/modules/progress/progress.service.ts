@@ -16,6 +16,8 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // A word the user has failed this many times (or more) after it graduated to a
 // real interval is a "leech" — surfaced so the user can give it extra attention.
 const LEECH_LAPSE_THRESHOLD = 4;
+const DAILY_DUE_BATCH_LIMIT = 100;
+const PENDING_NEW_BATCH_LIMIT = 50;
 
 @Injectable()
 export class ProgressService {
@@ -75,6 +77,10 @@ export class ProgressService {
       user,
       todayCount,
       reviewDays,
+      dueCount,
+      introducedToday,
+      availableNewCount,
+      pendingNewCount,
     ] = await Promise.all([
       this.prisma.userWord.count({ where: { userId } }),
       this.prisma.userWord.count({ where: { userId, status: WordStatus.NEW } }),
@@ -105,7 +111,7 @@ export class ProgressService {
       }),
       this.prisma.user.findUnique({
         where: { id: userId },
-        select: { dailyGoal: true },
+        select: { dailyGoal: true, dailyNewLimit: true },
       }),
       this.prisma.review.count({
         where: { userId, createdAt: { gte: startOfToday } },
@@ -114,9 +120,26 @@ export class ProgressService {
         where: { userId, createdAt: { gte: streakWindowStart } },
         select: { createdAt: true },
       }),
+      this.prisma.userWord.count({
+        where: { userId, nextReviewAt: { not: null, lte: now } },
+      }),
+      this.prisma.userWord.count({
+        where: { userId, introducedAt: { gte: startOfToday } },
+      }),
+      this.prisma.userWord.count({
+        where: { userId, nextReviewAt: null, introducedAt: null },
+      }),
+      this.prisma.userWord.count({
+        where: { userId, nextReviewAt: null, introducedAt: { not: null } },
+      }),
     ]);
 
     const dailyGoal = user?.dailyGoal ?? 20;
+    const dailyNewLimit = user?.dailyNewLimit ?? 10;
+    const newCount =
+      Math.min(pendingNewCount, PENDING_NEW_BATCH_LIMIT) +
+      Math.min(availableNewCount, Math.max(0, dailyNewLimit - introducedToday));
+    const actionableDueCount = Math.min(dueCount, DAILY_DUE_BATCH_LIMIT);
     const activeDays = reviewDays.map((r) =>
       this.localDay(r.createdAt, offset),
     );
@@ -149,6 +172,10 @@ export class ProgressService {
           longest,
           todayCount,
           dailyGoal,
+          dailyNewLimit,
+          dueCount: actionableDueCount,
+          newCount,
+          estimatedMinutes: Math.ceil((actionableDueCount + newCount) * 0.5),
           goalMet,
         },
       },

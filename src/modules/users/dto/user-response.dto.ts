@@ -34,6 +34,13 @@ export class UserResponseDto {
   @Expose()
   dailyGoal: number;
 
+  @ApiProperty({
+    example: 10,
+    description: 'Maximum new words introduced per local day',
+  })
+  @Expose()
+  dailyNewLimit: number;
+
   @ApiProperty({ enum: Role, example: Role.USER })
   @Expose()
   role: Role;

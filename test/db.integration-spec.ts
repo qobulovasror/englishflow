@@ -5,6 +5,7 @@ import { LearningService } from '../src/modules/learning/learning.service';
 import { TestsService } from '../src/modules/tests/tests.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { UsersService } from '../src/modules/users/users.service';
+import { Rating } from '../src/common/utils/sm2';
 
 describe('PostgreSQL integration', () => {
   const prisma = new PrismaService();
@@ -61,7 +62,7 @@ describe('PostgreSQL integration', () => {
     await service.reviewWord(
       {
         userWordId: daily.find((card) => card.wordId === wordId)!.id,
-        rating: ReviewRating.GOOD,
+        rating: Rating.GOOD,
       },
       learnerId,
     );
@@ -111,6 +112,58 @@ describe('PostgreSQL integration', () => {
     );
     expect(retry.score).toBe(result.score);
     expect(retry.questions).toEqual(result.questions);
+  });
+
+  it('enforces the new-word allowance across repeated same-day requests', async () => {
+    const dailyUser = await prisma.user.create({
+      data: {
+        email: `${runId}-daily@example.test`,
+        password: 'not-used',
+        dailyNewLimit: 3,
+      },
+    });
+    const words = await prisma.word.createManyAndReturn({
+      data: Array.from({ length: 7 }, (_, index) => ({
+        word: `${runId}-daily-${index}`,
+        translation: `${runId}-daily-translation-${index}`,
+      })),
+    });
+    await prisma.userWord.createMany({
+      data: words.map((word) => ({ userId: dailyUser.id, wordId: word.id })),
+    });
+
+    const service = new LearningService(prisma);
+    const [first, second] = await Promise.all([
+      service.getDailyWords(dailyUser.id, 300),
+      service.getDailyWords(dailyUser.id, 300),
+    ]);
+    await Promise.all(
+      first.map((card) =>
+        service.reviewWord(
+          { userWordId: card.id, rating: Rating.GOOD },
+          dailyUser.id,
+        ),
+      ),
+    );
+    const afterCompleting = await service.getDailyWords(dailyUser.id, 300);
+    const introduced = await prisma.userWord.count({
+      where: {
+        userId: dailyUser.id,
+        wordId: { in: words.map((word) => word.id) },
+        introducedAt: { not: null },
+      },
+    });
+
+    expect(first).toHaveLength(3);
+    expect(second.map((card) => card.id).sort()).toEqual(
+      first.map((card) => card.id).sort(),
+    );
+    expect(afterCompleting).toHaveLength(0);
+    expect(introduced).toBe(3);
+    await prisma.user.delete({ where: { id: dailyUser.id } });
+    await prisma.word.deleteMany({
+      where: { id: { in: words.map((word) => word.id) } },
+    });
   });
 
   it('detaches a removed deck word while retaining enrolled learners’ progress', async () => {

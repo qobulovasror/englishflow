@@ -83,6 +83,25 @@ export class StreakStatsDto {
   @Expose()
   dailyGoal: number;
 
+  @ApiProperty({ example: 10, description: "User's per-day new-word limit" })
+  @Expose()
+  dailyNewLimit: number;
+
+  @ApiProperty({ example: 8, description: 'Cards due for review now' })
+  @Expose()
+  dueCount: number;
+
+  @ApiProperty({
+    example: 5,
+    description: 'New cards remaining in today’s plan',
+  })
+  @Expose()
+  newCount: number;
+
+  @ApiProperty({ example: 7, description: 'Estimated study time in minutes' })
+  @Expose()
+  estimatedMinutes: number;
+
   @ApiProperty({
     example: false,
     description: 'Whether todayCount has reached dailyGoal',

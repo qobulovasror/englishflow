@@ -141,6 +141,44 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
               ),
               const SizedBox(height: 24),
 
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Today's plan", style: AppTextStyles.heading3),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${progress.stats?.streak.dueCount ?? 0} reviews · '
+                        '${progress.stats?.streak.newCount ?? 0} new words',
+                        style: AppTextStyles.bodyBold,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'About ${progress.stats?.streak.estimatedMinutes ?? 0} minutes',
+                        style: AppTextStyles.body
+                            .copyWith(color: Colors.grey[600]),
+                      ),
+                      if ((progress.stats?.streak.dueCount ?? 0) +
+                              (progress.stats?.streak.newCount ?? 0) >
+                          0) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: () => context.push('/flashcards'),
+                            icon: const Icon(Icons.play_arrow),
+                            label: const Text("Start today's session"),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
               // Quick actions
               Text('Quick Actions', style: AppTextStyles.heading3),
               const SizedBox(height: 16),

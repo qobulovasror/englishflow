@@ -37,6 +37,38 @@ onMounted(async () => {
     <div v-if="loading" class="text-gray-500 dark:text-gray-400">Loading...</div>
 
     <div v-else-if="progress" class="space-y-6">
+      <AppCard>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-wide text-primary-600">
+              Today's plan
+            </p>
+            <h3 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+              {{ progress.streak.dueCount }} reviews · {{ progress.streak.newCount }} new words
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              About {{ progress.streak.estimatedMinutes }} minutes ·
+              {{ progress.streak.todayCount }}/{{ progress.streak.dailyGoal }} reviews toward your
+              goal
+            </p>
+          </div>
+          <router-link
+            v-if="progress.streak.dueCount + progress.streak.newCount > 0"
+            to="/learn"
+            class="inline-flex items-center justify-center rounded-lg bg-primary-600 px-5 py-3 font-semibold text-white hover:bg-primary-700"
+          >
+            Start today's session
+          </router-link>
+          <router-link
+            v-else
+            to="/decks"
+            class="inline-flex items-center justify-center rounded-lg border border-primary-600 px-5 py-3 font-semibold text-primary-700 dark:text-primary-300"
+          >
+            Find a deck
+          </router-link>
+        </div>
+      </AppCard>
+
       <!-- Streak + daily goal -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <AppCard>

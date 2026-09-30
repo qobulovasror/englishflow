@@ -9,12 +9,20 @@ void main() {
         'longest': 9,
         'todayCount': 3,
         'dailyGoal': 10,
+        'dailyNewLimit': 5,
+        'dueCount': 4,
+        'newCount': 3,
+        'estimatedMinutes': 4,
         'goalMet': false,
       });
       expect(s.current, 5);
       expect(s.longest, 9);
       expect(s.todayCount, 3);
       expect(s.dailyGoal, 10);
+      expect(s.dailyNewLimit, 5);
+      expect(s.dueCount, 4);
+      expect(s.newCount, 3);
+      expect(s.estimatedMinutes, 4);
       expect(s.goalMet, isFalse);
     });
 

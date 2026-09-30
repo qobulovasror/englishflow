@@ -18,7 +18,14 @@ describe('LearningController', () => {
 
   it('getDailyWords delegates to the service with the user id', () => {
     controller.getDailyWords(user);
-    expect(service.getDailyWords).toHaveBeenCalledWith('u1');
+    expect(service.getDailyWords).toHaveBeenCalledWith('u1', 0);
+  });
+
+  it('forwards a valid timezone offset and defaults an invalid one to UTC', () => {
+    controller.getDailyWords(user, '300');
+    expect(service.getDailyWords).toHaveBeenCalledWith('u1', 300);
+    controller.getDailyWords(user, 'invalid');
+    expect(service.getDailyWords).toHaveBeenLastCalledWith('u1', 0);
   });
 
   it('reviewWord forwards the dto and user id', () => {

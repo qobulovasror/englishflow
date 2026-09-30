@@ -35,6 +35,8 @@ model User {
   // How many reviews the user aims to complete each day; drives the streak's
   // goalMet flag. Editable via PATCH /users/me without re-entering the password.
   dailyGoal         Int      @default(20)
+  // Number of first-seen words to introduce to the learner each local day.
+  dailyNewLimit     Int      @default(10)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -224,6 +226,9 @@ model UserWord {
   nextReviewAt    DateTime?
   lapses          Int       @default(0)
   lastReviewedAt  DateTime?
+  // Set the first time this card is presented, used to enforce a true per-day
+  // new-word limit across repeated /daily requests and app sessions.
+  introducedAt    DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -238,6 +243,7 @@ model UserWord {
   @@index([wordId])
   @@index([status])
   @@index([userId, nextReviewAt])
+  @@index([userId, introducedAt])
   // Progress counts filter per-user by status.
   @@index([userId, status])
   @@map("user_words")

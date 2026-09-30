@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { shuffle } from '../../common/utils/shuffle';
 import { SubmitTestDto } from './dto/submit-test.dto';
@@ -175,7 +176,9 @@ export class TestsService {
     );
   }
 
-  private submittedResult(test: any): SubmitTestResponseDto {
+  private submittedResult(
+    test: Prisma.TestGetPayload<{ include: { questions: true } }>,
+  ): SubmitTestResponseDto {
     const score = test.score;
     const total = test.questions.length;
     return plainToInstance(
@@ -185,7 +188,7 @@ export class TestsService {
         score,
         total,
         percentage: total > 0 ? Math.round((score / total) * 100) : 0,
-        questions: test.questions.map((q: any) => ({
+        questions: test.questions.map((q) => ({
           id: q.id,
           wordId: q.wordId,
           selectedAnswer: q.selectedAnswer,

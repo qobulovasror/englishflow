@@ -151,6 +151,7 @@ function handleEmailReset() {
 
 // ── Daily goal ──────────────────────────────────────────────────────────────
 const goalDraft = ref('')
+const newLimitDraft = ref('')
 const goalError = ref<string | null>(null)
 const goalServerError = ref<string | null>(null)
 const goalSuccess = ref<string | null>(null)
@@ -160,12 +161,16 @@ watch(
   user,
   (next) => {
     goalDraft.value = String(next?.dailyGoal ?? 20)
+    newLimitDraft.value = String(next?.dailyNewLimit ?? 10)
   },
   { immediate: true },
 )
 
 const isGoalDirty = computed(
-  () => goalDraft.value.trim() !== '' && Number(goalDraft.value) !== user.value?.dailyGoal,
+  () =>
+    (goalDraft.value.trim() !== '' && Number(goalDraft.value) !== user.value?.dailyGoal) ||
+    (newLimitDraft.value.trim() !== '' &&
+      Number(newLimitDraft.value) !== user.value?.dailyNewLimit),
 )
 
 async function handleGoalSubmit() {
@@ -178,12 +183,17 @@ async function handleGoalSubmit() {
     goalError.value = 'Daily goal must be a whole number between 1 and 200'
     return
   }
-  if (value === user.value?.dailyGoal) return
+  const newLimit = Number(newLimitDraft.value)
+  if (!Number.isInteger(newLimit) || newLimit < 1 || newLimit > 50) {
+    goalError.value = 'New words per day must be a whole number between 1 and 50'
+    return
+  }
+  if (value === user.value?.dailyGoal && newLimit === user.value?.dailyNewLimit) return
 
   goalSubmitting.value = true
   try {
-    await authStore.updateProfile({ dailyGoal: value })
-    goalSuccess.value = 'Daily goal updated'
+    await authStore.updateProfile({ dailyGoal: value, dailyNewLimit: newLimit })
+    goalSuccess.value = 'Daily study plan updated'
   } catch (e) {
     goalServerError.value = extractErrorMessage(e, 'Failed to update daily goal')
   } finally {
@@ -386,10 +396,10 @@ async function handlePasswordSubmit() {
         </form>
       </AppCard>
 
-      <AppCard title="Daily goal" class="mb-6">
+      <AppCard title="Daily study plan" class="mb-6">
         <form @submit.prevent="handleGoalSubmit" class="space-y-4">
           <p class="text-sm text-gray-500 dark:text-gray-400">
-            How many words you aim to review each day. Used for your streak and dashboard progress.
+            Set a comfortable review target and the number of new words introduced each local day.
           </p>
 
           <AppInput
@@ -398,6 +408,13 @@ async function handlePasswordSubmit() {
             type="number"
             placeholder="20"
             :error="goalError ?? ''"
+            required
+          />
+          <AppInput
+            v-model="newLimitDraft"
+            label="New words per day (1–50)"
+            type="number"
+            placeholder="10"
             required
           />
 
@@ -414,7 +431,7 @@ async function handlePasswordSubmit() {
             :loading="goalSubmitting"
             :disabled="!isGoalDirty || goalSubmitting"
           >
-            Save goal
+            Save plan
           </AppButton>
         </form>
       </AppCard>

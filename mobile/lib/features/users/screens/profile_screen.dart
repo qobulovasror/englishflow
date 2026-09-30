@@ -26,6 +26,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _newPwController = TextEditingController();
   final _confirmPwController = TextEditingController();
   final _goalController = TextEditingController();
+  final _newLimitController = TextEditingController();
   final _deleteFormKey = GlobalKey<FormState>();
   final _deletePwController = TextEditingController();
 
@@ -50,6 +51,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _newPwController.dispose();
     _confirmPwController.dispose();
     _goalController.dispose();
+    _newLimitController.dispose();
     _deletePwController.dispose();
     super.dispose();
   }
@@ -59,6 +61,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (cached != null) {
       _emailController.text = cached.email;
       _goalController.text = (cached.dailyGoal ?? 20).toString();
+      _newLimitController.text = (cached.dailyNewLimit ?? 10).toString();
     }
     try {
       final fresh = await ref.read(authProvider.notifier).fetchMe();
@@ -67,6 +70,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         _emailController.text = fresh.email;
       }
       _goalController.text = (fresh.dailyGoal ?? 20).toString();
+      _newLimitController.text = (fresh.dailyNewLimit ?? 10).toString();
     } catch (_) {
       // SnackbarUtils intentionally not shown for the silent load;
       // the cached user is still displayed.
@@ -141,23 +145,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _submitGoal() async {
     if (!(_goalFormKey.currentState?.validate() ?? false)) return;
     final goal = int.parse(_goalController.text.trim());
-    final current = ref.read(authProvider).user?.dailyGoal;
-    if (goal == current) {
-      SnackbarUtils.showInfo(context, 'Daily goal is unchanged');
+    final newLimit = int.parse(_newLimitController.text.trim());
+    final current = ref.read(authProvider).user;
+    if (goal == current?.dailyGoal && newLimit == current?.dailyNewLimit) {
+      SnackbarUtils.showInfo(context, 'Daily plan is unchanged');
       return;
     }
 
     setState(() => _goalSubmitting = true);
     try {
-      await ref.read(authProvider.notifier).updateDailyGoal(goal);
+      await ref.read(authProvider.notifier).updateStudyPlan(
+            dailyGoal: goal,
+            dailyNewLimit: newLimit,
+          );
       if (!mounted) return;
-      SnackbarUtils.showSuccess(context, 'Daily goal updated');
+      SnackbarUtils.showSuccess(context, 'Daily plan updated');
     } on ApiException catch (e) {
       if (!mounted) return;
       SnackbarUtils.showError(context, e.message);
     } catch (e) {
       if (!mounted) return;
-      SnackbarUtils.showError(context, 'Failed to update daily goal');
+      SnackbarUtils.showError(context, 'Failed to update daily plan');
     } finally {
       if (mounted) setState(() => _goalSubmitting = false);
     }
@@ -253,8 +261,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider.select((s) => s.user));
-    final isLoadingProfile =
-        !_initialFetchAttempted && user == null;
+    final isLoadingProfile = !_initialFetchAttempted && user == null;
 
     return Scaffold(
       appBar: AppBar(
@@ -278,14 +285,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _AccountCard(user: user),
                     const SizedBox(height: 16),
                     _SectionCard(
-                      title: 'Daily goal',
+                      title: 'Daily study plan',
                       child: Form(
                         key: _goalFormKey,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Cards to review per day (1–200).',
+                              'Choose your review goal and how many new words to start each day.',
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall
@@ -294,14 +301,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             const SizedBox(height: 12),
                             AppTextField(
                               controller: _goalController,
-                              label: 'Daily goal',
+                              label: 'Reviews per day (1–200)',
                               keyboardType: TextInputType.number,
                               prefixIcon: Icons.flag_outlined,
                               validator: _validateGoal,
                             ),
+                            const SizedBox(height: 12),
+                            AppTextField(
+                              controller: _newLimitController,
+                              label: 'New words per day (1–50)',
+                              keyboardType: TextInputType.number,
+                              prefixIcon: Icons.fiber_new_outlined,
+                              validator: (value) {
+                                final n = int.tryParse(value?.trim() ?? '');
+                                if (n == null || n < 1 || n > 50)
+                                  return 'Choose 1 to 50 words';
+                                return null;
+                              },
+                            ),
                             const SizedBox(height: 16),
                             AppButton(
-                              text: 'Save goal',
+                              text: 'Save plan',
                               isLoading: _goalSubmitting,
                               onPressed: _goalSubmitting ? null : _submitGoal,
                             ),
@@ -358,7 +378,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               label: 'Current password',
                               obscureText: true,
                               prefixIcon: Icons.lock_outline,
-                              validator: (v) => Validators.required(v, 'Current password'),
+                              validator: (v) =>
+                                  Validators.required(v, 'Current password'),
                             ),
                             const SizedBox(height: 12),
                             AppTextField(
@@ -460,9 +481,8 @@ class _AccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final created = user?.createdAt as DateTime?;
-    final memberSince = created != null
-        ? DateFormat.yMMMMd().format(created.toLocal())
-        : '—';
+    final memberSince =
+        created != null ? DateFormat.yMMMMd().format(created.toLocal()) : '—';
 
     return _SectionCard(
       title: 'Account',

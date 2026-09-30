@@ -31,6 +31,18 @@ export class UpdateUserDto {
   dailyGoal?: number;
 
   @ApiPropertyOptional({
+    example: 10,
+    minimum: 1,
+    maximum: 50,
+    description: 'Maximum new words introduced per local day (1–50).',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  dailyNewLimit?: number;
+
+  @ApiPropertyOptional({
     example: 'CurrentPass123!',
     description:
       'The current password — required only when changing email, to prevent ' +

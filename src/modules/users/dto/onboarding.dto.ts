@@ -6,6 +6,9 @@ import {
   IsEnum,
   IsOptional,
   IsUUID,
+  IsInt,
+  Max,
+  Min,
 } from 'class-validator';
 
 export class OnboardingDto {
@@ -25,4 +28,18 @@ export class OnboardingDto {
   @ArrayMaxSize(20)
   @IsUUID('all', { each: true })
   deckIds?: string[];
+
+  @ApiPropertyOptional({ example: 20, minimum: 1, maximum: 200 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  dailyGoal?: number;
+
+  @ApiPropertyOptional({ example: 10, minimum: 1, maximum: 50 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  dailyNewLimit?: number;
 }

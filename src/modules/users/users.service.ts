@@ -60,10 +60,11 @@ export class UsersService {
   async update(id: string, dto: UpdateUserDto) {
     const wantsEmailChange = dto.email !== undefined;
     const wantsGoalChange = dto.dailyGoal !== undefined;
+    const wantsNewLimitChange = dto.dailyNewLimit !== undefined;
 
     // Nothing to change — return the current row unmodified rather than
     // doing a no-op UPDATE.
-    if (!wantsEmailChange && !wantsGoalChange) {
+    if (!wantsEmailChange && !wantsGoalChange && !wantsNewLimitChange) {
       return this.findByIdOrThrow(id);
     }
 
@@ -74,7 +75,10 @@ export class UsersService {
     if (!wantsEmailChange) {
       return this.prisma.user.update({
         where: { id },
-        data: { dailyGoal: dto.dailyGoal },
+        data: {
+          ...(wantsGoalChange ? { dailyGoal: dto.dailyGoal } : {}),
+          ...(wantsNewLimitChange ? { dailyNewLimit: dto.dailyNewLimit } : {}),
+        },
       });
     }
 
@@ -88,12 +92,17 @@ export class UsersService {
 
     const nextEmail = UsersService.normalizeEmail(dto.email as string);
 
-    // Email unchanged: only a dailyGoal update (if any) remains to apply.
+    // Email unchanged: only study preferences (if any) remain to apply.
     if (nextEmail === user.email) {
-      if (wantsGoalChange) {
+      if (wantsGoalChange || wantsNewLimitChange) {
         return this.prisma.user.update({
           where: { id },
-          data: { dailyGoal: dto.dailyGoal },
+          data: {
+            ...(wantsGoalChange ? { dailyGoal: dto.dailyGoal } : {}),
+            ...(wantsNewLimitChange
+              ? { dailyNewLimit: dto.dailyNewLimit }
+              : {}),
+          },
         });
       }
       return user;
@@ -102,7 +111,7 @@ export class UsersService {
     try {
       // Email change is a security-sensitive event (account recovery uses email).
       // Bump `passwordChangedAt` and revoke refresh tokens so old sessions can't
-      // continue under the new identity. Fold in any dailyGoal change too.
+      // continue under the new identity. Fold in preference changes too.
       const [updated] = await this.prisma.$transaction([
         this.prisma.user.update({
           where: { id },
@@ -110,6 +119,9 @@ export class UsersService {
             email: nextEmail,
             passwordChangedAt: new Date(),
             ...(wantsGoalChange ? { dailyGoal: dto.dailyGoal } : {}),
+            ...(wantsNewLimitChange
+              ? { dailyNewLimit: dto.dailyNewLimit }
+              : {}),
           },
         }),
         this.prisma.refreshToken.deleteMany({ where: { userId: id } }),
@@ -167,6 +179,8 @@ export class UsersService {
       where: { id },
       data: {
         level: dto.level ?? undefined,
+        dailyGoal: dto.dailyGoal ?? undefined,
+        dailyNewLimit: dto.dailyNewLimit ?? undefined,
         onboardedAt: new Date(),
       },
     });

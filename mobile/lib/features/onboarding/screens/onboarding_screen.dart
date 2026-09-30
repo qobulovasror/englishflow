@@ -25,6 +25,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _step = 1;
+  int _dailyGoal = 20;
+  int _dailyNewLimit = 10;
   String? _level;
   List<DeckModel> _decks = [];
   final Set<String> _selected = {};
@@ -41,7 +43,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       final service = ref.read(decksServiceProvider);
       var decks = await service.list(level: level);
       if (decks.isEmpty) decks = await service.list();
-      setState(() => _decks = decks);
+      if (mounted) setState(() => _decks = decks);
     } catch (_) {
       if (mounted) {
         SnackbarUtils.showError(context, 'Could not load decks. You can skip.');
@@ -57,6 +59,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       await ref.read(authProvider.notifier).completeOnboarding(
             level: skip ? null : _level,
             deckIds: skip ? const [] : _selected.toList(),
+            dailyGoal: skip ? 20 : _dailyGoal,
+            dailyNewLimit: skip ? 10 : _dailyNewLimit,
           );
       if (mounted) context.go('/home');
     } catch (e) {
@@ -70,11 +74,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_step == 1 ? 'Your level' : 'Pick decks'),
-        leading: _step == 2
+        title: Text(_step == 1
+            ? 'Your level'
+            : _step == 2
+                ? 'Pick decks'
+                : 'Daily pace'),
+        leading: _step > 1
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => setState(() => _step = 1),
+                onPressed: () => setState(() => _step -= 1),
               )
             : null,
         actions: [
@@ -84,7 +92,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
         ],
       ),
-      body: _step == 1 ? _buildLevelStep() : _buildDeckStep(),
+      body: _step == 1
+          ? _buildLevelStep()
+          : _step == 2
+              ? _buildDeckStep()
+              : _buildPreferencesStep(),
     );
   }
 
@@ -99,7 +111,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         children: [
           for (final lvl in _levels)
             OutlinedButton(
-              onPressed: () => _chooseLevel(lvl.key),
+              onPressed: _loadingDecks ? null : () => _chooseLevel(lvl.key),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -134,9 +146,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   value: checked,
                   activeColor: AppColors.primary,
                   title: Text(deck.title),
-                  subtitle: Text('${deck.wordCount} words · ${deck.level ?? '—'}'),
+                  subtitle:
+                      Text('${deck.wordCount} words · ${deck.level ?? '—'}'),
                   onChanged: (_) => setState(() {
-                    checked ? _selected.remove(deck.id) : _selected.add(deck.id);
+                    checked
+                        ? _selected.remove(deck.id)
+                        : _selected.add(deck.id);
                   }),
                 ),
               );
@@ -149,19 +164,61 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: _selected.isEmpty || _submitting
-                    ? null
-                    : () => _finish(skip: false),
+                onPressed: _submitting ? null : () => setState(() => _step = 3),
                 child: _submitting
                     ? const SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text('Start learning (${_selected.length})'),
+                    : const Text('Choose daily pace'),
               ),
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPreferencesStep() {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        const Text(
+          'Choose a small daily target that fits your routine. You can change it later in your profile.',
+          style: TextStyle(fontSize: 16),
+        ),
+        const SizedBox(height: 20),
+        DropdownButtonFormField<int>(
+          value: _dailyGoal,
+          decoration: const InputDecoration(labelText: 'Daily review goal'),
+          items: [5, 10, 15, 20, 30]
+              .map((n) => DropdownMenuItem(
+                    value: n,
+                    child: Text('$n cards (~${(n / 2).ceil()}–$n min)'),
+                  ))
+              .toList(),
+          onChanged: (value) => setState(() => _dailyGoal = value ?? 20),
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<int>(
+          value: _dailyNewLimit,
+          decoration: const InputDecoration(labelText: 'New words per day'),
+          items: [5, 10, 15, 20]
+              .map((n) => DropdownMenuItem(value: n, child: Text('$n words')))
+              .toList(),
+          onChanged: (value) => setState(() => _dailyNewLimit = value ?? 10),
+        ),
+        const SizedBox(height: 28),
+        FilledButton(
+          onPressed: _submitting ? null : () => _finish(skip: false),
+          child: _submitting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : Text(
+                  'Start learning${_selected.isEmpty ? '' : ' (${_selected.length} decks)'}'),
         ),
       ],
     );

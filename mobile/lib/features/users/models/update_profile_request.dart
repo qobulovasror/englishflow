@@ -6,16 +6,19 @@ class UpdateProfileRequest {
   final String? currentPassword;
   // Number of cards the user aims to review per day (1–200).
   final int? dailyGoal;
+  final int? dailyNewLimit;
 
   const UpdateProfileRequest({
     this.email,
     this.currentPassword,
     this.dailyGoal,
+    this.dailyNewLimit,
   });
 
   Map<String, dynamic> toJson() => {
         if (email != null) 'email': email,
         if (currentPassword != null) 'currentPassword': currentPassword,
         if (dailyGoal != null) 'dailyGoal': dailyGoal,
+        if (dailyNewLimit != null) 'dailyNewLimit': dailyNewLimit,
       };
 }

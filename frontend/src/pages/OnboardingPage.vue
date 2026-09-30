@@ -19,7 +19,9 @@ const LEVELS: { value: CefrLevel; label: string }[] = [
   { value: 'C2', label: 'C2 · Proficient' },
 ]
 
-const step = ref<1 | 2>(1)
+const step = ref<1 | 2 | 3>(1)
+const dailyGoal = ref(20)
+const dailyNewLimit = ref(10)
 const selectedLevel = ref<CefrLevel | null>(null)
 const decks = ref<Deck[]>([])
 const selectedDeckIds = ref<Set<string>>(new Set())
@@ -58,6 +60,8 @@ async function finish() {
     await authStore.completeOnboarding({
       level: selectedLevel.value ?? undefined,
       deckIds: [...selectedDeckIds.value],
+      dailyGoal: dailyGoal.value,
+      dailyNewLimit: dailyNewLimit.value,
     })
     router.push('/learn')
   } catch {
@@ -87,7 +91,13 @@ async function skip() {
       <div class="text-center mb-8">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Welcome to EnglishFlow</h1>
         <p class="text-gray-500 dark:text-gray-400 mt-2">
-          {{ step === 1 ? "Let's start with your level" : 'Pick a few decks to learn' }}
+          {{
+            step === 1
+              ? "Let's start with your level"
+              : step === 2
+                ? 'Pick a deck to learn'
+                : 'Choose a comfortable daily pace'
+          }}
         </p>
       </div>
 
@@ -115,7 +125,7 @@ async function skip() {
       </AppCard>
 
       <!-- Step 2: decks -->
-      <AppCard v-else>
+      <AppCard v-else-if="step === 2">
         <p v-if="error" class="mb-4 text-sm text-red-500">{{ error }}</p>
         <div v-if="loadingDecks" class="py-12 text-center text-gray-400">Loading decks…</div>
         <div v-else class="space-y-3 max-h-[50vh] overflow-y-auto">
@@ -172,10 +182,42 @@ async function skip() {
             >
               Skip
             </button>
-            <AppButton :loading="submitting" :disabled="selectedDeckIds.size === 0" @click="finish">
-              Start learning ({{ selectedDeckIds.size }})
-            </AppButton>
+            <AppButton :loading="submitting" @click="step = 3"> Choose daily pace </AppButton>
           </div>
+        </div>
+      </AppCard>
+
+      <AppCard v-else>
+        <p class="mb-6 text-sm text-gray-600 dark:text-gray-300">
+          A small, steady session is easier to keep. You can change these later in your profile.
+        </p>
+        <label class="block mb-5">
+          <span class="block text-sm font-medium mb-2">Daily review goal</span>
+          <select
+            v-model.number="dailyGoal"
+            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
+          >
+            <option v-for="n in [5, 10, 15, 20, 30]" :key="n" :value="n">
+              {{ n }} cards (about {{ Math.ceil(n / 2) }}–{{ n }} min)
+            </option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="block text-sm font-medium mb-2">New words per day</span>
+          <select
+            v-model.number="dailyNewLimit"
+            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
+          >
+            <option v-for="n in [5, 10, 15, 20]" :key="n" :value="n">{{ n }} new words</option>
+          </select>
+        </label>
+        <div class="mt-6 flex items-center justify-between gap-3">
+          <button class="text-sm text-gray-500 hover:underline" @click="step = 2">Back</button>
+          <AppButton :loading="submitting" @click="finish">
+            Start learning<span v-if="selectedDeckIds.size">
+              ({{ selectedDeckIds.size }} decks)</span
+            >
+          </AppButton>
         </div>
       </AppCard>
     </div>

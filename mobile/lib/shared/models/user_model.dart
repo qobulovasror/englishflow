@@ -7,6 +7,7 @@ class UserModel extends Equatable {
   final String? level;
   // Number of cards the user aims to review per day.
   final int? dailyGoal;
+  final int? dailyNewLimit;
   // Null until the user finishes or skips onboarding.
   final DateTime? onboardedAt;
   // Null until the user confirms their email address.
@@ -19,6 +20,7 @@ class UserModel extends Equatable {
     this.role,
     this.level,
     this.dailyGoal,
+    this.dailyNewLimit,
     this.onboardedAt,
     this.emailVerifiedAt,
     this.createdAt,
@@ -37,6 +39,7 @@ class UserModel extends Equatable {
       role: json['role']?.toString(),
       level: json['level']?.toString(),
       dailyGoal: (json['dailyGoal'] as num?)?.toInt(),
+      dailyNewLimit: (json['dailyNewLimit'] as num?)?.toInt(),
       onboardedAt: json['onboardedAt'] != null
           ? DateTime.tryParse(json['onboardedAt'].toString())
           : null,
@@ -56,6 +59,7 @@ class UserModel extends Equatable {
       if (role != null) 'role': role,
       if (level != null) 'level': level,
       if (dailyGoal != null) 'dailyGoal': dailyGoal,
+      if (dailyNewLimit != null) 'dailyNewLimit': dailyNewLimit,
       if (onboardedAt != null) 'onboardedAt': onboardedAt!.toIso8601String(),
       if (emailVerifiedAt != null)
         'emailVerifiedAt': emailVerifiedAt!.toIso8601String(),
@@ -70,6 +74,7 @@ class UserModel extends Equatable {
         role,
         level,
         dailyGoal,
+        dailyNewLimit,
         onboardedAt,
         emailVerifiedAt,
         createdAt,

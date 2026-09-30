@@ -16,7 +16,12 @@ class ProgressService {
 
   Future<ProgressStats> getProgress() async {
     try {
-      final response = await _dio.get(ApiEndpoints.progress);
+      final response = await _dio.get(
+        ApiEndpoints.progress,
+        queryParameters: {
+          'tzOffsetMinutes': DateTime.now().timeZoneOffset.inMinutes,
+        },
+      );
       return ProgressStats.fromJson(response.data);
     } on DioException catch (e) {
       throw _toApiException(e, 'Failed to load progress');

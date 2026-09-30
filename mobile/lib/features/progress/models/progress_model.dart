@@ -6,6 +6,10 @@ class StreakInfo extends Equatable {
   final int longest;
   final int todayCount;
   final int dailyGoal;
+  final int dailyNewLimit;
+  final int dueCount;
+  final int newCount;
+  final int estimatedMinutes;
   final bool goalMet;
 
   const StreakInfo({
@@ -13,6 +17,10 @@ class StreakInfo extends Equatable {
     this.longest = 0,
     this.todayCount = 0,
     this.dailyGoal = 0,
+    this.dailyNewLimit = 10,
+    this.dueCount = 0,
+    this.newCount = 0,
+    this.estimatedMinutes = 0,
     this.goalMet = false,
   });
 
@@ -26,12 +34,26 @@ class StreakInfo extends Equatable {
       longest: json['longest'] ?? 0,
       todayCount: json['todayCount'] ?? 0,
       dailyGoal: json['dailyGoal'] ?? 0,
+      dailyNewLimit: json['dailyNewLimit'] ?? 10,
+      dueCount: json['dueCount'] ?? 0,
+      newCount: json['newCount'] ?? 0,
+      estimatedMinutes: json['estimatedMinutes'] ?? 0,
       goalMet: json['goalMet'] ?? false,
     );
   }
 
   @override
-  List<Object?> get props => [current, longest, todayCount, dailyGoal, goalMet];
+  List<Object?> get props => [
+        current,
+        longest,
+        todayCount,
+        dailyGoal,
+        dailyNewLimit,
+        dueCount,
+        newCount,
+        estimatedMinutes,
+        goalMet
+      ];
 }
 
 class ProgressStats extends Equatable {

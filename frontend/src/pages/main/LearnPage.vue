@@ -17,11 +17,31 @@ const currentWord = computed(() => learningStore.dailyWords[currentIndex.value] 
 const isFinished = computed(() => learningStore.dailyWords.length === 0 && !learningStore.loading)
 
 // Four-button SM-2 grading. Colour goes red → green by recall confidence.
-const ratings: { value: Rating; label: string; classes: string }[] = [
-  { value: 'AGAIN', label: 'Again', classes: 'bg-red-500 hover:bg-red-600 text-white' },
-  { value: 'HARD', label: 'Hard', classes: 'bg-amber-500 hover:bg-amber-600 text-white' },
-  { value: 'GOOD', label: 'Good', classes: 'bg-green-500 hover:bg-green-600 text-white' },
-  { value: 'EASY', label: 'Easy', classes: 'bg-blue-500 hover:bg-blue-600 text-white' },
+const ratings: { value: Rating; label: string; classes: string; description: string }[] = [
+  {
+    value: 'AGAIN',
+    label: 'Again',
+    classes: 'bg-red-500 hover:bg-red-600 text-white',
+    description: 'I could not remember',
+  },
+  {
+    value: 'HARD',
+    label: 'Hard',
+    classes: 'bg-amber-500 hover:bg-amber-600 text-white',
+    description: 'I remembered with effort',
+  },
+  {
+    value: 'GOOD',
+    label: 'Good',
+    classes: 'bg-green-500 hover:bg-green-600 text-white',
+    description: 'I remembered correctly',
+  },
+  {
+    value: 'EASY',
+    label: 'Easy',
+    classes: 'bg-blue-500 hover:bg-blue-600 text-white',
+    description: 'I remembered instantly',
+  },
 ]
 
 onMounted(() => {
@@ -77,11 +97,15 @@ onBeforeUnmount(() => {
 
     <div v-else-if="isFinished" class="text-center py-16">
       <div class="text-6xl mb-4">&#127881;</div>
-      <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">All done for today!</h3>
+      <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
+        This study batch is complete
+      </h3>
       <p class="text-gray-500 dark:text-gray-400 mt-2">
-        You've reviewed all your words. Come back tomorrow!
+        Check for more overdue reviews, or take a break and come back later.
       </p>
-      <AppButton class="mt-6" @click="learningStore.fetchDailyWords()"> Refresh </AppButton>
+      <AppButton class="mt-6" @click="learningStore.fetchDailyWords()">
+        Check for more reviews
+      </AppButton>
     </div>
 
     <div v-else-if="currentWord" class="max-w-lg mx-auto">
@@ -153,6 +177,8 @@ onBeforeUnmount(() => {
               :disabled="submitting"
               class="py-2 rounded-lg font-medium text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
               :class="r.classes"
+              :title="r.description"
+              :aria-label="`${r.label}: ${r.description}`"
               @click="handleReview(r.value)"
             >
               {{ r.label }}

@@ -26,6 +26,7 @@ export interface StoredUser {
   passwordChangedAt: Date;
   emailVerifiedAt: Date | null;
   dailyGoal: number;
+  dailyNewLimit: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,8 +69,12 @@ export interface StoredUserWord {
   wordId: string;
   status: WordStatus;
   repetitionCount: number;
+  easeFactor: number;
+  interval: number;
+  nextReviewAt: Date | null;
   lapses: number;
   lastReviewedAt: Date | null;
+  introducedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -188,6 +193,7 @@ export function buildPrismaStub() {
         passwordChangedAt: now,
         emailVerifiedAt: data.emailVerifiedAt ?? null,
         dailyGoal: data.dailyGoal ?? 20,
+        dailyNewLimit: data.dailyNewLimit ?? 10,
         createdAt: now,
         updatedAt: now,
       };
@@ -381,8 +387,12 @@ export function buildPrismaStub() {
         wordId: data.wordId,
         status: data.status ?? WordStatus.NEW,
         repetitionCount: data.repetitionCount ?? 0,
+        easeFactor: data.easeFactor ?? 2.5,
+        interval: data.interval ?? 0,
+        nextReviewAt: data.nextReviewAt ?? null,
         lapses: data.lapses ?? 0,
         lastReviewedAt: data.lastReviewedAt ?? null,
+        introducedAt: data.introducedAt ?? null,
         createdAt: now,
         updatedAt: now,
       };
@@ -409,6 +419,26 @@ export function buildPrismaStub() {
       if (where.status?.in) {
         const allowed: WordStatus[] = where.status.in;
         list = list.filter((uw) => allowed.includes(uw.status));
+      }
+      if (where.nextReviewAt === null) {
+        list = list.filter((uw) => uw.nextReviewAt === null);
+      } else if (where.nextReviewAt?.lte) {
+        list = list.filter(
+          (uw) =>
+            uw.nextReviewAt !== null &&
+            uw.nextReviewAt <= where.nextReviewAt.lte,
+        );
+      }
+      if (where.introducedAt === null) {
+        list = list.filter((uw) => uw.introducedAt === null);
+      } else if (where.introducedAt?.gte) {
+        list = list.filter(
+          (uw) =>
+            uw.introducedAt !== null &&
+            uw.introducedAt >= where.introducedAt.gte,
+        );
+      } else if (where.introducedAt?.not === null) {
+        list = list.filter((uw) => uw.introducedAt !== null);
       }
       if (where.wordId?.in) {
         const ids: string[] = where.wordId.in;
@@ -461,13 +491,50 @@ export function buildPrismaStub() {
       if (args.where?.userId) {
         list = list.filter((uw) => uw.userId === args.where.userId);
       }
-      if (args.where?.wordId) {
+      if (args.where?.wordId?.in) {
+        list = list.filter((uw) => args.where.wordId.in.includes(uw.wordId));
+      } else if (args.where?.wordId) {
         list = list.filter((uw) => uw.wordId === args.where.wordId);
+      }
+      if (args.where?.introducedAt?.gte) {
+        list = list.filter(
+          (uw) =>
+            uw.introducedAt !== null &&
+            uw.introducedAt >= args.where.introducedAt.gte,
+        );
+      } else if (args.where?.introducedAt?.not === null) {
+        list = list.filter((uw) => uw.introducedAt !== null);
+      } else if (args.where?.introducedAt === null) {
+        list = list.filter((uw) => uw.introducedAt === null);
+      }
+      if (args.where?.nextReviewAt?.not === null) {
+        list = list.filter(
+          (uw) =>
+            uw.nextReviewAt !== null &&
+            uw.nextReviewAt <= args.where.nextReviewAt.lte,
+        );
+      } else if (args.where?.nextReviewAt === null) {
+        list = list.filter((uw) => uw.nextReviewAt === null);
       }
       if (args.where?.status) {
         list = list.filter((uw) => uw.status === args.where.status);
       }
       return list.length;
+    }),
+    updateMany: jest.fn(async ({ where, data }: any) => {
+      let count = 0;
+      for (const [id, uw] of userWords) {
+        const idMatches =
+          !where.id ||
+          (where.id.in ? where.id.in.includes(id) : where.id === id);
+        const introductionMatches =
+          where.introducedAt !== null || uw.introducedAt === null;
+        if (idMatches && introductionMatches) {
+          userWords.set(id, { ...uw, ...data, updatedAt: new Date() });
+          count++;
+        }
+      }
+      return { count };
     }),
     update: jest.fn(async ({ where, data }: any) => {
       const existing = userWords.get(where.id);

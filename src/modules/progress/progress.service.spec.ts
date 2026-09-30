@@ -24,7 +24,11 @@ describe('ProgressService', () => {
         count: jest.fn().mockResolvedValue(0),
         aggregate: jest.fn().mockResolvedValue({ _avg: { score: null } }),
       },
-      user: { findUnique: jest.fn().mockResolvedValue({ dailyGoal: 20 }) },
+      user: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ dailyGoal: 20, dailyNewLimit: 10 }),
+      },
       review: {
         count: jest.fn().mockResolvedValue(0),
         findMany: jest.fn().mockResolvedValue([]),
@@ -49,6 +53,10 @@ describe('ProgressService', () => {
       longest: 0,
       todayCount: 0,
       dailyGoal: 20,
+      dailyNewLimit: 10,
+      dueCount: 0,
+      newCount: 0,
+      estimatedMinutes: 0,
       goalMet: false,
     });
   });

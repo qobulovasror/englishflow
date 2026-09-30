@@ -70,12 +70,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<UserModel> completeOnboarding({
     String? level,
     required List<String> deckIds,
+    required int dailyGoal,
+    required int dailyNewLimit,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final user = await _usersService.completeOnboarding(
         level: level,
         deckIds: deckIds,
+        dailyGoal: dailyGoal,
+        dailyNewLimit: dailyNewLimit,
       );
       await _tokenStorage.saveUserData(jsonEncode(user.toJson()));
       state = state.copyWith(user: user, isLoading: false);
@@ -92,7 +96,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final response = await _authService.login(
         LoginRequest(email: email, password: password),
       );
-      await _persistSession(response.accessToken, response.refreshToken, response.user);
+      await _persistSession(
+          response.accessToken, response.refreshToken, response.user);
       state = state.copyWith(
         token: response.accessToken,
         user: response.user,
@@ -112,7 +117,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final response = await _authService.register(
         RegisterRequest(email: email, password: password),
       );
-      await _persistSession(response.accessToken, response.refreshToken, response.user);
+      await _persistSession(
+          response.accessToken, response.refreshToken, response.user);
       state = state.copyWith(
         token: response.accessToken,
         user: response.user,
@@ -162,11 +168,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Updates only the daily goal (no current password required). Persists and
   /// syncs the refreshed user into state.
-  Future<UserModel> updateDailyGoal(int dailyGoal) async {
+  Future<UserModel> updateStudyPlan({
+    required int dailyGoal,
+    required int dailyNewLimit,
+  }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final updated = await _usersService.updateMe(
-        UpdateProfileRequest(dailyGoal: dailyGoal),
+        UpdateProfileRequest(
+            dailyGoal: dailyGoal, dailyNewLimit: dailyNewLimit),
       );
       await _tokenStorage.saveUserData(jsonEncode(updated.toJson()));
       state = state.copyWith(user: updated, isLoading: false);

@@ -6,10 +6,13 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Rating } from '../../common/utils/sm2';
 
 type MockedPrisma = {
+  user: { findUnique: jest.Mock };
   userWord: {
     findMany: jest.Mock;
     findFirst: jest.Mock;
     update: jest.Mock;
+    updateMany: jest.Mock;
+    count: jest.Mock;
   };
   review: {
     create: jest.Mock;
@@ -58,17 +61,19 @@ describe('LearningService', () => {
 
   beforeEach(async () => {
     prisma = {
+      user: { findUnique: jest.fn().mockResolvedValue({ dailyNewLimit: 10 }) },
       userWord: {
         findMany: jest.fn(),
         findFirst: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        count: jest.fn().mockResolvedValue(0),
       },
       review: {
         create: jest.fn().mockResolvedValue({ id: 'r1' }),
       },
-      // Supports both forms: the array form (due + new daily queries) resolves
-      // via Promise.all; the interactive form (reviewWord) is called with the
-      // stub itself as the transaction client.
+      // Interactive transactions call back with the stub itself as the
+      // transaction client.
       $transaction: jest.fn((input: unknown) =>
         typeof input === 'function'
           ? (input as (tx: MockedPrisma) => Promise<unknown>)(prisma)
@@ -95,6 +100,7 @@ describe('LearningService', () => {
             nextReviewAt: new Date('2020-01-01'),
           }),
         ])
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([
           makeUserWord({ id: 'new', status: WordStatus.NEW }),
         ]);
@@ -113,10 +119,10 @@ describe('LearningService', () => {
       );
       // New query: never-reviewed cards, capped at the daily new limit.
       expect(prisma.userWord.findMany).toHaveBeenNthCalledWith(
-        2,
+        3,
         expect.objectContaining({
-          where: { userId: 'u1', nextReviewAt: null },
-          take: 20,
+          where: { userId: 'u1', nextReviewAt: null, introducedAt: null },
+          take: 10,
         }),
       );
       expect(result.map((r) => r.id)).toEqual(['due', 'new']);
@@ -124,6 +130,7 @@ describe('LearningService', () => {
 
     it('flattens nested word data into the response shape', async () => {
       prisma.userWord.findMany
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([makeUserWord({ id: 'a', repetitionCount: 3 })]);
 
@@ -137,6 +144,56 @@ describe('LearningService', () => {
         status: WordStatus.NEW,
         repetitionCount: 3,
       });
+    });
+
+    it('applies the remaining per-day new-word allowance across repeated requests', async () => {
+      prisma.user.findUnique.mockResolvedValue({ dailyNewLimit: 10 });
+      prisma.userWord.count.mockResolvedValue(8);
+      prisma.userWord.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      prisma.userWord.findMany.mockResolvedValueOnce([]);
+
+      await service.getDailyWords('u1', 300);
+
+      expect(prisma.userWord.findMany).toHaveBeenNthCalledWith(
+        3,
+        expect.objectContaining({
+          where: { userId: 'u1', nextReviewAt: null, introducedAt: null },
+          take: 2,
+        }),
+      );
+      expect(prisma.userWord.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('returns today’s introduced but unfinished cards without spending allowance again', async () => {
+      const pending = makeUserWord({ id: 'pending' });
+      prisma.userWord.count.mockResolvedValue(10);
+      prisma.userWord.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([pending]);
+
+      const result = await service.getDailyWords('u1');
+
+      expect(result.map((card) => card.id)).toEqual(['pending']);
+      expect(prisma.userWord.findMany).toHaveBeenCalledTimes(2);
+      expect(prisma.userWord.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('retries a serializable conflict before choosing new cards', async () => {
+      const conflict = Object.assign(new Error('serialization conflict'), {
+        code: 'P2034',
+      });
+      prisma.userWord.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([makeUserWord({ id: 'new-after-retry' })]);
+      prisma.$transaction.mockRejectedValueOnce(conflict);
+
+      const result = await service.getDailyWords('u1');
+
+      expect(result.map((card) => card.id)).toEqual(['new-after-retry']);
+      expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     });
   });
 

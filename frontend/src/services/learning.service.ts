@@ -3,7 +3,9 @@ import type { DailyWord, ReviewPayload, ReviewResponse } from '@/types'
 
 export const learningService = {
   async getDailyWords(): Promise<DailyWord[]> {
-    const { data } = await api.get<DailyWord[]>('/learning/daily')
+    const { data } = await api.get<DailyWord[]>('/learning/daily', {
+      params: { tzOffsetMinutes: -new Date().getTimezoneOffset() },
+    })
     return data
   },
 

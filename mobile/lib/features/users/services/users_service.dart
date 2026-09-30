@@ -40,6 +40,8 @@ class UsersService {
   Future<UserModel> completeOnboarding({
     String? level,
     required List<String> deckIds,
+    required int dailyGoal,
+    required int dailyNewLimit,
   }) async {
     try {
       final response = await _dio.patch(
@@ -47,6 +49,8 @@ class UsersService {
         data: {
           if (level != null) 'level': level,
           'deckIds': deckIds,
+          'dailyGoal': dailyGoal,
+          'dailyNewLimit': dailyNewLimit,
         },
       );
       return UserModel.fromJson(response.data as Map<String, dynamic>);

@@ -5,10 +5,12 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -30,9 +32,23 @@ export class LearningController {
 
   @Get('daily')
   @ApiOperation({ summary: "Get today's words to review (spaced repetition)" })
+  @ApiQuery({
+    name: 'tzOffsetMinutes',
+    required: false,
+    schema: { type: 'number', minimum: -840, maximum: 840 },
+    description:
+      'Minutes east of UTC for the learner’s local day (−840 to 840).',
+  })
   @ApiSuccessResponse(DailyWordResponseDto, { isArray: true })
-  getDailyWords(@CurrentUser() user: { id: string }) {
-    return this.learningService.getDailyWords(user.id);
+  getDailyWords(
+    @CurrentUser() user: { id: string },
+    @Query('tzOffsetMinutes') tzOffset?: string,
+  ) {
+    const parsedOffset = tzOffset === undefined ? 0 : Number(tzOffset);
+    return this.learningService.getDailyWords(
+      user.id,
+      Number.isFinite(parsedOffset) ? parsedOffset : 0,
+    );
   }
 
   @Post('review')

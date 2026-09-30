@@ -28,7 +28,12 @@ class LearningService {
 
   Future<List<DailyWordModel>> getDailyWords() async {
     try {
-      final response = await _dio.get(ApiEndpoints.dailyWords);
+      final response = await _dio.get(
+        ApiEndpoints.dailyWords,
+        queryParameters: {
+          'tzOffsetMinutes': DateTime.now().timeZoneOffset.inMinutes,
+        },
+      );
       final data = response.data as List;
       return data.map((json) => DailyWordModel.fromJson(json)).toList();
     } on DioException catch (e) {

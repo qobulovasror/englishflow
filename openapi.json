@@ -1806,7 +1806,19 @@
       "get": {
         "operationId": "LearningController_getDailyWords",
         "summary": "Get today's words to review (spaced repetition)",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "tzOffsetMinutes",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "minimum": -840,
+              "maximum": 840
+            },
+            "description": "Minutes east of UTC for the learner’s local day (−840 to 840)."
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -3735,6 +3747,11 @@
             "example": 20,
             "description": "Daily review goal (1–200)"
           },
+          "dailyNewLimit": {
+            "type": "number",
+            "example": 10,
+            "description": "Maximum new words introduced per local day"
+          },
           "role": {
             "type": "string",
             "enum": [
@@ -3764,6 +3781,7 @@
           "id",
           "email",
           "dailyGoal",
+          "dailyNewLimit",
           "role",
           "createdAt",
           "updatedAt"
@@ -3951,6 +3969,13 @@
             "maximum": 200,
             "description": "Daily review goal (1–200). Editable without the current password."
           },
+          "dailyNewLimit": {
+            "type": "number",
+            "example": 10,
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Maximum new words introduced per local day (1–50)."
+          },
           "currentPassword": {
             "type": "string",
             "example": "CurrentPass123!",
@@ -3983,6 +4008,18 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "dailyGoal": {
+            "type": "number",
+            "example": 20,
+            "minimum": 1,
+            "maximum": 200
+          },
+          "dailyNewLimit": {
+            "type": "number",
+            "example": 10,
+            "minimum": 1,
+            "maximum": 50
           }
         },
         "required": [
@@ -4624,7 +4661,8 @@
           },
           "selectedAnswer": {
             "type": "string",
-            "example": "kutilmagan yoqimli kashfiyot"
+            "example": "kutilmagan yoqimli kashfiyot",
+            "maxLength": 200
           }
         },
         "required": [
@@ -4761,6 +4799,26 @@
             "example": 20,
             "description": "User's daily review goal"
           },
+          "dailyNewLimit": {
+            "type": "number",
+            "example": 10,
+            "description": "User's per-day new-word limit"
+          },
+          "dueCount": {
+            "type": "number",
+            "example": 8,
+            "description": "Cards due for review now"
+          },
+          "newCount": {
+            "type": "number",
+            "example": 5,
+            "description": "New cards remaining in today’s plan"
+          },
+          "estimatedMinutes": {
+            "type": "number",
+            "example": 7,
+            "description": "Estimated study time in minutes"
+          },
           "goalMet": {
             "type": "boolean",
             "example": false,
@@ -4772,6 +4830,10 @@
           "longest",
           "todayCount",
           "dailyGoal",
+          "dailyNewLimit",
+          "dueCount",
+          "newCount",
+          "estimatedMinutes",
           "goalMet"
         ]
       },

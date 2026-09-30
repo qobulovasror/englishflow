@@ -32,7 +32,8 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     _flipAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _flipController, curve: Curves.easeInOut),
     );
-    Future.microtask(() => ref.read(learningProvider.notifier).loadDailyWords());
+    Future.microtask(
+        () => ref.read(learningProvider.notifier).loadDailyWords());
   }
 
   @override
@@ -169,6 +170,12 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
               style: AppTextStyles.caption,
             )
           else ...[
+            Text(
+              'Again: missed · Hard: difficult · Good: recalled · Easy: instant',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.caption,
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(

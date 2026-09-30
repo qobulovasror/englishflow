@@ -10,6 +10,7 @@ export interface User {
   onboardedAt?: string | null
   // Daily review goal (1–200).
   dailyGoal: number
+  dailyNewLimit: number
   // Access role. Absent on older stored profiles → treated as 'USER'.
   role?: UserRole
   // Timestamp the email was verified; null/undefined when still unverified.
@@ -59,12 +60,15 @@ export interface AddDeckWordsResult {
 export interface OnboardingPayload {
   level?: CefrLevel
   deckIds: string[]
+  dailyGoal?: number
+  dailyNewLimit?: number
 }
 
 export interface UpdateProfilePayload {
   email?: string
   // Daily review goal (1–200). Editable without the current password.
   dailyGoal?: number
+  dailyNewLimit?: number
   // Required by the backend only when `email` is being changed.
   currentPassword?: string
 }
@@ -197,6 +201,10 @@ export interface ProgressData {
     longest: number
     todayCount: number
     dailyGoal: number
+    dailyNewLimit: number
+    dueCount: number
+    newCount: number
+    estimatedMinutes: number
     goalMet: boolean
   }
 }

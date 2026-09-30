@@ -43,6 +43,7 @@ function buildUser(overrides: Partial<User> = {}): User {
     onboardedAt: null,
     emailVerifiedAt: null,
     dailyGoal: 20,
+    dailyNewLimit: 10,
     createdAt: new Date(),
     updatedAt: new Date(),
     passwordChangedAt: new Date(),
@@ -119,6 +120,8 @@ describe('UsersService', () => {
       const result = await service.completeOnboarding('u1', {
         level: 'A2' as never,
         deckIds: ['d1', 'd2'],
+        dailyGoal: 15,
+        dailyNewLimit: 8,
       });
 
       expect(decks.enroll).toHaveBeenCalledTimes(2);
@@ -126,6 +129,8 @@ describe('UsersService', () => {
       const updateArg = prisma.user.update.mock.calls[0][0];
       expect(updateArg.data.level).toBe('A2');
       expect(updateArg.data.onboardedAt).toBeInstanceOf(Date);
+      expect(updateArg.data.dailyGoal).toBe(15);
+      expect(updateArg.data.dailyNewLimit).toBe(8);
       expect(result.onboardedAt).toBeInstanceOf(Date);
     });
 
@@ -164,6 +169,20 @@ describe('UsersService', () => {
     async function userWithPassword(plain: string): Promise<User> {
       return buildUser({ password: await bcrypt.hash(plain, 10) });
     }
+
+    it('updates the new-word target without requiring the current password', async () => {
+      prisma.user.findUnique.mockResolvedValue(buildUser());
+      prisma.user.update.mockImplementation(async ({ data }) =>
+        buildUser(data),
+      );
+
+      await service.update('u1', { dailyNewLimit: 12 });
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: { dailyNewLimit: 12 },
+      });
+    });
 
     it('returns the current user unchanged when no email is provided', async () => {
       const user = buildUser();

@@ -42,13 +42,16 @@ Ushbu hujjat tahlilda belgilangan ishlarni bosqichma-bosqich bajarish ro‘yxati
 
 ## 2-bosqich — Kundalik o‘rganish va boshlang‘ich sozlash
 
-**Holat: rejalashtirilgan**
+**Holat: yakunlandi**
 
-- [ ] Dastlabki sozlash hamda profilda o‘rganish maqsadi va kunlik vaqt/yangi so‘z miqdorini tanlash imkonini qo‘shish.
-- [ ] Kunlik yangi so‘z chegarasini barcha so‘rovlar bo‘yicha va foydalanuvchining mahalliy kuni asosida hisoblash.
-- [ ] Bosh sahifada bugun takrorlanadigan so‘zlar, yangi so‘zlar, taxminiy vaqt va bitta aniq boshlash tugmasini ko‘rsatish.
-- [ ] To‘rtta baholash tugmasining ma’nosini tushuntirish; dars jarayoni, yakun, xato va qayta urinish holatlarini aniq ko‘rsatish.
-- [ ] Ko‘p kechikkan takrorlashlarni qismlarga bo‘lib bajarish imkonini berish va tugallanmagan ishni tugallangan deb ko‘rsatmaslik.
+- [x] Onboarding va profilda kunlik takrorlash maqsadi hamda kunlik yangi so‘z sonini tanlash qo‘shildi; qiymatlar foydalanuvchi sozlamalarida saqlanadi.
+- [x] Yangi so‘z limiti barcha so‘rovlar uchun, ilova yuborgan mahalliy vaqt mintaqasi bo‘yicha tranzaksiyada hisoblanadi. Ilova qayta ochilganda hali baholanmagan kartalar davom ettiriladi.
+- [x] Web va mobil bosh sahifada bugungi takrorlashlar, yangi so‘zlar, taxminiy davomiylik va bitta boshlash tugmasi ko‘rsatiladi.
+- [x] To‘rtta baholash tugmasiga eslab qolish darajasini tushuntiruvchi yozuv va yordamchi yorliq qo‘shildi; darsni qayta tekshirish va xatoda kartani saqlab qolish oqimi bor.
+- [x] Ko‘p kechikkan takrorlashlar 100 tadan beriladi; qolganini alohida so‘rab davom ettirish mumkin. Yangi kartalar 50 tadan oshmaydi, tugallanmaganlari keyingi sessiyaga qoladi.
+- [x] Kunlik yangi so‘z soni va `UserWord.introducedAt` uchun ma’lumotlar bazasi migratsiyasi, API hujjati, unit, E2E hamda CI’da ishlaydigan PostgreSQL integratsion sinovi qo‘shildi.
+
+**Eslatma:** vaqt zonasi qurilmadan yuboriladi va bu limit o‘rganish sur’atini boshqarish uchun mo‘ljallangan. Uni xavfsizlik yoki to‘lov cheklovi sifatida ishlatmaslik kerak.
 
 ## 3-bosqich — Kuchliroq mashqlar va so‘z mazmuni
 

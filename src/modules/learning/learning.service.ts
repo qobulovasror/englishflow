@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { ReviewRating, WordStatus } from '@prisma/client';
+import { Prisma, ReviewRating, WordStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ReviewWordDto } from './dto/review-word.dto';
 import {
@@ -11,11 +11,6 @@ import { sm2 } from '../../common/utils/sm2';
 
 @Injectable()
 export class LearningService {
-  // Cap on brand-new cards introduced per /daily pull. Once reviewed a card
-  // gets a nextReviewAt and is no longer "new", so in a single daily session
-  // this effectively bounds new cards/day — an Anki-style guard against a fresh
-  // deck dumping hundreds of unseen words at once.
-  private readonly DAILY_NEW_LIMIT = 20;
   // Safety cap on how many overdue reviews to return in one pull.
   private readonly DUE_LIMIT = 100;
   // Anki's "mature" threshold: an interval of 21+ days means the word is
@@ -33,42 +28,111 @@ export class LearningService {
       : WordStatus.LEARNING;
   }
 
-  async getDailyWords(userId: string): Promise<DailyWordResponseDto[]> {
-    // The daily batch = cards whose nextReviewAt has come due, plus a capped
-    // slice of never-seen cards. SM-2 schedules each card independently via
-    // nextReviewAt, so there is no global 24h cooldown anymore — a card seen
-    // today simply won't be due again until its interval elapses.
+  async getDailyWords(
+    userId: string,
+    tzOffsetMinutes = 0,
+  ): Promise<DailyWordResponseDto[]> {
+    // The daily batch = cards whose nextReviewAt has come due, unfinished cards
+    // already introduced, plus a capped slice of never-seen cards. Each fresh
+    // card is stamped once so repeated requests cannot bypass the per-day cap.
     const now = new Date();
+    const offset = Math.max(-840, Math.min(840, Math.trunc(tzOffsetMinutes)));
+    const localNow = new Date(now.getTime() + offset * 60_000);
+    const startOfLocalDay = new Date(
+      Date.UTC(
+        localNow.getUTCFullYear(),
+        localNow.getUTCMonth(),
+        localNow.getUTCDate(),
+      ) -
+        offset * 60_000,
+    );
+    let batch:
+      | {
+          due: Prisma.UserWordGetPayload<{ include: { word: true } }>[];
+          pendingIntroduced: Prisma.UserWordGetPayload<{
+            include: { word: true };
+          }>[];
+          fresh: Prisma.UserWordGetPayload<{ include: { word: true } }>[];
+        }
+      | undefined;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        batch = await this.prisma.$transaction(
+          async (tx) => {
+            const [user, due, introducedToday, pendingIntroduced] =
+              await Promise.all([
+                tx.user.findUnique({
+                  where: { id: userId },
+                  select: { dailyNewLimit: true },
+                }),
+                tx.userWord.findMany({
+                  where: { userId, nextReviewAt: { not: null, lte: now } },
+                  include: { word: true },
+                  orderBy: { nextReviewAt: 'asc' },
+                  take: this.DUE_LIMIT,
+                }),
+                tx.userWord.count({
+                  where: { userId, introducedAt: { gte: startOfLocalDay } },
+                }),
+                tx.userWord.findMany({
+                  where: {
+                    userId,
+                    nextReviewAt: null,
+                    introducedAt: { not: null },
+                  },
+                  include: { word: true },
+                  orderBy: { introducedAt: 'asc' },
+                  take: 50,
+                }),
+              ]);
+            const remaining = Math.max(
+              0,
+              (user?.dailyNewLimit ?? 10) - introducedToday,
+            );
+            const fresh =
+              remaining === 0
+                ? []
+                : await tx.userWord.findMany({
+                    where: { userId, nextReviewAt: null, introducedAt: null },
+                    include: { word: true },
+                    orderBy: { createdAt: 'asc' },
+                    take: remaining,
+                  });
+            if (fresh.length) {
+              await tx.userWord.updateMany({
+                where: {
+                  id: { in: fresh.map((card) => card.id) },
+                  introducedAt: null,
+                },
+                data: { introducedAt: now },
+              });
+            }
+            return { due, pendingIntroduced, fresh };
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+        break;
+      } catch (error) {
+        if ((error as { code?: string }).code !== 'P2034' || attempt >= 2)
+          throw error;
+      }
+    }
 
-    const [due, fresh] = await this.prisma.$transaction([
-      this.prisma.userWord.findMany({
-        where: { userId, nextReviewAt: { not: null, lte: now } },
-        include: { word: true },
-        orderBy: { nextReviewAt: 'asc' },
-        take: this.DUE_LIMIT,
-      }),
-      this.prisma.userWord.findMany({
-        where: { userId, nextReviewAt: null },
-        include: { word: true },
-        orderBy: { createdAt: 'asc' },
-        take: this.DAILY_NEW_LIMIT,
-      }),
-    ]);
-
-    return [...due, ...fresh].map((uw) =>
-      plainToInstance(
-        DailyWordResponseDto,
-        {
-          id: uw.id,
-          wordId: uw.word.id,
-          word: uw.word.word,
-          translation: uw.word.translation,
-          example: uw.word.example,
-          status: uw.status,
-          repetitionCount: uw.repetitionCount,
-        },
-        { excludeExtraneousValues: true },
-      ),
+    return [...batch!.due, ...batch!.pendingIntroduced, ...batch!.fresh].map(
+      (uw) =>
+        plainToInstance(
+          DailyWordResponseDto,
+          {
+            id: uw.id,
+            wordId: uw.word.id,
+            word: uw.word.word,
+            translation: uw.word.translation,
+            example: uw.word.example,
+            status: uw.status,
+            repetitionCount: uw.repetitionCount,
+          },
+          { excludeExtraneousValues: true },
+        ),
     );
   }
 

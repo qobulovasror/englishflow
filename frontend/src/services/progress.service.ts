@@ -3,7 +3,9 @@ import type { DeckProgress, LeechWord, ProgressData, TrendPoint } from '@/types'
 
 export const progressService = {
   async getProgress(): Promise<ProgressData> {
-    const { data } = await api.get<ProgressData>('/progress')
+    const { data } = await api.get<ProgressData>('/progress', {
+      params: { tzOffsetMinutes: -new Date().getTimezoneOffset() },
+    })
     return data
   },
 
