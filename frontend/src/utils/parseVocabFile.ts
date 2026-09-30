@@ -18,6 +18,9 @@ const MAX_WORD = 200
 const MAX_TRANSLATION = 200
 const MAX_EXAMPLE = 1000
 const MAX_AUDIO_URL = 2048
+const MAX_PRONUNCIATION = 100
+const MAX_PART_OF_SPEECH = 40
+const MAX_COLLOCATION = 200
 
 function isHttpUrl(v: string): boolean {
   return /^https?:\/\/\S+$/i.test(v)
@@ -33,6 +36,9 @@ function toRow(
   translationRaw: string,
   exampleRaw: string | undefined,
   audioRaw: string | undefined,
+  pronunciationRaw: string | undefined,
+  partOfSpeechRaw: string | undefined,
+  collocationsRaw: string | undefined,
   line: number,
 ): DeckWordInput | string {
   const word = (wordRaw ?? '').trim()
@@ -46,6 +52,28 @@ function toRow(
   }
 
   const row: DeckWordInput = { word, translation }
+
+  const pronunciation = (pronunciationRaw ?? '').trim()
+  if (pronunciation) {
+    if (pronunciation.length > MAX_PRONUNCIATION)
+      return `Row ${line}: pronunciation exceeds ${MAX_PRONUNCIATION} characters`
+    row.pronunciation = pronunciation
+  }
+  const partOfSpeech = (partOfSpeechRaw ?? '').trim()
+  if (partOfSpeech) {
+    if (partOfSpeech.length > MAX_PART_OF_SPEECH)
+      return `Row ${line}: partOfSpeech exceeds ${MAX_PART_OF_SPEECH} characters`
+    row.partOfSpeech = partOfSpeech
+  }
+  const collocations = (collocationsRaw ?? '')
+    .split(/[;,]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+  if (collocations.some((item) => item.length > MAX_COLLOCATION)) {
+    return `Row ${line}: each collocation must be ${MAX_COLLOCATION} characters or less`
+  }
+  if (collocations.length > 20) return `Row ${line}: no more than 20 collocations are allowed`
+  if (collocations.length) row.collocations = [...new Set(collocations)]
 
   const example = (exampleRaw ?? '').trim()
   if (example) {
@@ -120,6 +148,9 @@ function parseCsvRecords(text: string): string[][] {
 const HEADER_ALIASES: Record<keyof DeckWordInput, string[]> = {
   word: ['word', 'term', 'english', 'en'],
   translation: ['translation', 'meaning', 'definition', 'uz', 'ru', 'native'],
+  pronunciation: ['pronunciation', 'phonetic', 'ipa'],
+  partOfSpeech: ['partofspeech', 'part_of_speech', 'pos', 'wordclass'],
+  collocations: ['collocations', 'phrases', 'combinations'],
   example: ['example', 'sentence', 'sample', 'usage'],
   audioUrl: ['audiourl', 'audio_url', 'audio', 'sound'],
 }
@@ -139,10 +170,21 @@ function parseCsvVocab(text: string): ParsedVocab {
     ? {
         word: header.findIndex((h) => HEADER_ALIASES.word.includes(h)),
         translation: header.findIndex((h) => HEADER_ALIASES.translation.includes(h)),
+        pronunciation: header.findIndex((h) => HEADER_ALIASES.pronunciation.includes(h)),
+        partOfSpeech: header.findIndex((h) => HEADER_ALIASES.partOfSpeech.includes(h)),
+        collocations: header.findIndex((h) => HEADER_ALIASES.collocations.includes(h)),
         example: header.findIndex((h) => HEADER_ALIASES.example.includes(h)),
         audioUrl: header.findIndex((h) => HEADER_ALIASES.audioUrl.includes(h)),
       }
-    : { word: 0, translation: 1, example: 2, audioUrl: 3 }
+    : {
+        word: 0,
+        translation: 1,
+        example: 2,
+        audioUrl: 3,
+        pronunciation: -1,
+        partOfSpeech: -1,
+        collocations: -1,
+      }
 
   const at = (cells: string[], idx: number) => (idx >= 0 ? cells[idx] : undefined)
 
@@ -153,6 +195,9 @@ function parseCsvVocab(text: string): ParsedVocab {
       at(cells, col.translation) ?? '',
       at(cells, col.example),
       at(cells, col.audioUrl),
+      at(cells, col.pronunciation),
+      at(cells, col.partOfSpeech),
+      at(cells, col.collocations),
       r + 1,
     )
     if (typeof res === 'string') errors.push(res)
@@ -205,6 +250,21 @@ function parseJsonVocab(text: string): ParsedVocab {
         : o.audio_url != null
           ? asString(o.audio_url)
           : undefined,
+      o.pronunciation != null
+        ? asString(o.pronunciation)
+        : o.ipa != null
+          ? asString(o.ipa)
+          : undefined,
+      o.partOfSpeech != null
+        ? asString(o.partOfSpeech)
+        : o.pos != null
+          ? asString(o.pos)
+          : undefined,
+      o.collocations != null
+        ? Array.isArray(o.collocations)
+          ? o.collocations.map(asString).join(',')
+          : asString(o.collocations)
+        : undefined,
       line,
     )
     if (typeof res === 'string') errors.push(res)

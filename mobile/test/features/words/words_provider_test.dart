@@ -49,6 +49,9 @@ class _FakeWordsService implements WordsService {
     required String word,
     required String translation,
     String? example,
+    String? pronunciation,
+    String? partOfSpeech,
+    List<String> collocations = const [],
   }) async {
     if (shouldThrow) throw Exception('boom');
     return WordModel(
@@ -56,6 +59,9 @@ class _FakeWordsService implements WordsService {
       word: word,
       translation: translation,
       example: example,
+      pronunciation: pronunciation,
+      partOfSpeech: partOfSpeech,
+      collocations: collocations,
     );
   }
 
@@ -65,6 +71,9 @@ class _FakeWordsService implements WordsService {
     String? word,
     String? translation,
     String? example,
+    String? pronunciation,
+    String? partOfSpeech,
+    List<String>? collocations,
   }) async {
     if (shouldThrow) throw Exception('boom');
     return WordModel(
@@ -72,6 +81,9 @@ class _FakeWordsService implements WordsService {
       word: word ?? 'unchanged',
       translation: translation ?? 'unchanged',
       example: example,
+      pronunciation: pronunciation,
+      partOfSpeech: partOfSpeech,
+      collocations: collocations ?? const [],
     );
   }
 
@@ -79,7 +91,6 @@ class _FakeWordsService implements WordsService {
   Future<void> deleteWord(String id) async {
     if (shouldThrow) throw Exception('boom');
   }
-
 }
 
 const _word = WordModel(id: '1', word: 'apple', translation: 'olma');
@@ -132,7 +143,9 @@ void main() {
       final fake = _FakeWordsService(
         words: const [_word],
         hasMore: true,
-        secondPage: const [WordModel(id: '2', word: 'book', translation: 'kitob')],
+        secondPage: const [
+          WordModel(id: '2', word: 'book', translation: 'kitob')
+        ],
       );
       final notifier = WordsNotifier(fake);
 

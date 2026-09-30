@@ -16,7 +16,12 @@ describe('TestsController', () => {
 
   it('startTest delegates to the service with the user id', () => {
     controller.startTest(user);
-    expect(service.startTest).toHaveBeenCalledWith('u1');
+    expect(service.startTest).toHaveBeenCalledWith('u1', undefined);
+  });
+
+  it('rejects unknown exercise modes', () => {
+    expect(() => controller.startTest(user, 'UNKNOWN')).toThrow();
+    expect(service.startTest).not.toHaveBeenCalled();
   });
 
   it('submitTest forwards the dto and user id', () => {

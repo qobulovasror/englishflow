@@ -21,11 +21,13 @@ class MemoryTokenStorage extends TokenStorage {
 
 class FakeTestService implements TestService {
   int startCalls = 0;
+  final List<String> startModes = [];
   bool failSubmit = false;
 
   @override
-  Future<QuizStart> startQuiz() async {
+  Future<QuizStart> startQuiz({String mode = 'FORWARD'}) async {
     startCalls++;
+    startModes.add(mode);
     return const QuizStart(
       testId: 'test-1',
       questions: [
@@ -75,6 +77,21 @@ void main() {
     expect(service.startCalls, 1);
   });
 
+  test('starts the newly selected quiz mode instead of restoring another mode',
+      () async {
+    final first = TestNotifier(service, storage);
+    await first.loadQuiz(mode: 'FORWARD');
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+
+    final switched = TestNotifier(service, storage);
+    await switched.loadQuiz(mode: 'REVERSE');
+
+    expect(service.startCalls, 2);
+    expect(service.startModes, ['FORWARD', 'REVERSE']);
+    expect(switched.state.quizMode, 'REVERSE');
+    expect(switched.state.testId, 'test-1');
+  });
+
   test('keeps the saved quiz when submission fails and clears it on success',
       () async {
     final notifier = TestNotifier(service, storage);
@@ -104,7 +121,11 @@ void main() {
     storage.draft = jsonEncode({
       'testId': 'broken',
       'questions': [
-        {'wordId': 'w1', 'word': 'apple', 'options': ['olma', 'anor']},
+        {
+          'wordId': 'w1',
+          'word': 'apple',
+          'options': ['olma', 'anor']
+        },
       ],
       'currentIndex': 4,
       'answers': [],

@@ -1,9 +1,11 @@
 import api from './api'
-import type { TestStartResponse, TestSubmitPayload, TestResult } from '@/types'
+import type { TestQuestion, TestStartResponse, TestSubmitPayload, TestResult } from '@/types'
 
 export const testService = {
-  async startTest(): Promise<TestStartResponse> {
-    const { data } = await api.post<TestStartResponse>('/tests/start')
+  async startTest(mode?: TestQuestion['mode']): Promise<TestStartResponse> {
+    const { data } = await api.post<TestStartResponse>('/tests/start', null, {
+      params: mode ? { mode } : {},
+    })
     return data
   },
 

@@ -1,5 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
+import { QuizMode } from '@prisma/client';
 
 export class TestQuestionDto {
   @ApiProperty({ format: 'uuid' })
@@ -9,6 +10,18 @@ export class TestQuestionDto {
   @ApiProperty({ example: 'serendipity' })
   @Expose()
   word: string;
+
+  @ApiProperty({ enum: QuizMode })
+  @Expose()
+  mode: QuizMode;
+
+  @ApiPropertyOptional({ example: 'She found the answer by ______.' })
+  @Expose()
+  prompt?: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  @Expose()
+  audioUrl?: string | null;
 
   @ApiProperty({
     type: [String],

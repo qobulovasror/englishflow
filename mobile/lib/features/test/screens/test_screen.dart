@@ -4,11 +4,18 @@ import 'package:go_router/go_router.dart';
 import 'package:englishflow/core/theme/app_colors.dart';
 import 'package:englishflow/core/theme/app_text_styles.dart';
 
-class TestScreen extends ConsumerWidget {
+class TestScreen extends ConsumerStatefulWidget {
   const TestScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TestScreen> createState() => _TestScreenState();
+}
+
+class _TestScreenState extends ConsumerState<TestScreen> {
+  String mode = 'FORWARD';
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Test', style: AppTextStyles.heading2),
@@ -53,11 +60,43 @@ class TestScreen extends ConsumerWidget {
                       color: Colors.white.withOpacity(0.9),
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  DropdownButtonFormField<String>(
+                    value: mode,
+                    dropdownColor: Colors.white,
+                    decoration: const InputDecoration(
+                      labelText: 'Exercise type',
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'FORWARD',
+                          child: Text('English to translation')),
+                      DropdownMenuItem(
+                          value: 'REVERSE',
+                          child: Text('Translation to English')),
+                      DropdownMenuItem(
+                          value: 'TYPED', child: Text('Type the answer')),
+                      DropdownMenuItem(
+                          value: 'CLOZE', child: Text('Complete the sentence')),
+                      DropdownMenuItem(
+                          value: 'LISTENING', child: Text('Listening')),
+                      DropdownMenuItem(
+                          value: 'MISTAKES',
+                          child: Text('Practice missed words')),
+                      DropdownMenuItem(
+                          value: 'DIFFICULT',
+                          child: Text('Practice difficult words')),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => mode = value ?? 'FORWARD'),
+                  ),
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () => context.push('/quiz'),
+                      onPressed: () => context.push('/quiz?mode=$mode'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: AppColors.orange,

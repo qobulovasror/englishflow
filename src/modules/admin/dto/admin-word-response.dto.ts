@@ -15,6 +15,18 @@ export class AdminWordResponseDto {
   @Expose()
   translation: string;
 
+  @ApiPropertyOptional({ example: '/ˌser.ənˈdɪp.ə.ti/' })
+  @Expose()
+  pronunciation?: string | null;
+
+  @ApiPropertyOptional({ example: 'noun' })
+  @Expose()
+  partOfSpeech?: string | null;
+
+  @ApiProperty({ type: [String] })
+  @Expose()
+  collocations: string[];
+
   @ApiPropertyOptional({ example: 'Finding that book was pure serendipity.' })
   @Expose()
   example?: string | null;

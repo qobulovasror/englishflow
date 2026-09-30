@@ -11,12 +11,12 @@ export const useTestStore = defineStore('test', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  async function startTest() {
+  async function startTest(mode?: TestQuestion['mode']) {
     loading.value = true
     error.value = null
     result.value = null
     try {
-      const response = await testService.startTest()
+      const response = await testService.startTest(mode)
       testId.value = response.testId
       questions.value = response.questions
     } catch (e) {

@@ -50,6 +50,9 @@ class WordsService {
     required String word,
     required String translation,
     String? example,
+    String? pronunciation,
+    String? partOfSpeech,
+    List<String> collocations = const [],
   }) async {
     try {
       final response = await _dio.post(
@@ -57,6 +60,11 @@ class WordsService {
         data: {
           'word': word,
           'translation': translation,
+          if (pronunciation != null && pronunciation.isNotEmpty)
+            'pronunciation': pronunciation,
+          if (partOfSpeech != null && partOfSpeech.isNotEmpty)
+            'partOfSpeech': partOfSpeech,
+          'collocations': collocations,
           if (example != null && example.isNotEmpty) 'example': example,
         },
       );
@@ -71,6 +79,9 @@ class WordsService {
     String? word,
     String? translation,
     String? example,
+    String? pronunciation,
+    String? partOfSpeech,
+    List<String>? collocations,
   }) async {
     try {
       final response = await _dio.patch(
@@ -79,6 +90,9 @@ class WordsService {
           if (word != null) 'word': word,
           if (translation != null) 'translation': translation,
           if (example != null) 'example': example,
+          if (pronunciation != null) 'pronunciation': pronunciation,
+          if (partOfSpeech != null) 'partOfSpeech': partOfSpeech,
+          if (collocations != null) 'collocations': collocations,
         },
       );
       return WordModel.fromJson(response.data);

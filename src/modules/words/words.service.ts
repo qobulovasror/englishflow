@@ -25,6 +25,9 @@ export class WordsService {
         data: {
           word: dto.word,
           translation: dto.translation,
+          pronunciation: dto.pronunciation,
+          partOfSpeech: dto.partOfSpeech,
+          collocations: dto.collocations ?? [],
           example: dto.example,
           audioUrl: dto.audioUrl,
           createdById: userId,
@@ -84,6 +87,15 @@ export class WordsService {
       data: {
         ...(dto.word !== undefined && { word: dto.word }),
         ...(dto.translation !== undefined && { translation: dto.translation }),
+        ...(dto.pronunciation !== undefined && {
+          pronunciation: dto.pronunciation,
+        }),
+        ...(dto.partOfSpeech !== undefined && {
+          partOfSpeech: dto.partOfSpeech,
+        }),
+        ...(dto.collocations !== undefined && {
+          collocations: dto.collocations,
+        }),
         ...(dto.example !== undefined && { example: dto.example }),
         ...(dto.audioUrl !== undefined && { audioUrl: dto.audioUrl }),
       },

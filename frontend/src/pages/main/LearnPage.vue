@@ -137,6 +137,15 @@ onBeforeUnmount(() => {
           </div>
 
           <p
+            v-if="currentWord.pronunciation || currentWord.partOfSpeech"
+            class="mt-2 text-sm text-gray-500 dark:text-gray-400"
+          >
+            <span v-if="currentWord.pronunciation">{{ currentWord.pronunciation }}</span>
+            <span v-if="currentWord.pronunciation && currentWord.partOfSpeech"> · </span>
+            <span v-if="currentWord.partOfSpeech">{{ currentWord.partOfSpeech }}</span>
+          </p>
+
+          <p
             v-if="currentWord.example"
             class="text-gray-400 dark:text-gray-500 mt-3 italic text-sm"
           >
@@ -147,6 +156,17 @@ onBeforeUnmount(() => {
             <p class="text-xl text-primary-600 dark:text-primary-400 font-semibold">
               {{ currentWord.translation }}
             </p>
+            <div
+              v-if="currentWord.collocations?.length"
+              class="mt-3 flex flex-wrap justify-center gap-2"
+            >
+              <span
+                v-for="phrase in currentWord.collocations"
+                :key="phrase"
+                class="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                >{{ phrase }}</span
+              >
+            </div>
           </div>
 
           <div v-if="feedback" class="mt-4">

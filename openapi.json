@@ -1931,7 +1931,26 @@
       "post": {
         "operationId": "TestsController_startTest",
         "summary": "Generate a new quiz from the user vocabulary",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "mode",
+            "required": false,
+            "in": "query",
+            "description": "Quiz exercise style; defaults to FORWARD",
+            "schema": {
+              "enum": [
+                "FORWARD",
+                "REVERSE",
+                "TYPED",
+                "CLOZE",
+                "LISTENING",
+                "MISTAKES",
+                "DIFFICULT"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -4172,6 +4191,20 @@
             "type": "string",
             "example": "kutilmagan yoqimli kashfiyot"
           },
+          "pronunciation": {
+            "type": "object",
+            "example": "/ˌser.ənˈdɪp.ə.ti/"
+          },
+          "partOfSpeech": {
+            "type": "object",
+            "example": "noun"
+          },
+          "collocations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "example": {
             "type": "object",
             "example": "Finding that book was pure serendipity."
@@ -4193,6 +4226,7 @@
           "id",
           "word",
           "translation",
+          "collocations",
           "createdAt",
           "updatedAt"
         ]
@@ -4350,6 +4384,20 @@
             "type": "string",
             "example": "kutilmagan yoqimli kashfiyot"
           },
+          "pronunciation": {
+            "type": "string",
+            "example": "/ˈwɝːd/"
+          },
+          "partOfSpeech": {
+            "type": "string",
+            "example": "noun"
+          },
+          "collocations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "example": {
             "type": "string",
             "example": "Finding that book was pure serendipity."
@@ -4389,6 +4437,23 @@
             "type": "string",
             "example": "kutilmagan yoqimli kashfiyot"
           },
+          "pronunciation": {
+            "type": "string",
+            "example": "/ˌser.ənˈdɪp.ə.ti/"
+          },
+          "partOfSpeech": {
+            "type": "string",
+            "example": "noun"
+          },
+          "collocations": {
+            "example": [
+              "pure serendipity"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "example": {
             "type": "string",
             "example": "Finding that book was pure serendipity."
@@ -4409,6 +4474,23 @@
           "word": {
             "type": "string",
             "example": "serendipity"
+          },
+          "pronunciation": {
+            "type": "string",
+            "example": "/ˌser.ənˈdɪp.ə.ti/"
+          },
+          "partOfSpeech": {
+            "type": "string",
+            "example": "noun"
+          },
+          "collocations": {
+            "example": [
+              "pure serendipity"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "translation": {
             "type": "string",
@@ -4444,6 +4526,24 @@
             "type": "string",
             "example": "kutilmagan yoqimli kashfiyot"
           },
+          "pronunciation": {
+            "type": "object",
+            "example": "/ˌser.ənˈdɪp.ə.ti/"
+          },
+          "partOfSpeech": {
+            "type": "object",
+            "example": "noun"
+          },
+          "collocations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "audioUrl": {
+            "type": "object",
+            "example": "https://cdn.example.com/audio/word.mp3"
+          },
           "example": {
             "type": "object"
           },
@@ -4466,6 +4566,7 @@
           "wordId",
           "word",
           "translation",
+          "collocations",
           "status",
           "repetitionCount"
         ]
@@ -4551,6 +4652,26 @@
             "type": "string",
             "example": "serendipity"
           },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "FORWARD",
+              "REVERSE",
+              "TYPED",
+              "CLOZE",
+              "LISTENING",
+              "MISTAKES",
+              "DIFFICULT"
+            ]
+          },
+          "prompt": {
+            "type": "string",
+            "example": "She found the answer by ______."
+          },
+          "audioUrl": {
+            "type": "object",
+            "nullable": true
+          },
           "options": {
             "example": [
               "kutilmagan yoqimli kashfiyot",
@@ -4567,6 +4688,7 @@
         "required": [
           "wordId",
           "word",
+          "mode",
           "options"
         ]
       },
@@ -5262,6 +5384,20 @@
             "type": "string",
             "example": "kutilmagan yoqimli kashfiyot"
           },
+          "pronunciation": {
+            "type": "object",
+            "example": "/ˌser.ənˈdɪp.ə.ti/"
+          },
+          "partOfSpeech": {
+            "type": "object",
+            "example": "noun"
+          },
+          "collocations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "example": {
             "type": "object",
             "example": "Finding that book was pure serendipity."
@@ -5308,6 +5444,7 @@
           "id",
           "word",
           "translation",
+          "collocations",
           "isSystem",
           "createdAt",
           "updatedAt"
@@ -5323,6 +5460,23 @@
           "translation": {
             "type": "string",
             "example": "kutilmagan yoqimli kashfiyot"
+          },
+          "pronunciation": {
+            "type": "string",
+            "example": "/ˌser.ənˈdɪp.ə.ti/"
+          },
+          "partOfSpeech": {
+            "type": "string",
+            "example": "noun"
+          },
+          "collocations": {
+            "example": [
+              "pure serendipity"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "example": {
             "type": "string",

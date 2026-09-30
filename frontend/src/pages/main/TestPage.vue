@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useTestStore } from '@/stores/test'
-import type { TestAnswer } from '@/types'
+import type { TestAnswer, TestQuestion } from '@/types'
 import AppCard from '@/components/AppCard.vue'
 import AppButton from '@/components/AppButton.vue'
+import AppInput from '@/components/AppInput.vue'
 
 const testStore = useTestStore()
 const currentQuestionIndex = ref(0)
 const answers = ref<TestAnswer[]>([])
 const selectedOption = ref<string | null>(null)
+const typedAnswer = ref('')
+const selectedMode = ref<TestQuestion['mode']>('FORWARD')
 
 const currentQuestion = computed(() => testStore.questions[currentQuestionIndex.value] ?? null)
 const isLastQuestion = computed(() => currentQuestionIndex.value === testStore.questions.length - 1)
@@ -18,8 +21,9 @@ async function handleStart() {
   answers.value = []
   currentQuestionIndex.value = 0
   selectedOption.value = null
+  typedAnswer.value = ''
   try {
-    await testStore.startTest()
+    await testStore.startTest(selectedMode.value)
   } catch {
     // Failure is surfaced via testStore.error; swallow the rethrow.
   }
@@ -30,13 +34,15 @@ function selectOption(option: string) {
 }
 
 async function nextQuestion() {
-  if (!currentQuestion.value || !selectedOption.value) return
+  const answer =
+    currentQuestion.value?.mode === 'TYPED' ? typedAnswer.value.trim() : selectedOption.value
+  if (!currentQuestion.value || !answer) return
   // Ignore double-clicks / re-entry while a submit is in flight.
   if (testStore.loading) return
 
   answers.value.push({
     wordId: currentQuestion.value.wordId,
-    selectedAnswer: selectedOption.value,
+    selectedAnswer: answer,
   })
 
   if (isLastQuestion.value) {
@@ -50,6 +56,7 @@ async function nextQuestion() {
   } else {
     currentQuestionIndex.value++
     selectedOption.value = null
+    typedAnswer.value = ''
   }
 }
 
@@ -73,6 +80,21 @@ function handleReset() {
         Test your knowledge with multiple choice questions
       </p>
       <p v-if="testStore.error" class="text-red-500 text-sm mt-3">{{ testStore.error }}</p>
+      <label class="mt-5 block text-left text-sm text-gray-600 dark:text-gray-300">
+        Exercise type
+        <select
+          v-model="selectedMode"
+          class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+        >
+          <option value="FORWARD">English to translation</option>
+          <option value="REVERSE">Translation to English</option>
+          <option value="TYPED">Type the answer</option>
+          <option value="CLOZE">Complete the sentence</option>
+          <option value="LISTENING">Listening (words with audio)</option>
+          <option value="MISTAKES">Practice missed words</option>
+          <option value="DIFFICULT">Practice difficult words</option>
+        </select>
+      </label>
       <AppButton class="mt-6" :loading="testStore.loading" @click="handleStart">
         Start Test
       </AppButton>
@@ -96,13 +118,39 @@ function handleReset() {
 
       <AppCard>
         <div class="text-center py-4">
-          <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">What is the translation of:</p>
-          <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            {{
+              currentQuestion.mode === 'REVERSE'
+                ? 'Choose the English word:'
+                : currentQuestion.mode === 'CLOZE'
+                  ? 'Complete the sentence:'
+                  : currentQuestion.mode === 'LISTENING'
+                    ? 'Listen and choose the meaning:'
+                    : 'Choose the translation:'
+            }}
+          </p>
+          <audio
+            v-if="currentQuestion.mode === 'LISTENING' && currentQuestion.audioUrl"
+            :src="currentQuestion.audioUrl"
+            controls
+            class="mx-auto mb-3"
+          />
+          <h3
+            v-if="currentQuestion.mode !== 'LISTENING'"
+            class="text-2xl font-bold text-gray-800 dark:text-gray-100"
+          >
             {{ currentQuestion.word }}
           </h3>
         </div>
 
-        <div class="space-y-3 mt-4">
+        <AppInput
+          v-if="currentQuestion.mode === 'TYPED'"
+          v-model="typedAnswer"
+          class="mt-4"
+          label="Your answer"
+          autocomplete="off"
+        />
+        <div v-else class="space-y-3 mt-4">
           <button
             v-for="option in currentQuestion.options"
             :key="option"
@@ -125,7 +173,10 @@ function handleReset() {
         <div class="mt-6">
           <AppButton
             class="w-full"
-            :disabled="!selectedOption || testStore.loading"
+            :disabled="
+              !(currentQuestion.mode === 'TYPED' ? typedAnswer.trim() : selectedOption) ||
+              testStore.loading
+            "
             :loading="testStore.loading"
             @click="nextQuestion"
           >

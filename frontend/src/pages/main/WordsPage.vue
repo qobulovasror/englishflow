@@ -5,13 +5,16 @@ import AppCard from '@/components/AppCard.vue'
 import AppInput from '@/components/AppInput.vue'
 import AppButton from '@/components/AppButton.vue'
 import SpeakButton from '@/components/SpeakButton.vue'
-import type { WordStatus } from '@/types'
+import type { Word, WordStatus } from '@/types'
 
 const wordsStore = useWordsStore()
 const showForm = ref(false)
 const newWord = ref('')
 const newTranslation = ref('')
 const newExample = ref('')
+const newPronunciation = ref('')
+const newPartOfSpeech = ref('')
+const newCollocations = ref('')
 
 // Status filter options; null means "All".
 const STATUS_FILTERS: { label: string; value: WordStatus | null }[] = [
@@ -26,6 +29,9 @@ const editingId = ref<string | null>(null)
 const editWord = ref('')
 const editTranslation = ref('')
 const editExample = ref('')
+const editPronunciation = ref('')
+const editPartOfSpeech = ref('')
+const editCollocations = ref('')
 const savingEdit = ref(false)
 
 onMounted(() => {
@@ -38,22 +44,34 @@ async function handleAdd() {
       word: newWord.value,
       translation: newTranslation.value,
       example: newExample.value || undefined,
+      pronunciation: newPronunciation.value.trim() || undefined,
+      partOfSpeech: newPartOfSpeech.value.trim() || undefined,
+      collocations: newCollocations.value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
     })
     // Only clear the form on success — on failure keep the input for a retry.
     newWord.value = ''
     newTranslation.value = ''
     newExample.value = ''
+    newPronunciation.value = ''
+    newPartOfSpeech.value = ''
+    newCollocations.value = ''
     showForm.value = false
   } catch {
     // Error is shown via wordsStore.error; swallow the rethrow.
   }
 }
 
-function startEdit(id: string, word: string, translation: string, example?: string) {
-  editingId.value = id
-  editWord.value = word
-  editTranslation.value = translation
-  editExample.value = example ?? ''
+function startEdit(word: Word) {
+  editingId.value = word.id
+  editWord.value = word.word
+  editTranslation.value = word.translation
+  editExample.value = word.example ?? ''
+  editPronunciation.value = word.pronunciation ?? ''
+  editPartOfSpeech.value = word.partOfSpeech ?? ''
+  editCollocations.value = word.collocations?.join(', ') ?? ''
 }
 
 function cancelEdit() {
@@ -67,6 +85,12 @@ async function handleUpdate(id: string) {
       word: editWord.value,
       translation: editTranslation.value,
       example: editExample.value || undefined,
+      pronunciation: editPronunciation.value.trim() || undefined,
+      partOfSpeech: editPartOfSpeech.value.trim() || undefined,
+      collocations: editCollocations.value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
     })
     editingId.value = null
   } catch {
@@ -105,6 +129,13 @@ async function handleDelete(id: string) {
             required
           />
         </div>
+        <AppInput
+          v-model="newPronunciation"
+          label="Pronunciation (IPA, optional)"
+          placeholder="/ˈæp.əl/"
+        />
+        <AppInput v-model="newPartOfSpeech" label="Part of speech (optional)" placeholder="noun" />
+        <AppInput v-model="newCollocations" label="Collocations (comma separated)" />
         <AppInput
           v-model="newExample"
           label="Example (optional)"
@@ -166,6 +197,13 @@ async function handleDelete(id: string) {
             />
           </div>
           <AppInput
+            v-model="editPronunciation"
+            label="Pronunciation (IPA)"
+            placeholder="/ˈæp.əl/"
+          />
+          <AppInput v-model="editPartOfSpeech" label="Part of speech" placeholder="noun" />
+          <AppInput v-model="editCollocations" label="Collocations (comma separated)" />
+          <AppInput
             v-model="editExample"
             label="Example (optional)"
             placeholder="e.g. I eat an apple every day."
@@ -191,7 +229,7 @@ async function handleDelete(id: string) {
           <div class="flex items-center">
             <SpeakButton :word="word.word" :audio-url="word.audioUrl" />
             <button
-              @click="startEdit(word.id, word.word, word.translation, word.example)"
+              @click="startEdit(word)"
               class="text-gray-400 hover:text-primary-500 transition-colors p-2"
               aria-label="Edit word"
             >

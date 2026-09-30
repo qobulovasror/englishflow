@@ -16,14 +16,14 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
+  id                String     @id @default(uuid())
+  email             String     @unique
+  password          String
   // Authorization role. Defaults to USER; elevate to ADMIN to manage system decks.
-  role      Role     @default(USER)
+  role              Role       @default(USER)
   // Tracks the moment of the last password change; any JWT issued before this
   // is considered invalid by `JwtStrategy.validate`.
-  passwordChangedAt DateTime @default(now())
+  passwordChangedAt DateTime   @default(now())
   // Self-reported CEFR level chosen during onboarding; drives deck suggestions.
   level             CefrLevel?
   // Null until the user finishes (or skips) onboarding. Clients use this to
@@ -34,11 +34,11 @@ model User {
   emailVerifiedAt   DateTime?
   // How many reviews the user aims to complete each day; drives the streak's
   // goalMet flag. Editable via PATCH /users/me without re-entering the password.
-  dailyGoal         Int      @default(20)
+  dailyGoal         Int        @default(20)
   // Number of first-seen words to introduce to the learner each local day.
-  dailyNewLimit     Int      @default(10)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  dailyNewLimit     Int        @default(10)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 
   words         Word[]
   userWords     UserWord[]
@@ -121,19 +121,23 @@ model RefreshToken {
 }
 
 model Word {
-  id          String   @id @default(uuid())
-  word        String
-  translation String
-  example     String?
+  id            String   @id @default(uuid())
+  word          String
+  translation   String
+  example       String?
+  // Optional pronunciation transcription, e.g. /ˌser.ənˈdɪp.ə.ti/.
+  pronunciation String?
+  partOfSpeech  String?
+  collocations  String[] @default([])
   // Optional URL to a pronunciation audio clip for the word.
-  audioUrl    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  audioUrl      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Null for words that belong to a curated/system deck (no individual owner).
   // User-created words still set this.
   createdById String?
-  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   // Words sourced from a deck reference it here. Personal words created via
   // POST /words have a null deckId until Phase C introduces a personal deck.
@@ -181,7 +185,7 @@ model Deck {
   updatedAt   DateTime   @updatedAt
 
   createdById String?
-  createdBy   User?      @relation("UserDecks", fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy   User?   @relation("UserDecks", fields: [createdById], references: [id], onDelete: Cascade)
 
   words       Word[]
   enrollments DeckEnrollment[]
@@ -250,14 +254,14 @@ model UserWord {
 }
 
 model Test {
-  id        String   @id @default(uuid())
-  score     Int      @default(0)
+  id          String    @id @default(uuid())
+  score       Int       @default(0)
   // Null while the quiz is in progress. `submitTest` sets it once and refuses
   // to grade a test that already has it — a test can be submitted exactly once,
   // so a client can't replay or fabricate scores.
   submittedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -271,12 +275,13 @@ model Test {
 }
 
 model TestQuestion {
-  id             String  @id @default(uuid())
+  id             String   @id @default(uuid())
   // Null until the test is submitted. The server writes `correctAnswer` at
   // start time (the answer key the client never sees); `selectedAnswer` is
   // filled in only when the user submits their choice.
   selectedAnswer String?
   correctAnswer  String
+  mode           QuizMode @default(FORWARD)
 
   testId String
   test   Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
@@ -287,4 +292,14 @@ model TestQuestion {
   @@index([testId])
   @@index([wordId])
   @@map("test_questions")
+}
+
+enum QuizMode {
+  FORWARD
+  REVERSE
+  TYPED
+  CLOZE
+  LISTENING
+  MISTAKES
+  DIFFICULT
 }

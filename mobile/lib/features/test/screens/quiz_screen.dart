@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:englishflow/core/theme/app_colors.dart';
@@ -8,17 +10,26 @@ import 'package:englishflow/shared/widgets/loading_widget.dart';
 import 'package:englishflow/shared/widgets/error_widget.dart';
 
 class QuizScreen extends ConsumerStatefulWidget {
-  const QuizScreen({super.key});
+  final String mode;
+  const QuizScreen({super.key, this.mode = 'FORWARD'});
 
   @override
   ConsumerState<QuizScreen> createState() => _QuizScreenState();
 }
 
 class _QuizScreenState extends ConsumerState<QuizScreen> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(testProvider.notifier).loadQuiz());
+    Future.microtask(
+        () => ref.read(testProvider.notifier).loadQuiz(mode: widget.mode));
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
   @override
@@ -98,9 +109,34 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
             child: Column(
               children: [
                 Text(
-                  'What is the translation of:',
+                  question.mode == 'REVERSE'
+                      ? 'Choose the English word:'
+                      : question.mode == 'CLOZE'
+                          ? 'Complete the sentence:'
+                          : question.mode == 'LISTENING'
+                              ? 'Listen and choose the meaning:'
+                              : question.mode == 'TYPED'
+                                  ? 'Type the translation:'
+                                  : 'What is the translation of:',
                   style: AppTextStyles.caption,
                 ),
+                if (question.mode == 'LISTENING' && question.audioUrl != null)
+                  IconButton(
+                    tooltip: 'Play audio',
+                    icon: const Icon(Icons.volume_up, size: 36),
+                    onPressed: () async {
+                      try {
+                        await _audioPlayer.setUrl(question.audioUrl!);
+                        unawaited(_audioPlayer.play());
+                      } catch (_) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Could not play this audio.')),
+                        );
+                      }
+                    },
+                  ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -112,7 +148,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    question.word,
+                    question.mode == 'LISTENING'
+                        ? '🎧'
+                        : (question.prompt ?? question.word),
                     style: AppTextStyles.heading1.copyWith(
                       color: AppColors.secondary,
                     ),
@@ -124,6 +162,12 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
           const SizedBox(height: 40),
 
           // Options
+          if (question.mode == 'TYPED')
+            TextField(
+              key: ValueKey(question.wordId),
+              onChanged: ref.read(testProvider.notifier).setTypedAnswer,
+              decoration: const InputDecoration(labelText: 'Your answer'),
+            ),
           ...List.generate(question.options.length, (index) {
             final isSelected = state.selectedOption == index;
             return Padding(
@@ -199,7 +243,9 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: state.selectedOption != null
+              onPressed: (question.mode == 'TYPED'
+                      ? state.typedAnswer.trim().isNotEmpty
+                      : state.selectedOption != null)
                   ? () async {
                       if (state.isLastQuestion) {
                         final score =

@@ -22,6 +22,26 @@ export class DeckWordItemDto {
   @MaxLength(200)
   translation: string;
 
+  @ApiPropertyOptional({ example: '/ˈwɝːd/' })
+  @IsString()
+  @MaxLength(100)
+  @IsOptional()
+  pronunciation?: string;
+
+  @ApiPropertyOptional({ example: 'noun' })
+  @IsString()
+  @MaxLength(40)
+  @IsOptional()
+  partOfSpeech?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @MaxLength(200, { each: true })
+  @IsOptional()
+  collocations?: string[];
+
   @ApiPropertyOptional({
     example: 'Finding that book was pure serendipity.',
   })

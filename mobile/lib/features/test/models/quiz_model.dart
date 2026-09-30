@@ -13,11 +13,17 @@ class QuizStart {
 class QuizQuestion extends Equatable {
   final String wordId;
   final String word;
+  final String mode;
+  final String? prompt;
+  final String? audioUrl;
   final List<String> options;
 
   const QuizQuestion({
     required this.wordId,
     required this.word,
+    this.mode = 'FORWARD',
+    this.prompt,
+    this.audioUrl,
     required this.options,
   });
 
@@ -25,6 +31,9 @@ class QuizQuestion extends Equatable {
     return QuizQuestion(
       wordId: json['wordId']?.toString() ?? '',
       word: json['word'] ?? '',
+      mode: json['mode']?.toString() ?? 'FORWARD',
+      prompt: json['prompt']?.toString(),
+      audioUrl: json['audioUrl']?.toString(),
       options: List<String>.from(json['options'] ?? []),
     );
   }
@@ -32,11 +41,14 @@ class QuizQuestion extends Equatable {
   Map<String, dynamic> toJson() => {
         'wordId': wordId,
         'word': word,
+        'mode': mode,
+        if (prompt != null) 'prompt': prompt,
+        if (audioUrl != null) 'audioUrl': audioUrl,
         'options': options,
       };
 
   @override
-  List<Object?> get props => [wordId, word, options];
+  List<Object?> get props => [wordId, word, mode, prompt, audioUrl, options];
 }
 
 class QuizAnswer extends Equatable {

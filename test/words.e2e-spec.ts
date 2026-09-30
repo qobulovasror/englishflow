@@ -89,6 +89,28 @@ describe('Words (e2e)', () => {
       expect(res.body.errors.join(' ')).toMatch(/audioUrl/i);
     });
 
+    it('POST /words rejects collocations unless they are a bounded string array', async () => {
+      await request(app.getHttpServer())
+        .post('/words')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          word: 'collocation',
+          translation: 'birikma',
+          collocations: 'make a decision',
+        })
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .post('/words')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          word: 'collocation',
+          translation: 'birikma',
+          collocations: Array(21).fill('phrase'),
+        })
+        .expect(400);
+    });
+
     it('PATCH /words/:id updates the audioUrl', async () => {
       const created = await request(app.getHttpServer())
         .post('/words')

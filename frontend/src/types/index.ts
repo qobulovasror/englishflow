@@ -89,6 +89,9 @@ export interface Word {
   word: string
   translation: string
   example?: string
+  pronunciation?: string
+  partOfSpeech?: string
+  collocations?: string[]
   // Optional pronunciation audio; falls back to Web Speech API when absent.
   audioUrl?: string
   createdAt: string
@@ -98,12 +101,18 @@ export interface CreateWordPayload {
   word: string
   translation: string
   example?: string
+  pronunciation?: string
+  partOfSpeech?: string
+  collocations?: string[]
 }
 
 export interface UpdateWordPayload {
   word?: string
   translation?: string
   example?: string
+  pronunciation?: string
+  partOfSpeech?: string
+  collocations?: string[]
 }
 
 export interface PaginatedResponse<T> {
@@ -121,6 +130,9 @@ export interface DailyWord {
   wordId: string
   word: string
   translation: string
+  pronunciation?: string
+  partOfSpeech?: string
+  collocations?: string[]
   example?: string
   // Optional pronunciation audio; falls back to Web Speech API when absent.
   audioUrl?: string
@@ -147,6 +159,9 @@ export interface ReviewResponse {
 export interface TestQuestion {
   wordId: string
   word: string
+  mode: 'FORWARD' | 'REVERSE' | 'TYPED' | 'CLOZE' | 'LISTENING' | 'MISTAKES' | 'DIFFICULT'
+  prompt?: string
+  audioUrl?: string | null
   options: string[]
 }
 
@@ -265,6 +280,9 @@ export interface AdminWord {
   id: string
   word: string
   translation: string
+  pronunciation?: string | null
+  partOfSpeech?: string | null
+  collocations?: string[]
   example?: string | null
   audioUrl?: string | null
   deckId?: string | null
@@ -319,6 +337,9 @@ export interface SignupPoint {
 export interface CreateAdminWordPayload {
   word: string
   translation: string
+  pronunciation?: string
+  partOfSpeech?: string
+  collocations?: string[]
   example?: string
   audioUrl?: string
   deckId?: string
@@ -327,6 +348,9 @@ export interface CreateAdminWordPayload {
 export interface UpdateAdminWordPayload {
   word?: string
   translation?: string
+  pronunciation?: string | null
+  partOfSpeech?: string | null
+  collocations?: string[]
   // `null` clears the field; `undefined` leaves it unchanged.
   example?: string | null
   audioUrl?: string | null
@@ -337,6 +361,9 @@ export interface UpdateAdminWordPayload {
 export interface DeckWordInput {
   word: string
   translation: string
+  pronunciation?: string
+  partOfSpeech?: string
+  collocations?: string[]
   example?: string
   audioUrl?: string
 }

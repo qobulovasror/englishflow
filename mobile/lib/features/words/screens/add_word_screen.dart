@@ -20,12 +20,18 @@ class _AddWordScreenState extends ConsumerState<AddWordScreen> {
   final _wordController = TextEditingController();
   final _translationController = TextEditingController();
   final _exampleController = TextEditingController();
+  final _pronunciationController = TextEditingController();
+  final _partOfSpeechController = TextEditingController();
+  final _collocationsController = TextEditingController();
 
   @override
   void dispose() {
     _wordController.dispose();
     _translationController.dispose();
     _exampleController.dispose();
+    _pronunciationController.dispose();
+    _partOfSpeechController.dispose();
+    _collocationsController.dispose();
     super.dispose();
   }
 
@@ -36,6 +42,13 @@ class _AddWordScreenState extends ConsumerState<AddWordScreen> {
           word: _wordController.text.trim(),
           translation: _translationController.text.trim(),
           example: _exampleController.text.trim(),
+          pronunciation: _pronunciationController.text.trim(),
+          partOfSpeech: _partOfSpeechController.text.trim(),
+          collocations: _collocationsController.text
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList(),
         );
 
     if (!mounted) return;
@@ -81,6 +94,30 @@ class _AddWordScreenState extends ConsumerState<AddWordScreen> {
                 hint: 'e.g., Olma',
                 prefixIcon: Icons.translate,
                 validator: (v) => Validators.required(v, 'Translation'),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _pronunciationController,
+                label: 'Pronunciation (IPA, optional)',
+                hint: '/ˈæp.əl/',
+                prefixIcon: Icons.record_voice_over_outlined,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _partOfSpeechController,
+                label: 'Part of speech (optional)',
+                hint: 'noun',
+                prefixIcon: Icons.category_outlined,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _collocationsController,
+                label: 'Collocations (comma separated)',
+                hint: 'apple pie, an apple a day',
+                prefixIcon: Icons.link,
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 16),

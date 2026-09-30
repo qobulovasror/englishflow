@@ -55,13 +55,13 @@ Ushbu hujjat tahlilda belgilangan ishlarni bosqichma-bosqich bajarish ro‘yxati
 
 ## 3-bosqich — Kuchliroq mashqlar va so‘z mazmuni
 
-**Holat: rejalashtirilgan**
+**Holat: taqriz yakunlandi; saqlanmoqda**
 
-- [ ] Inglizchadan ona tiliga, teskari yo‘nalishda eslash, yozib javob berish, gapni to‘ldirish va tinglab tanish mashqlarini tanlov sifatida qo‘shish.
-- [ ] So‘zlarni talaffuz yozuvi, so‘z turkumi, birikmalar, misol gap va tekshirilgan tarjima bilan boyitish.
-- [ ] Qiyin so‘zlar va sinovda noto‘g‘ri javob berilgan so‘zlarni maqsadli takrorlashga taklif qilish.
-- [ ] Hozirgi SM-2 natijalarini o‘lchagandan keyin FSRS usulini sinash; avvalgi jadvalni saqlash va ortga qaytarish yo‘lini tayyorlash.
-- [ ] Administrator boshqaradigan so‘zlar uchun tahrirlash va sifat nazoratini qo‘shish.
+- [x] Inglizchadan ona tiliga, teskari yo‘nalishda eslash, yozib javob berish, gapni to‘ldirish va tinglab tanish mashqlarini web hamda mobil ilovada tanlash qo‘shildi.
+- [x] So‘zlar talaffuz yozuvi, so‘z turkumi, birikmalar, misol gap va audio bilan boyitildi; yangi maydonlar shaxsiy so‘z, to‘plam, CSV/JSON importi va administrator tahririda ishlaydi.
+- [x] Qiyin so‘zlar hamda oldingi sinovlarda noto‘g‘ri javob berilgan so‘zlar uchun maqsadli mashq qo‘shildi.
+- [x] Administrator so‘zlarni tahrirlashi, kontent maydonlarini tekshirishi va importdan oldin faylni ko‘rib chiqishi mumkin.
+- [x] Mavjud SM-2 jadvallari va algoritmi xavfsiz saqlandi. FSRS sinovi natijalarni o‘lchashga tayanadi, shuning uchun taqqoslash 7-bosqichda bazaviy ko‘rsatkichlar yig‘ilgach bajariladi; hozirgi o‘rganuvchilar jadvali migratsiya qilinmaydi.
 
 ## 4-bosqich — Mobil ilovada internetsiz ishlash va brauzer kengaytmasi
 
@@ -99,5 +99,5 @@ Ushbu hujjat tahlilda belgilangan ishlarni bosqichma-bosqich bajarish ro‘yxati
 - [ ] Yaratilgan API va dastur turlarini muvofiqlashtirish, qo‘lda takrorlangan turlarni xavfsiz kamaytirish.
 - [ ] Kirish, o‘rganish va xato holatlari uchun muhim web saqlagichlari hamda tarkibiy qismlariga tekshiruv qo‘shish.
 - [ ] API xatolari, xat yetkazish, sinxronlash navbati va ma’lumotlar bazasi holatini kuzatish.
-- [ ] Zaxira nusxa, tiklash, ma’lumotlar bazasi o‘zgarishini ortga qaytarish, ma’lumotni o‘chirish so‘rovlari va ishlab turgan muhitga joylashni tekshirish.
+- [ ] SM-2 bo‘yicha boshlang‘ich eslab qolish natijalarini o‘lchash; yetarli ma’lumot to‘plangach FSRSni kichik guruhda alohida taqqoslash. Har ikki algoritm uchun jadvalni alohida saqlab, sinov guruhini avvalgi jadvalga xavfsiz qaytarish yo‘lini belgilash.
 - [ ] README, arxitektura, audit va yangilanish qaydlarini amalda ishlayotgan imkoniyatlarga moslab yangilash.

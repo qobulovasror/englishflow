@@ -14,9 +14,12 @@ class TestService {
 
   TestService(this._dio);
 
-  Future<QuizStart> startQuiz() async {
+  Future<QuizStart> startQuiz({String mode = 'FORWARD'}) async {
     try {
-      final response = await _dio.post(ApiEndpoints.testStart);
+      final response = await _dio.post(
+        ApiEndpoints.testStart,
+        queryParameters: {'mode': mode},
+      );
       final data = response.data['questions'] as List;
       return QuizStart(
         testId: response.data['testId']?.toString() ?? '',

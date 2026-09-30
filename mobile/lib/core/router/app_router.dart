@@ -150,7 +150,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/quiz',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const QuizScreen(),
+        builder: (context, state) => QuizScreen(
+          mode: state.uri.queryParameters['mode'] ?? 'FORWARD',
+        ),
       ),
       GoRoute(
         path: '/quiz-result',

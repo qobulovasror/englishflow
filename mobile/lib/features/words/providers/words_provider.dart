@@ -82,6 +82,9 @@ class WordsNotifier extends StateNotifier<WordsState> {
     required String word,
     required String translation,
     String? example,
+    String? pronunciation,
+    String? partOfSpeech,
+    List<String> collocations = const [],
   }) async {
     state = state.copyWith(isAdding: true, clearError: true);
     try {
@@ -89,6 +92,9 @@ class WordsNotifier extends StateNotifier<WordsState> {
         word: word,
         translation: translation,
         example: example,
+        pronunciation: pronunciation,
+        partOfSpeech: partOfSpeech,
+        collocations: collocations,
       );
       // A brand-new word is NEW, so it only belongs in the current view when
       // no filter is active or the filter is exactly 'NEW'. Otherwise leave the
@@ -111,6 +117,9 @@ class WordsNotifier extends StateNotifier<WordsState> {
     String? word,
     String? translation,
     String? example,
+    String? pronunciation,
+    String? partOfSpeech,
+    List<String>? collocations,
   }) async {
     state = state.copyWith(isUpdating: true, clearError: true);
     try {
@@ -119,6 +128,9 @@ class WordsNotifier extends StateNotifier<WordsState> {
         word: word,
         translation: translation,
         example: example,
+        pronunciation: pronunciation,
+        partOfSpeech: partOfSpeech,
+        collocations: collocations,
       );
       state = state.copyWith(
         words: [

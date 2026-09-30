@@ -261,6 +261,9 @@ export class DecksService {
         data: dto.words.map((w) => ({
           word: w.word,
           translation: w.translation,
+          pronunciation: w.pronunciation,
+          partOfSpeech: w.partOfSpeech,
+          collocations: w.collocations ?? [],
           example: w.example,
           audioUrl: w.audioUrl,
           deckId: id,

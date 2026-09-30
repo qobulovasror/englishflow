@@ -4,6 +4,9 @@ class WordModel extends Equatable {
   final String id;
   final String word;
   final String translation;
+  final String? pronunciation;
+  final String? partOfSpeech;
+  final List<String> collocations;
   final String? example;
   final String? audioUrl;
   final DateTime? createdAt;
@@ -12,6 +15,9 @@ class WordModel extends Equatable {
     required this.id,
     required this.word,
     required this.translation,
+    this.pronunciation,
+    this.partOfSpeech,
+    this.collocations = const [],
     this.example,
     this.audioUrl,
     this.createdAt,
@@ -22,6 +28,11 @@ class WordModel extends Equatable {
       id: json['id']?.toString() ?? '',
       word: json['word'] ?? '',
       translation: json['translation'] ?? '',
+      pronunciation: json['pronunciation']?.toString(),
+      partOfSpeech: json['partOfSpeech']?.toString(),
+      collocations: (json['collocations'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
       example: json['example'],
       audioUrl: json['audioUrl']?.toString(),
       createdAt: json['createdAt'] != null
@@ -39,6 +50,15 @@ class WordModel extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, word, translation, example, audioUrl, createdAt];
+  List<Object?> get props => [
+        id,
+        word,
+        translation,
+        pronunciation,
+        partOfSpeech,
+        collocations,
+        example,
+        audioUrl,
+        createdAt
+      ];
 }

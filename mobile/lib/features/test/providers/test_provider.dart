@@ -21,43 +21,65 @@ class TestNotifier extends StateNotifier<TestState> {
   TestNotifier(this._testService, this._tokenStorage)
       : super(const TestState());
 
-  Future<void> loadQuiz() async {
+  Future<void> loadQuiz({String mode = 'FORWARD'}) async {
     final draft = await _tokenStorage.getQuizDraft();
     if (draft != null) {
       try {
         final data = jsonDecode(draft) as Map<String, dynamic>;
-        final questions = (data['questions'] as List)
-            .map((q) => QuizQuestion.fromJson(Map<String, dynamic>.from(q)))
-            .toList();
-        final currentIndex = data['currentIndex'] as int;
-        final answers = (data['answers'] as List)
-            .map((a) => QuizAnswer(
-                  wordId: a['wordId'] as String,
-                  selectedAnswer: a['selectedAnswer'] as String,
-                ))
-            .toList();
-        final selectedOption = data['selectedOption'] as int?;
-        if ((data['testId'] as String).isEmpty || questions.isEmpty ||
-            currentIndex < 0 || currentIndex >= questions.length ||
-            answers.length != currentIndex ||
-            questions.any((q) => q.wordId.isEmpty || q.word.isEmpty ||
-                q.options.length < 2 || q.options.any((o) => o.isEmpty)) ||
-            answers.asMap().entries.any((entry) =>
-                entry.value.wordId != questions[entry.key].wordId ||
-                !questions[entry.key].options.contains(entry.value.selectedAnswer)) ||
-            (selectedOption != null &&
-                (selectedOption < 0 ||
-                    selectedOption >= questions[currentIndex].options.length))) {
-          throw const FormatException('Invalid saved quiz state');
+        final savedMode = data['mode'] as String? ?? 'FORWARD';
+        if (savedMode != mode) {
+          await _tokenStorage.clearQuizDraft();
+        } else {
+          final questions = (data['questions'] as List)
+              .map((q) => QuizQuestion.fromJson(Map<String, dynamic>.from(q)))
+              .toList();
+          final currentIndex = data['currentIndex'] as int;
+          final answers = (data['answers'] as List)
+              .map((a) => QuizAnswer(
+                    wordId: a['wordId'] as String,
+                    selectedAnswer: a['selectedAnswer'] as String,
+                  ))
+              .toList();
+          final selectedOption = data['selectedOption'] as int?;
+          final typedAnswer = data['typedAnswer'] as String? ?? '';
+          if ((data['testId'] as String).isEmpty ||
+              questions.isEmpty ||
+              currentIndex < 0 ||
+              currentIndex >= questions.length ||
+              answers.length != currentIndex ||
+              questions.any((q) =>
+                  q.wordId.isEmpty ||
+                  (q.mode != 'LISTENING' && q.word.isEmpty) ||
+                  (q.mode == 'TYPED'
+                      ? q.options.isNotEmpty
+                      : q.options.length < 2) ||
+                  q.options.any((o) => o.isEmpty)) ||
+              answers.asMap().entries.any((entry) =>
+                  entry.value.wordId != questions[entry.key].wordId ||
+                  entry.value.selectedAnswer.isEmpty ||
+                  (questions[entry.key].mode != 'TYPED' &&
+                      !questions[entry.key]
+                          .options
+                          .contains(entry.value.selectedAnswer))) ||
+              (selectedOption != null &&
+                  (selectedOption < 0 ||
+                      selectedOption >=
+                          questions[currentIndex].options.length)) ||
+              (questions[currentIndex].mode == 'TYPED' &&
+                  selectedOption != null)) {
+            throw const FormatException('Invalid saved quiz state');
+          }
+          state = TestState(
+            testId: data['testId'] as String,
+            questions: questions,
+            currentIndex: currentIndex,
+            answers: answers,
+            selectedOption: selectedOption,
+            typedAnswer: typedAnswer,
+            quizMode: savedMode,
+          );
+          return;
         }
-        state = TestState(
-          testId: data['testId'] as String,
-          questions: questions,
-          currentIndex: currentIndex,
-          answers: answers,
-          selectedOption: selectedOption,
-        );
-        return;
       } catch (_) {
         await _tokenStorage.clearQuizDraft();
       }
@@ -66,17 +88,20 @@ class TestNotifier extends StateNotifier<TestState> {
     state = state.copyWith(
       isLoading: true,
       clearError: true,
+      questions: [],
       currentIndex: 0,
       answers: [],
       clearSelection: true,
       clearScore: true,
       clearTestId: true,
+      quizMode: mode,
     );
     try {
-      final start = await _testService.startQuiz();
+      final start = await _testService.startQuiz(mode: mode);
       state = state.copyWith(
         questions: start.questions,
         testId: start.testId,
+        quizMode: mode,
         isLoading: false,
       );
       await _persistDraft();
@@ -90,13 +115,23 @@ class TestNotifier extends StateNotifier<TestState> {
     unawaited(_persistDraft());
   }
 
-  void nextQuestion() {
-    if (state.selectedOption == null || state.currentQuestion == null) return;
+  void setTypedAnswer(String value) {
+    state = state.copyWith(typedAnswer: value);
+    unawaited(_persistDraft());
+  }
 
-    final question = state.currentQuestion!;
+  void nextQuestion() {
+    final question = state.currentQuestion;
+    if (question == null ||
+        (question.mode == 'TYPED'
+            ? state.typedAnswer.trim().isEmpty
+            : state.selectedOption == null)) return;
+
     final answer = QuizAnswer(
       wordId: question.wordId,
-      selectedAnswer: question.options[state.selectedOption!],
+      selectedAnswer: question.mode == 'TYPED'
+          ? state.typedAnswer.trim()
+          : question.options[state.selectedOption!],
     );
 
     state = state.copyWith(
@@ -115,16 +150,20 @@ class TestNotifier extends StateNotifier<TestState> {
   /// The client no longer knows which option is correct — `/tests/start` does
   /// not return `correctAnswer`, so grading is server-only.
   Future<int?> submitQuiz() async {
-    if (state.selectedOption == null ||
-        state.currentQuestion == null ||
-        state.testId == null) {
+    if (state.currentQuestion == null ||
+        state.testId == null ||
+        (state.currentQuestion!.mode == 'TYPED'
+            ? state.typedAnswer.trim().isEmpty
+            : state.selectedOption == null)) {
       return null;
     }
 
     final question = state.currentQuestion!;
     final lastAnswer = QuizAnswer(
       wordId: question.wordId,
-      selectedAnswer: question.options[state.selectedOption!],
+      selectedAnswer: question.mode == 'TYPED'
+          ? state.typedAnswer.trim()
+          : question.options[state.selectedOption!],
     );
     // Compute locally — do NOT persist into state.answers before the call.
     // Persisting would make a retry (which re-enters submitQuiz) append the
@@ -164,6 +203,8 @@ class TestNotifier extends StateNotifier<TestState> {
       'currentIndex': state.currentIndex,
       'answers': state.answers.map((a) => a.toJson()).toList(),
       'selectedOption': state.selectedOption,
+      'typedAnswer': state.typedAnswer,
+      'mode': state.quizMode,
     });
     _draftWrites = _draftWrites
         .catchError((_) {})

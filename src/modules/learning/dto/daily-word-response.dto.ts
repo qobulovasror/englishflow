@@ -22,6 +22,22 @@ export class DailyWordResponseDto {
   @Expose()
   translation: string;
 
+  @ApiPropertyOptional({ example: '/ˌser.ənˈdɪp.ə.ti/' })
+  @Expose()
+  pronunciation?: string | null;
+
+  @ApiPropertyOptional({ example: 'noun' })
+  @Expose()
+  partOfSpeech?: string | null;
+
+  @ApiProperty({ type: [String] })
+  @Expose()
+  collocations: string[];
+
+  @ApiPropertyOptional({ example: 'https://cdn.example.com/audio/word.mp3' })
+  @Expose()
+  audioUrl?: string | null;
+
   @ApiPropertyOptional()
   @Expose()
   example?: string | null;

@@ -2,12 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { TestsService } from './tests.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { QuizMode } from '@prisma/client';
 
 type MockedPrisma = {
   userWord: { findMany: jest.Mock };
   word: { findMany: jest.Mock };
   test: { create: jest.Mock; findFirst: jest.Mock; updateMany: jest.Mock };
-  testQuestion: { update: jest.Mock };
+  testQuestion: { update: jest.Mock; findMany: jest.Mock };
   $transaction: jest.Mock;
 };
 
@@ -34,7 +35,10 @@ describe('TestsService', () => {
       userWord: { findMany: jest.fn() },
       word: { findMany: jest.fn() },
       test: { create: jest.fn(), findFirst: jest.fn(), updateMany: jest.fn() },
-      testQuestion: { update: jest.fn() },
+      testQuestion: {
+        update: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
       // Support both the callback form (submitTest) and the array form.
       $transaction: jest.fn((input: unknown) =>
         typeof input === 'function'
@@ -97,6 +101,126 @@ describe('TestsService', () => {
         // one correct + three distractors, shuffled
         expect(q.options).toHaveLength(4);
       }
+    });
+
+    it('builds a reverse recall exercise and grades its English answer', async () => {
+      prisma.userWord.findMany.mockResolvedValue(makeWordRefs(6));
+      prisma.word.findMany.mockResolvedValue(makeWords(6));
+      prisma.test.create.mockResolvedValue({ id: 't1' });
+
+      const result = await service.startTest('u1', QuizMode.REVERSE);
+      const createArg = prisma.test.create.mock.calls[0][0];
+      expect(createArg.data.questions.create[0].mode).toBe(QuizMode.REVERSE);
+      expect(createArg.data.questions.create[0].correctAnswer).toMatch(/^word/);
+      expect(result.questions[0].word).toMatch(/^translation/);
+      expect(result.questions[0].options).toContain(
+        createArg.data.questions.create[0].correctAnswer,
+      );
+    });
+
+    it('requires example sentences containing the target word for cloze quizzes', async () => {
+      prisma.userWord.findMany.mockResolvedValue(makeWordRefs(6));
+      prisma.word.findMany.mockResolvedValue(makeWords(6));
+      await expect(
+        service.startTest('u1', QuizMode.CLOZE),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.test.create).not.toHaveBeenCalled();
+    });
+
+    it('scans beyond the first 100 words to find enough cloze candidates', async () => {
+      prisma.userWord.findMany.mockResolvedValue(makeWordRefs(105));
+      prisma.word.findMany.mockImplementation(({ where }) =>
+        Promise.resolve(
+          where.id.in.map((id: string) => {
+            const word = `word${id.slice(1)}`;
+            const matches = Number(id.slice(1)) >= 100;
+            return {
+              id,
+              word,
+              translation: `translation${id.slice(1)}`,
+              example: matches ? `I learned ${word} today.` : null,
+              audioUrl: null,
+            };
+          }),
+        ),
+      );
+      prisma.test.create.mockResolvedValue({ id: 't1' });
+
+      const result = await service.startTest('u1', QuizMode.CLOZE);
+
+      expect(prisma.word.findMany).toHaveBeenCalledTimes(2);
+      expect(result.questions).toHaveLength(5);
+      expect(result.questions[0].prompt).toContain('______');
+    });
+
+    it('matches whole words in cloze examples instead of substrings', async () => {
+      prisma.userWord.findMany.mockResolvedValue(makeWordRefs(6));
+      prisma.word.findMany.mockResolvedValue([
+        { ...makeWords(1)[0], word: 'he', example: 'There is a book.' },
+        ...makeWords(6)
+          .slice(1)
+          .map((word) => ({
+            ...word,
+            example: `I learned ${word.word} today.`,
+          })),
+      ]);
+      prisma.test.create.mockResolvedValue({ id: 't1' });
+
+      const result = await service.startTest('u1', QuizMode.CLOZE);
+
+      expect(result.questions).toHaveLength(5);
+      expect(result.questions.map((question) => question.prompt)).not.toContain(
+        'T______re is a book.',
+      );
+      expect(
+        result.questions.every((question) =>
+          question.prompt.includes('______'),
+        ),
+      ).toBe(true);
+    });
+
+    it('does not treat a base letter before a combining mark as a whole word', async () => {
+      prisma.userWord.findMany.mockResolvedValue(makeWordRefs(6));
+      prisma.word.findMany.mockResolvedValue([
+        { ...makeWords(1)[0], word: 'e', example: 'e\u0301lan is a word.' },
+        ...makeWords(6)
+          .slice(1)
+          .map((word) => ({
+            ...word,
+            example: `I learned ${word.word} today.`,
+          })),
+      ]);
+      prisma.test.create.mockResolvedValue({ id: 't1' });
+
+      const result = await service.startTest('u1', QuizMode.CLOZE);
+
+      expect(result.questions).toHaveLength(5);
+      expect(result.questions.map((question) => question.prompt)).not.toContain(
+        '______\u0301lan is a word.',
+      );
+    });
+
+    it('prioritizes previously missed words in targeted practice', async () => {
+      prisma.userWord.findMany.mockResolvedValue(makeWordRefs(7));
+      prisma.testQuestion.findMany.mockResolvedValue([
+        { wordId: 'w3', selectedAnswer: 'wrong', correctAnswer: 'right' },
+        { wordId: 'w4', selectedAnswer: 'answer', correctAnswer: 'answer' },
+      ]);
+      prisma.word.findMany.mockResolvedValue(makeWords(7));
+      prisma.test.create.mockResolvedValue({ id: 't1' });
+
+      await service.startTest('u1', QuizMode.MISTAKES);
+
+      expect(
+        prisma.test.create.mock.calls[0][0].data.questions.create[0].wordId,
+      ).toBe('w3');
+      expect(prisma.testQuestion.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            test: { userId: 'u1', submittedAt: { not: null } },
+          }),
+        }),
+      );
     });
   });
 

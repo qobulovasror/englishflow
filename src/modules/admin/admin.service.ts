@@ -309,6 +309,9 @@ export class AdminService {
       data: {
         word: dto.word,
         translation: dto.translation,
+        pronunciation: dto.pronunciation,
+        partOfSpeech: dto.partOfSpeech,
+        collocations: dto.collocations ?? [],
         example: dto.example,
         audioUrl: dto.audioUrl,
         deckId: dto.deckId ?? null,
@@ -335,6 +338,15 @@ export class AdminService {
       data: {
         ...(dto.word !== undefined && { word: dto.word }),
         ...(dto.translation !== undefined && { translation: dto.translation }),
+        ...(dto.pronunciation !== undefined && {
+          pronunciation: dto.pronunciation,
+        }),
+        ...(dto.partOfSpeech !== undefined && {
+          partOfSpeech: dto.partOfSpeech,
+        }),
+        ...(dto.collocations !== undefined && {
+          collocations: dto.collocations,
+        }),
         ...(dto.example !== undefined && { example: dto.example }),
         ...(dto.audioUrl !== undefined && { audioUrl: dto.audioUrl }),
       },
@@ -439,6 +451,9 @@ export class AdminService {
           data: toInsert.map((w) => ({
             word: w.word,
             translation: w.translation,
+            pronunciation: w.pronunciation,
+            partOfSpeech: w.partOfSpeech,
+            collocations: w.collocations ?? [],
             example: w.example,
             audioUrl: w.audioUrl,
             deckId,
@@ -540,6 +555,9 @@ export class AdminService {
         word: word.word,
         translation: word.translation,
         example: word.example,
+        pronunciation: word.pronunciation,
+        partOfSpeech: word.partOfSpeech,
+        collocations: word.collocations,
         audioUrl: word.audioUrl,
         deckId: word.deckId,
         deckTitle: word.deck?.title ?? null,

@@ -1,4 +1,14 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from '@nestjs/common';
+import { ApiQuery } from '@nestjs/swagger';
+import { QuizMode } from '@prisma/client';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -24,14 +34,23 @@ export class TestsController {
   @Post('start')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Generate a new quiz from the user vocabulary' })
+  @ApiQuery({
+    name: 'mode',
+    required: false,
+    enum: QuizMode,
+    description: 'Quiz exercise style; defaults to FORWARD',
+  })
   @ApiSuccessResponse(StartTestResponseDto)
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
     description: 'Not enough words to start a test',
     type: ApiErrorResponseDto,
   })
-  startTest(@CurrentUser() user: { id: string }) {
-    return this.testsService.startTest(user.id);
+  startTest(@CurrentUser() user: { id: string }, @Query('mode') mode?: string) {
+    if (mode && !Object.values(QuizMode).includes(mode as QuizMode)) {
+      throw new BadRequestException('Unsupported quiz mode');
+    }
+    return this.testsService.startTest(user.id, mode as QuizMode | undefined);
   }
 
   @Post('submit')

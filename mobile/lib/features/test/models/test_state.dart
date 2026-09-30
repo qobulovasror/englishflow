@@ -11,6 +11,8 @@ class TestState extends Equatable {
   final bool isLoading;
   final String? error;
   final int? selectedOption;
+  final String typedAnswer;
+  final String quizMode;
   final bool isSubmitting;
   // Server-graded score, populated after submitQuiz. Null while the quiz is
   // still in progress — the client can no longer know which option is correct.
@@ -24,6 +26,8 @@ class TestState extends Equatable {
     this.isLoading = false,
     this.error,
     this.selectedOption,
+    this.typedAnswer = '',
+    this.quizMode = 'FORWARD',
     this.isSubmitting = false,
     this.score,
   });
@@ -44,6 +48,8 @@ class TestState extends Equatable {
     bool? isLoading,
     String? error,
     int? selectedOption,
+    String? typedAnswer,
+    String? quizMode,
     bool? isSubmitting,
     int? score,
     bool clearError = false,
@@ -60,6 +66,8 @@ class TestState extends Equatable {
       error: clearError ? null : (error ?? this.error),
       selectedOption:
           clearSelection ? null : (selectedOption ?? this.selectedOption),
+      typedAnswer: typedAnswer ?? (clearSelection ? '' : this.typedAnswer),
+      quizMode: quizMode ?? this.quizMode,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       score: clearScore ? null : (score ?? this.score),
     );
@@ -74,6 +82,8 @@ class TestState extends Equatable {
         isLoading,
         error,
         selectedOption,
+        typedAnswer,
+        quizMode,
         isSubmitting,
         score,
       ];

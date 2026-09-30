@@ -23,6 +23,9 @@ class _EditWordScreenState extends ConsumerState<EditWordScreen> {
   late final TextEditingController _wordController;
   late final TextEditingController _translationController;
   late final TextEditingController _exampleController;
+  late final TextEditingController _pronunciationController;
+  late final TextEditingController _partOfSpeechController;
+  late final TextEditingController _collocationsController;
 
   @override
   void initState() {
@@ -30,8 +33,13 @@ class _EditWordScreenState extends ConsumerState<EditWordScreen> {
     _wordController = TextEditingController(text: widget.word.word);
     _translationController =
         TextEditingController(text: widget.word.translation);
-    _exampleController =
-        TextEditingController(text: widget.word.example ?? '');
+    _exampleController = TextEditingController(text: widget.word.example ?? '');
+    _pronunciationController =
+        TextEditingController(text: widget.word.pronunciation ?? '');
+    _partOfSpeechController =
+        TextEditingController(text: widget.word.partOfSpeech ?? '');
+    _collocationsController =
+        TextEditingController(text: widget.word.collocations.join(', '));
   }
 
   @override
@@ -39,6 +47,9 @@ class _EditWordScreenState extends ConsumerState<EditWordScreen> {
     _wordController.dispose();
     _translationController.dispose();
     _exampleController.dispose();
+    _pronunciationController.dispose();
+    _partOfSpeechController.dispose();
+    _collocationsController.dispose();
     super.dispose();
   }
 
@@ -50,6 +61,13 @@ class _EditWordScreenState extends ConsumerState<EditWordScreen> {
           word: _wordController.text.trim(),
           translation: _translationController.text.trim(),
           example: _exampleController.text.trim(),
+          pronunciation: _pronunciationController.text.trim(),
+          partOfSpeech: _partOfSpeechController.text.trim(),
+          collocations: _collocationsController.text
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList(),
         );
 
     if (!mounted) return;
@@ -95,6 +113,29 @@ class _EditWordScreenState extends ConsumerState<EditWordScreen> {
                 hint: 'e.g., Olma',
                 prefixIcon: Icons.translate,
                 validator: (v) => Validators.required(v, 'Translation'),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _pronunciationController,
+                label: 'Pronunciation (IPA)',
+                hint: '/ˈæp.əl/',
+                prefixIcon: Icons.record_voice_over_outlined,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _partOfSpeechController,
+                label: 'Part of speech',
+                hint: 'noun',
+                prefixIcon: Icons.category_outlined,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _collocationsController,
+                label: 'Collocations (comma separated)',
+                prefixIcon: Icons.link,
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 16),

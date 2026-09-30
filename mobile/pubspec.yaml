@@ -28,6 +28,7 @@ dependencies:
   equatable: ^2.0.5
   flutter_secure_storage: ^9.0.0
   flutter_tts: ^4.2.0
+  just_audio: ^0.9.46
 
 dev_dependencies:
   flutter_test:

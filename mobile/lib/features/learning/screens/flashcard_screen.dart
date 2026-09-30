@@ -155,6 +155,9 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
                             child: _buildCardBack(
                               word.translation,
                               word.example,
+                              word.pronunciation,
+                              word.partOfSpeech,
+                              word.collocations,
                             ),
                           ),
                   );
@@ -258,7 +261,13 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     );
   }
 
-  Widget _buildCardBack(String translation, String? example) {
+  Widget _buildCardBack(
+    String translation,
+    String? example,
+    String? pronunciation,
+    String? partOfSpeech,
+    List<String> collocations,
+  ) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -283,6 +292,25 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             style:
                 AppTextStyles.heading1.copyWith(color: AppColors.primaryDark),
           ),
+          if (pronunciation != null || partOfSpeech != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              [
+                if (pronunciation != null) pronunciation,
+                if (partOfSpeech != null) partOfSpeech
+              ].join(' · '),
+              style: AppTextStyles.caption,
+              textAlign: TextAlign.center,
+            ),
+          ],
+          if (collocations.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(collocations.join(' · '),
+                  textAlign: TextAlign.center, style: AppTextStyles.body),
+            ),
+          ],
           if (example != null && example.isNotEmpty) ...[
             const SizedBox(height: 16),
             Padding(

@@ -32,7 +32,16 @@ const busy = ref(false)
 const modalOpen = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
 const formError = ref<string | null>(null)
-const form = reactive({ id: '', word: '', translation: '', example: '', audioUrl: '' })
+const form = reactive({
+  id: '',
+  word: '',
+  translation: '',
+  pronunciation: '',
+  partOfSpeech: '',
+  collocations: '',
+  example: '',
+  audioUrl: '',
+})
 
 const deleteTarget = ref<AdminWord | null>(null)
 
@@ -83,7 +92,16 @@ watch(search, () => {
 function openCreate() {
   modalMode.value = 'create'
   formError.value = null
-  Object.assign(form, { id: '', word: '', translation: '', example: '', audioUrl: '' })
+  Object.assign(form, {
+    id: '',
+    word: '',
+    translation: '',
+    pronunciation: '',
+    partOfSpeech: '',
+    collocations: '',
+    example: '',
+    audioUrl: '',
+  })
   modalOpen.value = true
 }
 
@@ -94,6 +112,9 @@ function openEdit(w: AdminWord) {
     id: w.id,
     word: w.word,
     translation: w.translation,
+    pronunciation: w.pronunciation ?? '',
+    partOfSpeech: w.partOfSpeech ?? '',
+    collocations: w.collocations?.join(', ') ?? '',
     example: w.example ?? '',
     audioUrl: w.audioUrl ?? '',
   })
@@ -109,6 +130,12 @@ async function submitForm() {
       await adminService.words.create({
         word: form.word,
         translation: form.translation,
+        pronunciation: form.pronunciation.trim() || undefined,
+        partOfSpeech: form.partOfSpeech.trim() || undefined,
+        collocations: form.collocations
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
         example: form.example || undefined,
         ...(form.audioUrl ? { audioUrl: form.audioUrl } : {}),
       })
@@ -118,6 +145,12 @@ async function submitForm() {
       await adminService.words.update(form.id, {
         word: form.word,
         translation: form.translation,
+        pronunciation: form.pronunciation.trim() || null,
+        partOfSpeech: form.partOfSpeech.trim() || null,
+        collocations: form.collocations
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
         example: form.example.trim() ? form.example : null,
         audioUrl: form.audioUrl.trim() ? form.audioUrl : null,
       })
@@ -285,6 +318,21 @@ onMounted(fetchWords)
           placeholder="kutilmagan yoqimli kashfiyot"
         />
         <AppInput
+          v-model="form.pronunciation"
+          label="Pronunciation (IPA, optional)"
+          placeholder="/ˌser.ənˈdɪp.ə.ti/"
+        />
+        <AppInput
+          v-model="form.partOfSpeech"
+          label="Part of speech (optional)"
+          placeholder="noun"
+        />
+        <AppInput
+          v-model="form.collocations"
+          label="Collocations (comma separated)"
+          placeholder="pure serendipity, by serendipity"
+        />
+        <AppInput
           v-model="form.example"
           label="Example (optional)"
           placeholder="Finding that book was pure serendipity."
@@ -319,7 +367,9 @@ onMounted(fetchWords)
       <div class="space-y-4">
         <p class="text-sm text-gray-500 dark:text-gray-400">
           Upload a <strong>CSV</strong> or <strong>JSON</strong> file. Columns:
-          <code class="text-xs">word, translation, example, audioUrl</code>
+          <code class="text-xs"
+            >word, translation, pronunciation, partOfSpeech, collocations, example, audioUrl</code
+          >
           (only <em>word</em> and <em>translation</em> are required). Duplicates of existing words
           are skipped.
         </p>
