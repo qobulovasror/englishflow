@@ -65,6 +65,7 @@ class ProgressStats extends Equatable {
   final int totalTests;
   final double averageScore;
   final StreakInfo streak;
+  final List<AchievementInfo> achievements;
 
   const ProgressStats({
     this.totalWords = 0,
@@ -75,12 +76,14 @@ class ProgressStats extends Equatable {
     this.totalTests = 0,
     this.averageScore = 0,
     this.streak = const StreakInfo(),
+    this.achievements = const [],
   });
 
   factory ProgressStats.fromJson(Map<String, dynamic> json) {
     final vocabulary = json['vocabulary'] as Map<String, dynamic>? ?? {};
     final tests = json['tests'] as Map<String, dynamic>? ?? {};
     final streak = json['streak'] as Map<String, dynamic>?;
+    final achievements = json['achievements'] as List<dynamic>? ?? [];
 
     return ProgressStats(
       totalWords: vocabulary['total'] ?? 0,
@@ -91,6 +94,10 @@ class ProgressStats extends Equatable {
       totalTests: tests['total'] ?? 0,
       averageScore: (tests['averageScore'] ?? 0).toDouble(),
       streak: streak != null ? StreakInfo.fromJson(streak) : const StreakInfo(),
+      achievements: achievements
+          .whereType<Map<String, dynamic>>()
+          .map(AchievementInfo.fromJson)
+          .toList(growable: false),
     );
   }
 
@@ -104,7 +111,40 @@ class ProgressStats extends Equatable {
         totalTests,
         averageScore,
         streak,
+        achievements,
       ];
+}
+
+class AchievementInfo extends Equatable {
+  final String id;
+  final String title;
+  final String description;
+  final int target;
+  final int progress;
+  final bool unlocked;
+
+  const AchievementInfo({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.target,
+    required this.progress,
+    required this.unlocked,
+  });
+
+  factory AchievementInfo.fromJson(Map<String, dynamic> json) =>
+      AchievementInfo(
+        id: json['id']?.toString() ?? '',
+        title: json['title']?.toString() ?? '',
+        description: json['description']?.toString() ?? '',
+        target: (json['target'] as num?)?.toInt() ?? 0,
+        progress: (json['progress'] as num?)?.toInt() ?? 0,
+        unlocked: json['unlocked'] == true,
+      );
+
+  @override
+  List<Object?> get props =>
+      [id, title, description, target, progress, unlocked];
 }
 
 /// A single day's review count from `GET /progress/trends`.

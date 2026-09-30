@@ -78,6 +78,40 @@ onMounted(() => {
       <!-- Vocabulary Stats -->
       <div v-if="loading" class="text-gray-500 dark:text-gray-400">Loading...</div>
       <template v-else-if="progress">
+        <AppCard title="Learning achievements">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div
+              v-for="achievement in progress.achievements"
+              :key="achievement.id"
+              class="rounded-lg border p-4"
+              :class="
+                achievement.unlocked
+                  ? 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-900/20'
+                  : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700/30'
+              "
+            >
+              <div class="flex items-center justify-between gap-2">
+                <p class="font-medium text-gray-800 dark:text-gray-100">{{ achievement.title }}</p>
+                <span v-if="achievement.unlocked" aria-label="Completed">✓</span>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {{ achievement.description }}
+              </p>
+              <div class="mt-3 h-2 rounded-full bg-gray-200 dark:bg-gray-600">
+                <div
+                  class="h-2 rounded-full bg-primary-500 transition-all"
+                  :style="{
+                    width: `${Math.round((achievement.progress / achievement.target) * 100)}%`,
+                  }"
+                />
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {{ achievement.progress }}/{{ achievement.target }}
+              </p>
+            </div>
+          </div>
+        </AppCard>
+
         <AppCard title="Vocabulary">
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div class="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">

@@ -27,6 +27,12 @@ export interface StoredUser {
   emailVerifiedAt: Date | null;
   dailyGoal: number;
   dailyNewLimit: number;
+  reminderEnabled: boolean;
+  reminderHour: number;
+  reminderMinute: number;
+  reminderDays: number[];
+  reminderTimezone: string;
+  reminderOptedOutAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -175,6 +181,37 @@ export function buildPrismaStub() {
   }
 
   const user = {
+    count: jest.fn(async ({ where = {} }: any = {}) => {
+      let list = [...users.values()];
+      if (where.role) list = list.filter((u) => u.role === where.role);
+      if (where.emailVerifiedAt?.not === null)
+        list = list.filter((u) => u.emailVerifiedAt !== null);
+      if (where.onboardedAt?.not === null)
+        list = list.filter((u) => !!(u as any).onboardedAt);
+      if (typeof where.reminderEnabled === 'boolean')
+        list = list.filter((u) => u.reminderEnabled === where.reminderEnabled);
+      if (where.reminderOptedOutAt?.gte)
+        list = list.filter(
+          (u) =>
+            u.reminderOptedOutAt !== null &&
+            u.reminderOptedOutAt >= where.reminderOptedOutAt.gte,
+        );
+      if (where.createdAt?.lte)
+        list = list.filter((u) => u.createdAt <= where.createdAt.lte);
+      if (where.createdAt?.gte)
+        list = list.filter((u) => u.createdAt >= where.createdAt.gte);
+      if (where.reviews?.some) {
+        list = list.filter((u) =>
+          [...reviews.values()].some(
+            (review) =>
+              review.userId === u.id &&
+              (!where.reviews.some.createdAt?.gte ||
+                review.createdAt >= where.reviews.some.createdAt.gte),
+          ),
+        );
+      }
+      return list.length;
+    }),
     findUnique: jest.fn(async ({ where }: any) => {
       if (where.id) return users.get(where.id) ?? null;
       if (where.email)
@@ -195,6 +232,12 @@ export function buildPrismaStub() {
         emailVerifiedAt: data.emailVerifiedAt ?? null,
         dailyGoal: data.dailyGoal ?? 20,
         dailyNewLimit: data.dailyNewLimit ?? 10,
+        reminderEnabled: data.reminderEnabled ?? false,
+        reminderHour: data.reminderHour ?? 19,
+        reminderMinute: data.reminderMinute ?? 0,
+        reminderDays: data.reminderDays ?? [1, 2, 3, 4, 5],
+        reminderTimezone: data.reminderTimezone ?? 'UTC',
+        reminderOptedOutAt: data.reminderOptedOutAt ?? null,
         createdAt: now,
         updatedAt: now,
       };
@@ -858,6 +901,12 @@ export function buildPrismaStub() {
         list = list.filter((t) => t.userId === args.where.userId);
       if (args.where?.submittedAt?.not === null) {
         list = list.filter((t) => t.submittedAt !== null);
+      }
+      if (args.where?.submittedAt === null) {
+        list = list.filter((t) => t.submittedAt === null);
+      }
+      if (args.where?.createdAt?.lte) {
+        list = list.filter((t) => t.createdAt <= args.where.createdAt.lte);
       }
       return list.length;
     }),

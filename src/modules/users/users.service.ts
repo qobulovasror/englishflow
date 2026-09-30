@@ -59,26 +59,46 @@ export class UsersService {
 
   async update(id: string, dto: UpdateUserDto) {
     const wantsEmailChange = dto.email !== undefined;
-    const wantsGoalChange = dto.dailyGoal !== undefined;
-    const wantsNewLimitChange = dto.dailyNewLimit !== undefined;
+    const preferences: Prisma.UserUpdateInput = {
+      ...(dto.dailyGoal !== undefined ? { dailyGoal: dto.dailyGoal } : {}),
+      ...(dto.dailyNewLimit !== undefined
+        ? { dailyNewLimit: dto.dailyNewLimit }
+        : {}),
+      ...(dto.reminderEnabled !== undefined
+        ? { reminderEnabled: dto.reminderEnabled }
+        : {}),
+      ...(dto.reminderHour !== undefined
+        ? { reminderHour: dto.reminderHour }
+        : {}),
+      ...(dto.reminderMinute !== undefined
+        ? { reminderMinute: dto.reminderMinute }
+        : {}),
+      ...(dto.reminderDays !== undefined
+        ? { reminderDays: dto.reminderDays }
+        : {}),
+      ...(dto.reminderTimezone !== undefined
+        ? { reminderTimezone: dto.reminderTimezone }
+        : {}),
+    };
+    const hasPreferences = Object.keys(preferences).length > 0;
 
     // Nothing to change — return the current row unmodified rather than
     // doing a no-op UPDATE.
-    if (!wantsEmailChange && !wantsGoalChange && !wantsNewLimitChange) {
+    if (!wantsEmailChange && !hasPreferences) {
       return this.findByIdOrThrow(id);
     }
 
     const user = await this.findByIdOrThrow(id);
+    if (user.reminderEnabled && dto.reminderEnabled === false) {
+      preferences.reminderOptedOutAt = new Date();
+    }
 
     // dailyGoal is not security-sensitive, so it can be changed without the
     // current password. Email change is the only field that demands it.
     if (!wantsEmailChange) {
       return this.prisma.user.update({
         where: { id },
-        data: {
-          ...(wantsGoalChange ? { dailyGoal: dto.dailyGoal } : {}),
-          ...(wantsNewLimitChange ? { dailyNewLimit: dto.dailyNewLimit } : {}),
-        },
+        data: preferences,
       });
     }
 
@@ -94,15 +114,10 @@ export class UsersService {
 
     // Email unchanged: only study preferences (if any) remain to apply.
     if (nextEmail === user.email) {
-      if (wantsGoalChange || wantsNewLimitChange) {
+      if (hasPreferences) {
         return this.prisma.user.update({
           where: { id },
-          data: {
-            ...(wantsGoalChange ? { dailyGoal: dto.dailyGoal } : {}),
-            ...(wantsNewLimitChange
-              ? { dailyNewLimit: dto.dailyNewLimit }
-              : {}),
-          },
+          data: preferences,
         });
       }
       return user;
@@ -118,10 +133,7 @@ export class UsersService {
           data: {
             email: nextEmail,
             passwordChangedAt: new Date(),
-            ...(wantsGoalChange ? { dailyGoal: dto.dailyGoal } : {}),
-            ...(wantsNewLimitChange
-              ? { dailyNewLimit: dto.dailyNewLimit }
-              : {}),
+            ...preferences,
           },
         }),
         this.prisma.refreshToken.deleteMany({ where: { userId: id } }),

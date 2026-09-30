@@ -47,6 +47,25 @@ void main() {
   });
 
   group('ProgressStats.fromJson', () {
+    test('parses cumulative review achievements', () {
+      final stats = ProgressStats.fromJson({
+        'achievements': [
+          {
+            'id': 'reviews-25',
+            'title': '25 ta takrorlash',
+            'description': 'So‘zlarni 25 marta takrorladingiz.',
+            'target': 25,
+            'progress': 25,
+            'unlocked': true,
+          },
+        ],
+      });
+
+      expect(stats.achievements, hasLength(1));
+      expect(stats.achievements.single.target, 25);
+      expect(stats.achievements.single.unlocked, isTrue);
+    });
+
     test('reads nested vocabulary/tests/streak envelopes', () {
       final stats = ProgressStats.fromJson({
         'vocabulary': {
@@ -119,7 +138,8 @@ void main() {
     });
 
     test('isSystem is false unless json is exactly true', () {
-      expect(DeckProgress.fromJson({'id': '1', 'title': 'x'}).isSystem, isFalse);
+      expect(
+          DeckProgress.fromJson({'id': '1', 'title': 'x'}).isSystem, isFalse);
       expect(
         DeckProgress.fromJson({'id': '1', 'title': 'x', 'isSystem': 'true'})
             .isSystem,

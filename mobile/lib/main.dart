@@ -6,11 +6,13 @@ import 'package:englishflow/core/network/dio_client.dart';
 import 'package:englishflow/core/constants/app_constants.dart';
 import 'package:englishflow/features/auth/providers/auth_provider.dart';
 import 'package:englishflow/core/router/app_router.dart';
+import 'package:englishflow/features/users/services/reminder_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   await Hive.openBox(AppConstants.cacheBox);
+  await ReminderNotificationService.instance.initialize();
 
   runApp(const ProviderScope(child: EnglishFlowApp()));
 }

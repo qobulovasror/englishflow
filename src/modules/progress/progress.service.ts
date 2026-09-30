@@ -76,6 +76,7 @@ export class ProgressService {
       averageScoreAgg,
       user,
       todayCount,
+      totalReviewCount,
       reviewDays,
       dueCount,
       introducedToday,
@@ -116,6 +117,7 @@ export class ProgressService {
       this.prisma.review.count({
         where: { userId, createdAt: { gte: startOfToday } },
       }),
+      this.prisma.review.count({ where: { userId } }),
       this.prisma.review.findMany({
         where: { userId, createdAt: { gte: streakWindowStart } },
         select: { createdAt: true },
@@ -178,6 +180,14 @@ export class ProgressService {
           estimatedMinutes: Math.ceil((actionableDueCount + newCount) * 0.5),
           goalMet,
         },
+        achievements: [1, 25, 100, 500].map((target) => ({
+          id: `reviews-${target}`,
+          title: `${target} ta takrorlash`,
+          description: `So‘zlarni ${target} marta takrorladingiz.`,
+          target,
+          progress: Math.min(totalReviewCount, target),
+          unlocked: totalReviewCount >= target,
+        })),
       },
       { excludeExtraneousValues: true },
     );

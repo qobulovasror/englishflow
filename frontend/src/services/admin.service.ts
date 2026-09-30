@@ -4,6 +4,7 @@ import type {
   AdminDeckDetail,
   AdminDeckRow,
   AdminStatsOverview,
+  AdminEngagement,
   AdminUser,
   AdminWord,
   CefrLevel,
@@ -56,6 +57,10 @@ export const adminService = {
       const { data } = await api.get<SignupPoint[]>('/admin/stats/signups', {
         params: { days },
       })
+      return data
+    },
+    async engagement(): Promise<AdminEngagement> {
+      const { data } = await api.get<AdminEngagement>('/admin/stats/engagement')
       return data
     },
   },

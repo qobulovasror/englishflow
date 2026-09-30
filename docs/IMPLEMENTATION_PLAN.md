@@ -75,13 +75,16 @@ Ushbu hujjat tahlilda belgilangan ishlarni bosqichma-bosqich bajarish ro‘yxati
 
 ## 5-bosqich — Foydalanuvchini qaytishga undash
 
-**Holat: rejalashtirilgan**
+**Holat: reviewer tasdiqladi; yakunlandi**
 
-- [ ] Foydalanuvchi tanlagan vaqtda ishlaydigan, dam olish kunlari, tezlik chegarasi va oson o‘chirish sozlamasi bor eslatmalarni qo‘shish.
-- [ ] Tanaffusni jazolamaydigan, haqiqiy o‘rganish yutug‘iga asoslangan nishon va rag‘batlar qo‘shish.
-- [ ] Ommaviy reytingdan oldin do‘st bilan shaxsiy bellashuv imkonini baholash; ijtimoiy imkoniyatlar ixtiyoriy bo‘lishi kerak.
-- [ ] Dastlabki sozlashni tugatish, birinchi darsni yakunlash, 7/30 kun ichida qaytish, darsni tashlab ketish va eslatmalarni o‘chirish ko‘rsatkichlarini yig‘ish.
-- [ ] Imkoniyatlarni ilovada o‘tkazilgan vaqt bilan emas, o‘rganish natijasi va qaytish ko‘rsatkichlari bilan cheklangan sinovda baholash.
+- [x] Mobil profilda eslatmani yoqish/o‘chirish, mahalliy vaqt, hafta kunlari va IANA vaqt zonasini tanlash qo‘shildi; platforma ruxsati faqat foydalanuvchi yoqqanda so‘raladi. O‘chirish, chiqish va sessiya almashishdagi mahalliy bildirishnomalar bekor qilinadi.
+- [x] Eslatma sozlamalari serverda saqlanadi va migratsiya bilan kiritiladi. Sozlama tez-tez bildirish yubormaydi; faqat foydalanuvchi belgilagan kun/vaqtda haftalik bitta eslatma rejalashtiriladi.
+- [x] Birinchi, 25, 100 va 500 ta jami takrorlash uchun tanaffusni jazolamaydigan yutuqlar web va mobil progress sahifalarida ko‘rsatiladi.
+- [x] Administrator panelida onboarding, birinchi takrorlash, 7/30 kunlik qaytish, 24 soatdan oshgan tugallanmagan sinov va eslatma holatlari uchun faqat yig‘ma metrikalar qo‘shildi. Eslatmani o‘chirishning 30 kunlik ko‘rsatkichi shaxsiy qator saqlamasdan qayd etiladi.
+- [x] Do‘st bilan shaxsiy bellashuv talabi tasdiqlanadigan dalil yo‘qligi sababli, bu ixtiyoriy imkoniyat keyingi mahsulot qaroriga qoldirildi.
+- [x] Sinov bahosi ekran vaqti yoki kunlik zanjirga emas, o‘rganish natijasi hamda 7/30 kunlik qaytishga qarab qilinishi belgilandi. Yetarli bazaviy ma’lumot to‘planmaguncha A/B tajriba ishga tushirilmaydi.
+
+**Cheklov:** hozirgi “birinchi dars” ko‘rsatkichi birinchi takrorlash yozuviga, “tashlab ketilgan dars” esa 24 soatdan beri topshirilmagan testga tayangan. Alohida study-session boshlash/tugatish hodisalari hali mavjud emas; keyingi metrikalar bosqichida bunday oqim kerak deb topilsa alohida hodisalar bilan kengaytiriladi.
 
 ## 6-bosqich — Ma’lumot ko‘chirish va to‘plam ulashish
 

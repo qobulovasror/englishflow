@@ -51,7 +51,15 @@ void main() {
   group('UserModel.toJson', () {
     test('serializes without createdAt when null', () {
       const user = UserModel(id: '1', email: 'a@b.c');
-      expect(user.toJson(), {'id': '1', 'email': 'a@b.c'});
+      expect(user.toJson(), {
+        'id': '1',
+        'email': 'a@b.c',
+        'reminderEnabled': false,
+        'reminderHour': 19,
+        'reminderMinute': 0,
+        'reminderDays': [1, 2, 3, 4, 5],
+        'reminderTimezone': 'UTC',
+      });
     });
 
     test('serializes createdAt as ISO string when set', () {
@@ -114,6 +122,7 @@ void main() {
       expect(json.containsKey('role'), isFalse);
       expect(json.containsKey('dailyGoal'), isFalse);
       expect(json.containsKey('emailVerifiedAt'), isFalse);
+      expect(json['reminderEnabled'], isFalse);
 
       final full = UserModel(
         id: '1',
@@ -127,5 +136,22 @@ void main() {
       expect(fullJson['dailyGoal'], 20);
       expect(fullJson['emailVerifiedAt'], '2026-06-01T09:00:00.000Z');
     });
+  });
+
+  test('parses reminder settings from the server profile', () {
+    final user = UserModel.fromJson({
+      'id': '1',
+      'email': 'a@b.c',
+      'reminderEnabled': true,
+      'reminderHour': 8,
+      'reminderMinute': 15,
+      'reminderDays': [1, 3, 5],
+      'reminderTimezone': 'Asia/Tashkent',
+    });
+    expect(user.reminderEnabled, isTrue);
+    expect(user.reminderHour, 8);
+    expect(user.reminderMinute, 15);
+    expect(user.reminderDays, [1, 3, 5]);
+    expect(user.reminderTimezone, 'Asia/Tashkent');
   });
 }

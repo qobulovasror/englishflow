@@ -17,4 +17,21 @@ void main() {
     const noEmail = UpdateProfileRequest(currentPassword: 'Current!1');
     expect(noEmail.toJson(), {'currentPassword': 'Current!1'});
   });
+
+  test('serializes reminder preferences together', () {
+    const request = UpdateProfileRequest(
+      reminderEnabled: true,
+      reminderHour: 8,
+      reminderMinute: 15,
+      reminderDays: [1, 3, 5],
+      reminderTimezone: 'Asia/Tashkent',
+    );
+    expect(request.toJson(), {
+      'reminderEnabled': true,
+      'reminderHour': 8,
+      'reminderMinute': 15,
+      'reminderDays': [1, 3, 5],
+      'reminderTimezone': 'Asia/Tashkent',
+    });
+  });
 }

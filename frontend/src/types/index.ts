@@ -222,6 +222,14 @@ export interface ProgressData {
     estimatedMinutes: number
     goalMet: boolean
   }
+  achievements: {
+    id: string
+    title: string
+    description: string
+    target: number
+    progress: number
+    unlocked: boolean
+  }[]
 }
 
 // One day of review activity (dense, oldest→newest).
@@ -326,6 +334,20 @@ export interface AdminStatsOverview {
   words: { total: number }
   reviews: { total: number; today: number }
   tests: { total: number }
+}
+
+export interface AdminEngagement {
+  totalUsers: number
+  onboardedUsers: number
+  firstLessonUsers: number
+  eligible7DayUsers: number
+  returnedIn7Days: number
+  eligible30DayUsers: number
+  returnedIn30Days: number
+  abandonedTests: number
+  remindersEnabled: number
+    remindersDisabled: number
+    reminderOptOuts30Days: number
 }
 
 // One day of the signup trend (dense, oldest→newest).

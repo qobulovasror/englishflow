@@ -44,6 +44,12 @@ function buildUser(overrides: Partial<User> = {}): User {
     emailVerifiedAt: null,
     dailyGoal: 20,
     dailyNewLimit: 10,
+    reminderEnabled: false,
+    reminderHour: 19,
+    reminderMinute: 0,
+    reminderDays: [1, 2, 3, 4, 5],
+    reminderTimezone: 'UTC',
+    reminderOptedOutAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     passwordChangedAt: new Date(),
@@ -194,6 +200,21 @@ describe('UsersService', () => {
 
       expect(result).toBe(user);
       expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('records an explicit reminder opt-out timestamp', async () => {
+      prisma.user.findUnique.mockResolvedValue(
+        buildUser({ reminderEnabled: true }),
+      );
+      prisma.user.update.mockImplementation(async ({ data }) =>
+        buildUser(data),
+      );
+
+      await service.update('u1', { reminderEnabled: false });
+
+      expect(
+        prisma.user.update.mock.calls[0][0].data.reminderOptedOutAt,
+      ).toBeInstanceOf(Date);
     });
 
     it('rejects email change when current password is incorrect', async () => {

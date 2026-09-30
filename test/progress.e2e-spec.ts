@@ -110,6 +110,37 @@ describe('Progress (e2e)', () => {
     expect(res.body.data.dailyGoal).toBe(50);
   });
 
+  it('PATCH /users/me stores a bounded reminder schedule', async () => {
+    const { accessToken } = await registerUser(app);
+
+    const res = await request(app.getHttpServer())
+      .patch('/users/me')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        reminderEnabled: true,
+        reminderHour: 8,
+        reminderMinute: 15,
+        reminderDays: [1, 3, 5],
+        reminderTimezone: 'Asia/Tashkent',
+      })
+      .expect(200);
+
+    expect(res.body.data).toMatchObject({
+      reminderEnabled: true,
+      reminderHour: 8,
+      reminderMinute: 15,
+      reminderDays: [1, 3, 5],
+      reminderTimezone: 'Asia/Tashkent',
+    });
+    const base = request(app.getHttpServer())
+      .patch('/users/me')
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    await base.send({ reminderHour: 24 }).expect(400);
+    await base.send({ reminderDays: [1, 1] }).expect(400);
+    await base.send({ reminderTimezone: 'Mars/Olympus' }).expect(400);
+  });
+
   it('aggregates vocabulary counts and test stats', async () => {
     const { accessToken, userId } = await registerUser(app);
 

@@ -5,7 +5,7 @@ import { adminService } from '@/services/admin.service'
 import AppCard from '@/components/AppCard.vue'
 import AppButton from '@/components/AppButton.vue'
 import StatCard from '@/components/admin/StatCard.vue'
-import type { AdminStatsOverview } from '@/types'
+import type { AdminEngagement, AdminStatsOverview } from '@/types'
 
 interface HealthResponse {
   status: string
@@ -17,6 +17,7 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const health = ref<HealthResponse | null>(null)
 const overview = ref<AdminStatsOverview | null>(null)
+const engagement = ref<AdminEngagement | null>(null)
 
 const dbOk = computed(() => health.value?.db === 'ok')
 const apiOk = computed(() => health.value?.status === 'ok')
@@ -37,9 +38,10 @@ async function load() {
   // Health and stats are independent: a heavy stats query failing must NOT
   // paint the system as degraded, and a 503 readiness probe (DB down) must
   // still surface as unreachable rather than swallowing both.
-  const [healthRes, ovRes] = await Promise.allSettled([
+  const [healthRes, ovRes, engagementRes] = await Promise.allSettled([
     api.get<HealthResponse>('/health/ready').then((r) => r.data),
     adminService.stats.overview(),
+    adminService.stats.engagement(),
   ])
 
   if (healthRes.status === 'fulfilled') {
@@ -55,6 +57,8 @@ async function load() {
     overview.value = null
     error.value = extractErrorMessage(ovRes.reason, 'Failed to load platform totals')
   }
+
+  engagement.value = engagementRes.status === 'fulfilled' ? engagementRes.value : null
 
   loading.value = false
 }
@@ -108,6 +112,55 @@ onMounted(load)
             </div>
           </div>
         </AppCard>
+      </div>
+
+      <div v-if="engagement" class="space-y-3">
+        <div>
+          <h2
+            class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide"
+          >
+            Learning engagement
+          </h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Recent return is measured among accounts at least 7 or 30 days old. No user-level data
+            is shown.
+          </p>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <StatCard
+            label="Onboarded"
+            :value="`${engagement.onboardedUsers}/${engagement.totalUsers}`"
+            accent="primary"
+          />
+          <StatCard
+            label="Started first lesson"
+            :value="engagement.firstLessonUsers"
+            accent="green"
+          />
+          <StatCard
+            label="Returned · 7 days"
+            :value="`${engagement.returnedIn7Days}/${engagement.eligible7DayUsers}`"
+            accent="sky"
+          />
+          <StatCard
+            label="Returned · 30 days"
+            :value="`${engagement.returnedIn30Days}/${engagement.eligible30DayUsers}`"
+            accent="violet"
+          />
+          <StatCard
+            label="Abandoned tests"
+            :value="engagement.abandonedTests"
+            sublabel="Unsubmitted for 24+ hours"
+            accent="amber"
+          />
+          <StatCard label="Reminders on" :value="engagement.remindersEnabled" accent="green" />
+          <StatCard label="Reminders off" :value="engagement.remindersDisabled" accent="rose" />
+          <StatCard
+            label="Turned reminders off · 30d"
+            :value="engagement.reminderOptOuts30Days"
+            accent="amber"
+          />
+        </div>
       </div>
 
       <!-- Platform totals -->

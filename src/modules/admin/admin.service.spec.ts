@@ -138,6 +138,31 @@ describe('AdminService', () => {
     });
   });
 
+  describe('engagement', () => {
+    it('returns aggregated activation, return and reminder signals', async () => {
+      [100, 80, 55, 70, 20, 40, 12, 15, 85, 6].forEach((count) => {
+        prisma.user.count.mockResolvedValueOnce(count);
+      });
+      prisma.test.count.mockResolvedValueOnce(4);
+
+      const result = await service.engagement();
+
+      expect(result).toEqual({
+        totalUsers: 100,
+        onboardedUsers: 80,
+        firstLessonUsers: 55,
+        eligible7DayUsers: 70,
+        returnedIn7Days: 20,
+        eligible30DayUsers: 40,
+        returnedIn30Days: 12,
+        abandonedTests: 4,
+        remindersEnabled: 15,
+        remindersDisabled: 85,
+        reminderOptOuts30Days: 6,
+      });
+    });
+  });
+
   describe('changeRole', () => {
     it('rejects changing your own role', async () => {
       await expect(

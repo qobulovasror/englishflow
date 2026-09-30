@@ -168,6 +168,38 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
             ),
             const SizedBox(height: 32),
 
+            Text('Yutuqlar', style: AppTextStyles.heading3),
+            const SizedBox(height: 12),
+            ...stats.achievements.map((achievement) => Card(
+                  child: ListTile(
+                    leading: Icon(
+                      achievement.unlocked ? Icons.emoji_events : Icons.flag,
+                      color: achievement.unlocked
+                          ? AppColors.gold
+                          : AppColors.primary,
+                    ),
+                    title: Text(achievement.title),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(achievement.description),
+                        const SizedBox(height: 6),
+                        LinearProgressIndicator(
+                          value: achievement.target > 0
+                              ? (achievement.progress / achievement.target)
+                                  .clamp(0.0, 1.0)
+                              : 0,
+                        ),
+                        Text('${achievement.progress}/${achievement.target}'),
+                      ],
+                    ),
+                    trailing: achievement.unlocked
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : null,
+                  ),
+                )),
+            const SizedBox(height: 24),
+
             // Progress bars section
             Text('Breakdown', style: AppTextStyles.heading3),
             const SizedBox(height: 16),
@@ -322,8 +354,7 @@ class _TrendSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxCount =
-        trends.fold<int>(0, (m, t) => t.count > m ? t.count : m);
+    final maxCount = trends.fold<int>(0, (m, t) => t.count > m ? t.count : m);
     final total = trends.fold<int>(0, (s, t) => s + t.count);
 
     Widget content;
@@ -387,9 +418,7 @@ class _TrendSection extends StatelessWidget {
       title: 'Review Trend',
       trailing: ToggleButtons(
         isSelected: [trendDays == 7, trendDays == 30],
-        onPressed: isLoading
-            ? null
-            : (i) => onSelectDays(i == 0 ? 7 : 30),
+        onPressed: isLoading ? null : (i) => onSelectDays(i == 0 ? 7 : 30),
         borderRadius: BorderRadius.circular(8),
         constraints: const BoxConstraints(minWidth: 44, minHeight: 32),
         selectedColor: Colors.white,
@@ -502,7 +531,8 @@ class _DeckProgressRow extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            _CountChip(label: 'new', value: deck.newWords, color: AppColors.gold),
+            _CountChip(
+                label: 'new', value: deck.newWords, color: AppColors.gold),
             const SizedBox(width: 12),
             _CountChip(
               label: 'learning',
@@ -596,8 +626,7 @@ class _LeechesSection extends StatelessWidget {
       content = Column(
         children: [
           for (var i = 0; i < leeches.length; i++) ...[
-            if (i > 0)
-              const Divider(height: 20, color: AppColors.border),
+            if (i > 0) const Divider(height: 20, color: AppColors.border),
             _LeechRow(leech: leeches[i]),
           ],
         ],
@@ -762,7 +791,9 @@ class _DailyGoalCard extends StatelessWidget {
           Text('daily goal', style: AppTextStyles.caption),
           const SizedBox(height: 4),
           Text(
-            met ? 'Goal met! 🎉' : '${streak.todayCount} / ${streak.dailyGoal} today',
+            met
+                ? 'Goal met! 🎉'
+                : '${streak.todayCount} / ${streak.dailyGoal} today',
             style: AppTextStyles.label,
           ),
         ],

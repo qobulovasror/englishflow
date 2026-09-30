@@ -11,6 +11,7 @@ import {
   SignupPointDto,
 } from '../dto/admin-stats-response.dto';
 import { SignupsQueryDto } from '../dto/signups-query.dto';
+import { AdminEngagementResponseDto } from '../dto/admin-engagement-response.dto';
 
 /**
  * Read-only platform metrics for the admin dashboard. Every route requires the
@@ -42,5 +43,16 @@ export class AdminDashboardController {
   })
   signups(@Query() query: SignupsQueryDto): Promise<SignupPointDto[]> {
     return this.adminService.signups(query.days);
+  }
+
+  @Get('engagement')
+  @ApiOperation({
+    summary: 'Aggregate onboarding and return-use metrics (admin)',
+  })
+  @ApiSuccessResponse(AdminEngagementResponseDto, {
+    description: 'Aggregated product signals without user-level rows',
+  })
+  engagement(): Promise<AdminEngagementResponseDto> {
+    return this.adminService.engagement();
   }
 }

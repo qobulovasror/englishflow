@@ -16,29 +16,35 @@ enum Role {
 }
 
 model User {
-  id                String     @id @default(uuid())
-  email             String     @unique
-  password          String
+  id                 String     @id @default(uuid())
+  email              String     @unique
+  password           String
   // Authorization role. Defaults to USER; elevate to ADMIN to manage system decks.
-  role              Role       @default(USER)
+  role               Role       @default(USER)
   // Tracks the moment of the last password change; any JWT issued before this
   // is considered invalid by `JwtStrategy.validate`.
-  passwordChangedAt DateTime   @default(now())
+  passwordChangedAt  DateTime   @default(now())
   // Self-reported CEFR level chosen during onboarding; drives deck suggestions.
-  level             CefrLevel?
+  level              CefrLevel?
   // Null until the user finishes (or skips) onboarding. Clients use this to
   // decide whether to show the onboarding flow.
-  onboardedAt       DateTime?
+  onboardedAt        DateTime?
   // Null until the user confirms ownership of their email via the
   // verify-email flow. Stamped when an EMAIL_VERIFY token is consumed.
-  emailVerifiedAt   DateTime?
+  emailVerifiedAt    DateTime?
   // How many reviews the user aims to complete each day; drives the streak's
   // goalMet flag. Editable via PATCH /users/me without re-entering the password.
-  dailyGoal         Int        @default(20)
+  dailyGoal          Int        @default(20)
   // Number of first-seen words to introduce to the learner each local day.
-  dailyNewLimit     Int        @default(10)
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  dailyNewLimit      Int        @default(10)
+  reminderEnabled    Boolean    @default(false)
+  reminderHour       Int        @default(19)
+  reminderMinute     Int        @default(0)
+  reminderDays       Int[]      @default([1, 2, 3, 4, 5])
+  reminderTimezone   String     @default("UTC")
+  reminderOptedOutAt DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   words         Word[]
   userWords     UserWord[]

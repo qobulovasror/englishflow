@@ -3,6 +3,12 @@ import {
   IsEmail,
   IsInt,
   IsOptional,
+  IsBoolean,
+  IsArray,
+  ArrayMaxSize,
+  ArrayMinSize,
+  ArrayUnique,
+  IsTimeZone,
   IsString,
   Max,
   Min,
@@ -41,6 +47,41 @@ export class UpdateUserDto {
   @Min(1)
   @Max(50)
   dailyNewLimit?: number;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  reminderEnabled?: boolean;
+
+  @ApiPropertyOptional({ example: 19, minimum: 0, maximum: 23 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(23)
+  reminderHour?: number;
+
+  @ApiPropertyOptional({ example: 30, minimum: 0, maximum: 59 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(59)
+  reminderMinute?: number;
+
+  @ApiPropertyOptional({ example: [1, 2, 3, 4, 5], maxItems: 7 })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(7)
+  @ArrayUnique()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @Max(7, { each: true })
+  reminderDays?: number[];
+
+  @ApiPropertyOptional({ example: 'Asia/Tashkent' })
+  @IsOptional()
+  @IsTimeZone()
+  reminderTimezone?: string;
 
   @ApiPropertyOptional({
     example: 'CurrentPass123!',

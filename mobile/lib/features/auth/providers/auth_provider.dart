@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:englishflow/core/utils/token_storage.dart';
@@ -8,6 +9,7 @@ import 'package:englishflow/features/auth/services/auth_service.dart';
 import 'package:englishflow/features/users/models/change_password_request.dart';
 import 'package:englishflow/features/users/models/update_profile_request.dart';
 import 'package:englishflow/features/users/services/users_service.dart';
+import 'package:englishflow/features/users/services/reminder_notification_service.dart';
 import 'package:englishflow/shared/models/user_model.dart';
 
 // Explicit type annotation breaks the top-level inference cycle: this provider
@@ -37,7 +39,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> tryAutoLogin() async {
     final token = await _tokenStorage.getToken();
-    if (token == null) return;
+    if (token == null) {
+      await _clearLocalReminders();
+      return;
+    }
 
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -51,6 +56,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: user,
         isLoading: false,
       );
+      if (user != null) await _syncLocalReminders(user);
 
       // Best-effort refresh so fields added after the cached copy (e.g.
       // onboardedAt) are accurate. Stay logged in on failure (offline).
@@ -58,11 +64,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final fresh = await _usersService.getMe();
         await _tokenStorage.saveUserData(jsonEncode(fresh.toJson()));
         state = state.copyWith(user: fresh);
+        await _syncLocalReminders(fresh);
       } catch (_) {
         /* keep cached user */
       }
     } catch (_) {
       await _tokenStorage.clearAll();
+      await _clearLocalReminders();
       state = state.copyWith(isLoading: false, clearUser: true);
     }
   }
@@ -103,6 +111,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: response.user,
         isLoading: false,
       );
+      await _syncLocalReminders(response.user);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -124,6 +133,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: response.user,
         isLoading: false,
       );
+      await _syncLocalReminders(response.user);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -141,6 +151,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = await _usersService.getMe();
       await _tokenStorage.saveUserData(jsonEncode(user.toJson()));
       state = state.copyWith(user: user, isLoading: false);
+      await _syncLocalReminders(user);
       return user;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -171,15 +182,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<UserModel> updateStudyPlan({
     required int dailyGoal,
     required int dailyNewLimit,
+    bool? reminderEnabled,
+    int? reminderHour,
+    int? reminderMinute,
+    List<int>? reminderDays,
+    String? reminderTimezone,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final updated = await _usersService.updateMe(
         UpdateProfileRequest(
-            dailyGoal: dailyGoal, dailyNewLimit: dailyNewLimit),
+            dailyGoal: dailyGoal,
+            dailyNewLimit: dailyNewLimit,
+            reminderEnabled: reminderEnabled,
+            reminderHour: reminderHour,
+            reminderMinute: reminderMinute,
+            reminderDays: reminderDays,
+            reminderTimezone: reminderTimezone),
       );
       await _tokenStorage.saveUserData(jsonEncode(updated.toJson()));
       state = state.copyWith(user: updated, isLoading: false);
+      await _syncLocalReminders(updated);
       return updated;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -229,6 +252,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> deleteAccount(String currentPassword) async {
     await _usersService.deleteMe(currentPassword);
     await _tokenStorage.clearAll();
+    await _clearLocalReminders();
     state = const AuthState();
   }
 
@@ -240,6 +264,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _authService.logout(refreshToken);
     }
     await _tokenStorage.clearAll();
+    await _clearLocalReminders();
     state = const AuthState();
   }
 
@@ -254,7 +279,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// request 401s (dead-session lockout).
   void onSessionExpired() {
     if (!mounted) return;
+    unawaited(_clearLocalReminders());
     state = const AuthState();
+  }
+
+  Future<void> _syncLocalReminders(UserModel user) async {
+    try {
+      await ReminderNotificationService.instance.configure(
+        enabled: user.reminderEnabled,
+        hour: user.reminderHour,
+        minute: user.reminderMinute,
+        days: user.reminderDays,
+        timezone: user.reminderTimezone,
+      );
+    } catch (_) {
+      // Notification scheduling is best-effort; authentication must succeed.
+    }
+  }
+
+  Future<void> _clearLocalReminders() async {
+    try {
+      await ReminderNotificationService.instance.cancelAll();
+    } catch (_) {
+      // Notification cleanup is best-effort and never blocks session reset.
+    }
   }
 
   Future<void> _persistSession(

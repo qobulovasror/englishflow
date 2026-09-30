@@ -41,6 +41,26 @@ export class UserResponseDto {
   @Expose()
   dailyNewLimit: number;
 
+  @ApiProperty({ example: false })
+  @Expose()
+  reminderEnabled: boolean;
+
+  @ApiProperty({ example: 19, minimum: 0, maximum: 23 })
+  @Expose()
+  reminderHour: number;
+
+  @ApiProperty({ example: 0, minimum: 0, maximum: 59 })
+  @Expose()
+  reminderMinute: number;
+
+  @ApiProperty({ example: [1, 2, 3, 4, 5], type: [Number] })
+  @Expose()
+  reminderDays: number[];
+
+  @ApiProperty({ example: 'Asia/Tashkent' })
+  @Expose()
+  reminderTimezone: string;
+
   @ApiProperty({ enum: Role, example: Role.USER })
   @Expose()
   role: Role;

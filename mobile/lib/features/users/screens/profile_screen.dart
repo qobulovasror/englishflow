@@ -6,6 +6,8 @@ import 'package:englishflow/core/theme/app_colors.dart';
 import 'package:englishflow/core/utils/snackbar_utils.dart';
 import 'package:englishflow/core/utils/validators.dart';
 import 'package:englishflow/features/auth/providers/auth_provider.dart';
+import 'package:englishflow/features/users/services/reminder_notification_service.dart';
+import 'package:englishflow/shared/models/user_model.dart';
 import 'package:englishflow/shared/widgets/app_button.dart';
 import 'package:englishflow/shared/widgets/app_text_field.dart';
 
@@ -36,6 +38,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _verificationSubmitting = false;
   bool _deleteSubmitting = false;
   bool _initialFetchAttempted = false;
+  bool _reminderSubmitting = false;
+  bool _reminderEnabled = false;
+  int _reminderHour = 19;
+  int _reminderMinute = 0;
+  Set<int> _reminderDays = {1, 2, 3, 4, 5};
 
   @override
   void initState() {
@@ -62,6 +69,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _emailController.text = cached.email;
       _goalController.text = (cached.dailyGoal ?? 20).toString();
       _newLimitController.text = (cached.dailyNewLimit ?? 10).toString();
+      _loadReminderPreferences(cached);
     }
     try {
       final fresh = await ref.read(authProvider.notifier).fetchMe();
@@ -71,11 +79,94 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
       _goalController.text = (fresh.dailyGoal ?? 20).toString();
       _newLimitController.text = (fresh.dailyNewLimit ?? 10).toString();
+      _loadReminderPreferences(fresh);
+      await ReminderNotificationService.instance.configure(
+        enabled: fresh.reminderEnabled,
+        hour: fresh.reminderHour,
+        minute: fresh.reminderMinute,
+        days: fresh.reminderDays,
+        timezone: fresh.reminderTimezone,
+      );
     } catch (_) {
       // SnackbarUtils intentionally not shown for the silent load;
       // the cached user is still displayed.
     } finally {
       if (mounted) setState(() => _initialFetchAttempted = true);
+    }
+  }
+
+  void _loadReminderPreferences(UserModel user) {
+    _reminderEnabled = user.reminderEnabled;
+    _reminderHour = user.reminderHour;
+    _reminderMinute = user.reminderMinute;
+    _reminderDays = user.reminderDays.toSet();
+  }
+
+  Future<void> _chooseReminderTime() async {
+    final selected = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: _reminderHour, minute: _reminderMinute),
+    );
+    if (selected != null) {
+      setState(() {
+        _reminderHour = selected.hour;
+        _reminderMinute = selected.minute;
+      });
+    }
+  }
+
+  Future<void> _saveReminder() async {
+    if (_reminderEnabled && _reminderDays.isEmpty) {
+      SnackbarUtils.showError(context, 'Choose at least one reminder day');
+      return;
+    }
+    setState(() => _reminderSubmitting = true);
+    try {
+      if (_reminderEnabled) {
+        final granted =
+            await ReminderNotificationService.instance.requestPermission();
+        if (!granted) {
+          if (mounted) {
+            SnackbarUtils.showInfo(context,
+                'Enable notifications in device settings to receive reminders');
+          }
+          return;
+        }
+      }
+      final user = ref.read(authProvider).user;
+      if (user == null) return;
+      final timezone = _reminderEnabled
+          ? await ReminderNotificationService.instance.localTimezone()
+          : user.reminderTimezone;
+      final updated = await ref.read(authProvider.notifier).updateStudyPlan(
+            dailyGoal: user.dailyGoal ?? 20,
+            dailyNewLimit: user.dailyNewLimit ?? 10,
+            reminderEnabled: _reminderEnabled,
+            reminderHour: _reminderHour,
+            reminderMinute: _reminderMinute,
+            reminderDays: (_reminderDays.isNotEmpty
+                    ? _reminderDays
+                    : user.reminderDays.toSet())
+                .toList()
+              ..sort(),
+            reminderTimezone: timezone,
+          );
+      await ReminderNotificationService.instance.configure(
+        enabled: updated.reminderEnabled,
+        hour: updated.reminderHour,
+        minute: updated.reminderMinute,
+        days: updated.reminderDays,
+        timezone: updated.reminderTimezone,
+      );
+      if (mounted)
+        SnackbarUtils.showSuccess(context, 'Reminder preferences saved');
+    } on ApiException catch (error) {
+      if (mounted) SnackbarUtils.showError(context, error.message);
+    } catch (_) {
+      if (mounted)
+        SnackbarUtils.showError(context, 'Could not save reminder preferences');
+    } finally {
+      if (mounted) setState(() => _reminderSubmitting = false);
     }
   }
 
@@ -327,6 +418,69 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: 'Study reminders',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Remind me to review'),
+                            subtitle: const Text(
+                                'One reminder on selected days. Turn it off any time.'),
+                            value: _reminderEnabled,
+                            onChanged: (value) =>
+                                setState(() => _reminderEnabled = value),
+                          ),
+                          if (_reminderEnabled) ...[
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Reminder time'),
+                              trailing: TextButton(
+                                onPressed: _chooseReminderTime,
+                                child: Text(TimeOfDay(
+                                        hour: _reminderHour,
+                                        minute: _reminderMinute)
+                                    .format(context)),
+                              ),
+                            ),
+                            Wrap(
+                              spacing: 4,
+                              children: [
+                                for (final entry in const [
+                                  (1, 'Mon'),
+                                  (2, 'Tue'),
+                                  (3, 'Wed'),
+                                  (4, 'Thu'),
+                                  (5, 'Fri'),
+                                  (6, 'Sat'),
+                                  (7, 'Sun'),
+                                ])
+                                  FilterChip(
+                                    label: Text(entry.$2),
+                                    selected: _reminderDays.contains(entry.$1),
+                                    onSelected: (selected) => setState(() {
+                                      if (selected) {
+                                        _reminderDays.add(entry.$1);
+                                      } else {
+                                        _reminderDays.remove(entry.$1);
+                                      }
+                                    }),
+                                  ),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          AppButton(
+                            text: 'Save reminder settings',
+                            isLoading: _reminderSubmitting,
+                            onPressed:
+                                _reminderSubmitting ? null : _saveReminder,
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),

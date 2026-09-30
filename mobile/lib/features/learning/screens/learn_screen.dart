@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:englishflow/core/theme/app_colors.dart';
 import 'package:englishflow/core/theme/app_text_styles.dart';
 import 'package:englishflow/features/auth/providers/auth_provider.dart';
-import 'package:englishflow/features/learning/providers/learning_provider.dart';
 import 'package:englishflow/features/progress/providers/progress_provider.dart';
 
 class LearnScreen extends ConsumerStatefulWidget {

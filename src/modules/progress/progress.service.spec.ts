@@ -91,6 +91,33 @@ describe('ProgressService', () => {
     });
   });
 
+  it('returns non-punitive cumulative review achievements', async () => {
+    prisma.review.count.mockImplementation(({ where }) =>
+      Promise.resolve(where.createdAt ? 8 : 27),
+    );
+
+    const res = await service.getUserProgress('u1');
+
+    expect(res.achievements).toEqual([
+      expect.objectContaining({ id: 'reviews-1', progress: 1, unlocked: true }),
+      expect.objectContaining({
+        id: 'reviews-25',
+        progress: 25,
+        unlocked: true,
+      }),
+      expect.objectContaining({
+        id: 'reviews-100',
+        progress: 27,
+        unlocked: false,
+      }),
+      expect.objectContaining({
+        id: 'reviews-500',
+        progress: 27,
+        unlocked: false,
+      }),
+    ]);
+  });
+
   it('queries today reviews with a start-of-day lower bound', async () => {
     await service.getUserProgress('u1');
 

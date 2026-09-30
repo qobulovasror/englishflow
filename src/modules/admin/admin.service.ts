@@ -21,6 +21,7 @@ import {
   AdminStatsOverviewDto,
   SignupPointDto,
 } from './dto/admin-stats-response.dto';
+import { AdminEngagementResponseDto } from './dto/admin-engagement-response.dto';
 
 const USER_COUNT_SELECT = {
   words: true,
@@ -133,6 +134,69 @@ export class AdminService {
     return plainToInstance(SignupPointDto, series, {
       excludeExtraneousValues: true,
     });
+  }
+
+  async engagement(): Promise<AdminEngagementResponseDto> {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * MS_PER_DAY);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * MS_PER_DAY);
+    const dayAgo = new Date(now.getTime() - MS_PER_DAY);
+    const [
+      totalUsers,
+      onboardedUsers,
+      firstLessonUsers,
+      eligible7DayUsers,
+      returnedIn7Days,
+      eligible30DayUsers,
+      returnedIn30Days,
+      abandonedTests,
+      remindersEnabled,
+      remindersDisabled,
+      reminderOptOuts30Days,
+    ] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.user.count({ where: { onboardedAt: { not: null } } }),
+      this.prisma.user.count({ where: { reviews: { some: {} } } }),
+      this.prisma.user.count({ where: { createdAt: { lte: sevenDaysAgo } } }),
+      this.prisma.user.count({
+        where: {
+          createdAt: { lte: sevenDaysAgo },
+          reviews: { some: { createdAt: { gte: sevenDaysAgo } } },
+        },
+      }),
+      this.prisma.user.count({ where: { createdAt: { lte: thirtyDaysAgo } } }),
+      this.prisma.user.count({
+        where: {
+          createdAt: { lte: thirtyDaysAgo },
+          reviews: { some: { createdAt: { gte: thirtyDaysAgo } } },
+        },
+      }),
+      this.prisma.test.count({
+        where: { submittedAt: null, createdAt: { lte: dayAgo } },
+      }),
+      this.prisma.user.count({ where: { reminderEnabled: true } }),
+      this.prisma.user.count({ where: { reminderEnabled: false } }),
+      this.prisma.user.count({
+        where: { reminderOptedOutAt: { gte: thirtyDaysAgo } },
+      }),
+    ]);
+    return plainToInstance(
+      AdminEngagementResponseDto,
+      {
+        totalUsers,
+        onboardedUsers,
+        firstLessonUsers,
+        eligible7DayUsers,
+        returnedIn7Days,
+        eligible30DayUsers,
+        returnedIn30Days,
+        abandonedTests,
+        remindersEnabled,
+        remindersDisabled,
+        reminderOptOuts30Days,
+      },
+      { excludeExtraneousValues: true },
+    );
   }
 
   // ── Users ──────────────────────────────────────────────────────────────────

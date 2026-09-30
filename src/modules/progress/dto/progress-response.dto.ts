@@ -125,4 +125,35 @@ export class ProgressResponseDto {
   @Expose()
   @Type(() => StreakStatsDto)
   streak: StreakStatsDto;
+
+  @ApiProperty({ type: () => [AchievementDto] })
+  @Expose()
+  @Type(() => AchievementDto)
+  achievements: AchievementDto[];
+}
+
+export class AchievementDto {
+  @ApiProperty({ example: 'reviews-25' })
+  @Expose()
+  id: string;
+
+  @ApiProperty({ example: '25 ta takrorlash' })
+  @Expose()
+  title: string;
+
+  @ApiProperty({ example: 'So‘zlarni 25 marta takrorladingiz.' })
+  @Expose()
+  description: string;
+
+  @ApiProperty({ example: 25 })
+  @Expose()
+  target: number;
+
+  @ApiProperty({ example: 12 })
+  @Expose()
+  progress: number;
+
+  @ApiProperty({ example: false })
+  @Expose()
+  unlocked: boolean;
 }

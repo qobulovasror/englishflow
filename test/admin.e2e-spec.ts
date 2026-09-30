@@ -33,6 +33,29 @@ describe('Admin decks (e2e)', () => {
     return user;
   }
 
+  it('provides privacy-safe aggregate engagement signals to admins only', async () => {
+    const admin = await registerAdmin();
+    const regular = await registerUser(app);
+    prisma._stores.users.get(regular.userId)!.reminderOptedOutAt = new Date();
+
+    const result = await request(app.getHttpServer())
+      .get('/admin/stats/engagement')
+      .set('Authorization', `Bearer ${admin.accessToken}`)
+      .expect(200);
+    expect(result.body.data).toMatchObject({
+      totalUsers: 2,
+      remindersEnabled: 0,
+      remindersDisabled: 2,
+      reminderOptOuts30Days: 1,
+    });
+    expect(result.body.data).not.toHaveProperty('users');
+
+    await request(app.getHttpServer())
+      .get('/admin/stats/engagement')
+      .set('Authorization', `Bearer ${regular.accessToken}`)
+      .expect(403);
+  });
+
   describe('POST /admin/decks', () => {
     it('rejects unauthenticated requests with 401', async () => {
       await request(app.getHttpServer())
