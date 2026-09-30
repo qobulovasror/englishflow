@@ -13,6 +13,11 @@ export interface ListWordsParams {
   status?: WordStatus
 }
 
+export interface WordImportResult {
+  importedCount: number
+  duplicateCount: number
+}
+
 export const wordsService = {
   async list(params: ListWordsParams = {}): Promise<PaginatedResponse<Word>> {
     const { data } = await api.get<PaginatedResponse<Word>>('/words', { params })
@@ -31,5 +36,10 @@ export const wordsService = {
 
   async remove(id: string): Promise<void> {
     await api.delete(`/words/${id}`)
+  },
+
+  async importWords(words: CreateWordPayload[]): Promise<WordImportResult> {
+    const { data } = await api.post<WordImportResult>('/words/import', { words })
+    return data
   },
 }

@@ -27,6 +27,8 @@ class _FakeDecksService implements DecksService {
     String? description,
     String? level,
     bool? isPublic,
+    List<String>? topics,
+    String? learningGoal,
   }) async {
     if (shouldThrow) throw Exception('boom');
     return DeckModel(
@@ -35,6 +37,8 @@ class _FakeDecksService implements DecksService {
       description: description,
       level: level,
       isPublic: isPublic ?? false,
+      topics: topics ?? const [],
+      learningGoal: learningGoal,
     );
   }
 
@@ -45,6 +49,8 @@ class _FakeDecksService implements DecksService {
     String? description,
     String? level,
     bool? isPublic,
+    List<String>? topics,
+    String? learningGoal,
   }) async {
     if (shouldThrow) throw Exception('boom');
     return DeckModel(id: id, title: title ?? 'unchanged');

@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as cookieParser from 'cookie-parser';
+import * as express from 'express';
 import helmet from 'helmet';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import { AppModule } from './app.module';
@@ -23,6 +24,7 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
+    bodyParser: false,
   });
 
   // Route all framework + application logs through pino (buffered logs above
@@ -31,6 +33,11 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const appConfig = configService.getOrThrow<AppConfig>('app');
+
+  // A bounded 4 MB limit supports the documented 2 MB / 500-row vocabulary
+  // import after JSON encoding while keeping request memory use capped.
+  app.use(express.json({ limit: '4mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '4mb' }));
 
   // Trust exactly `trustProxy` reverse-proxy hops so Express resolves `req.ip`
   // from the right of the X-Forwarded-For chain. Without this, the rate-limiter's

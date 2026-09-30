@@ -14,7 +14,12 @@ class DecksService {
 
   DecksService(this._dio);
 
-  Future<List<DeckModel>> list({String? level, String? search}) async {
+  Future<List<DeckModel>> list(
+      {String? level,
+      String? search,
+      String? topic,
+      String? learningGoal,
+      String? sort}) async {
     try {
       final response = await _dio.get(
         ApiEndpoints.decks,
@@ -22,6 +27,10 @@ class DecksService {
           'limit': 100,
           if (level != null) 'level': level,
           if (search != null && search.isNotEmpty) 'search': search,
+          if (topic != null && topic.isNotEmpty) 'topic': topic,
+          if (learningGoal != null && learningGoal.isNotEmpty)
+            'learningGoal': learningGoal,
+          if (sort != null && sort.isNotEmpty) 'sort': sort,
         },
       );
       // The response is the paginated envelope's data: { items, total, ... }.
@@ -40,6 +49,15 @@ class DecksService {
       return (response.data['enrolledCount'] as num?)?.toInt() ?? 0;
     } on DioException catch (e) {
       throw _toApiException(e, 'Failed to join deck');
+    }
+  }
+
+  Future<DeckModel> copy(String id) async {
+    try {
+      final response = await _dio.post(ApiEndpoints.deckCopy(id));
+      return DeckModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _toApiException(e, 'Could not copy deck');
     }
   }
 
@@ -71,6 +89,8 @@ class DecksService {
     String? description,
     String? level,
     bool? isPublic,
+    List<String>? topics,
+    String? learningGoal,
   }) async {
     try {
       final response = await _dio.post(
@@ -81,6 +101,8 @@ class DecksService {
             'description': description,
           if (level != null && level.isNotEmpty) 'level': level,
           if (isPublic != null) 'isPublic': isPublic,
+          if (topics != null) 'topics': topics,
+          if (learningGoal != null) 'learningGoal': learningGoal,
         },
       );
       return DeckModel.fromJson(response.data as Map<String, dynamic>);
@@ -95,6 +117,8 @@ class DecksService {
     String? description,
     String? level,
     bool? isPublic,
+    List<String>? topics,
+    String? learningGoal,
   }) async {
     try {
       final response = await _dio.patch(
@@ -104,6 +128,8 @@ class DecksService {
           if (description != null) 'description': description,
           if (level != null) 'level': level,
           if (isPublic != null) 'isPublic': isPublic,
+          if (topics != null) 'topics': topics,
+          if (learningGoal != null) 'learningGoal': learningGoal,
         },
       );
       return DeckModel.fromJson(response.data as Map<String, dynamic>);

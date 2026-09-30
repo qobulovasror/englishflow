@@ -41,6 +41,9 @@ export interface StoredWord {
   id: string;
   word: string;
   translation: string;
+  pronunciation?: string | null;
+  partOfSpeech?: string | null;
+  collocations?: string[];
   example: string | null;
   audioUrl: string | null;
   createdById: string;
@@ -54,6 +57,9 @@ export interface StoredDeck {
   title: string;
   description: string | null;
   level: CefrLevel | null;
+  topics: string[];
+  learningGoal: string | null;
+  qualityScore: number;
   isSystem: boolean;
   isPublic: boolean;
   deletedAt: Date | null;
@@ -292,6 +298,16 @@ export function buildPrismaStub() {
       const b = String(where.word.equals).toLowerCase();
       if (a !== b) return false;
     }
+    if (
+      where.word?.in &&
+      !where.word.in.some((value: string) =>
+        where.word.mode === 'insensitive'
+          ? w.word.toLocaleLowerCase() === value.toLocaleLowerCase()
+          : w.word === value,
+      )
+    ) {
+      return false;
+    }
     // OR of clauses: match if ANY sub-clause matches (the outer scalar filters
     // above still apply — Prisma ANDs them with the OR).
     if (Array.isArray(where.OR)) {
@@ -442,6 +458,19 @@ export function buildPrismaStub() {
       };
       userWords.set(uw.id, uw);
       return uw;
+    }),
+    createMany: jest.fn(async ({ data }: any) => {
+      const rows = Array.isArray(data) ? data : [data];
+      let count = 0;
+      for (const row of rows) {
+        const exists = [...userWords.values()].some(
+          (item) => item.userId === row.userId && item.wordId === row.wordId,
+        );
+        if (exists) continue;
+        await userWord.create({ data: row });
+        count++;
+      }
+      return { count };
     }),
     findFirst: jest.fn(async ({ where, include }: any) => {
       for (const uw of userWords.values()) {
@@ -616,6 +645,14 @@ export function buildPrismaStub() {
     if (where.createdById !== undefined && d.createdById !== where.createdById)
       return false;
     if (where.level !== undefined && d.level !== where.level) return false;
+    if (where.topics?.has && !d.topics.includes(where.topics.has)) return false;
+    if (
+      where.learningGoal?.contains &&
+      !d.learningGoal
+        ?.toLowerCase()
+        .includes(String(where.learningGoal.contains).toLowerCase())
+    )
+      return false;
     if (where.title?.contains !== undefined) {
       if (
         !d.title
@@ -660,6 +697,9 @@ export function buildPrismaStub() {
         title: data.title,
         description: data.description ?? null,
         level: data.level ?? null,
+        topics: data.topics ?? [],
+        learningGoal: data.learningGoal ?? null,
+        qualityScore: data.qualityScore ?? 0,
         isSystem: data.isSystem ?? false,
         isPublic: data.isPublic ?? false,
         deletedAt: data.deletedAt ?? null,

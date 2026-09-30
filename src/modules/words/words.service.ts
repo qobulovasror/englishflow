@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -12,19 +13,31 @@ import { WordResponseDto } from './dto/word-response.dto';
 import { WordQueryDto } from './dto/word-query.dto';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 import { paginate } from '../../common/utils/pagination.helper';
+import { ImportPersonalWordsDto } from './dto/import-personal-words.dto';
+import { ImportPersonalWordsResponseDto } from './dto/import-personal-words-response.dto';
 
 @Injectable()
 export class WordsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private nonEmpty(value: string, field: string): string {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      throw new BadRequestException(`${field} must not be empty`);
+    }
+    return trimmed;
+  }
+
   async create(dto: CreateWordDto, userId: string): Promise<WordResponseDto> {
+    const wordText = this.nonEmpty(dto.word, 'Word');
+    const translation = this.nonEmpty(dto.translation, 'Translation');
     // Both rows must land or neither — otherwise a failed userWord insert
     // leaves an orphan Word that isn't part of any learning list.
     const [word] = await this.prisma.$transaction(async (tx) => {
       const w = await tx.word.create({
         data: {
-          word: dto.word,
-          translation: dto.translation,
+          word: wordText,
+          translation,
           pronunciation: dto.pronunciation,
           partOfSpeech: dto.partOfSpeech,
           collocations: dto.collocations ?? [],
@@ -38,6 +51,69 @@ export class WordsService {
     });
 
     return this.toDto(word);
+  }
+
+  async importPersonal(
+    dto: ImportPersonalWordsDto,
+    userId: string,
+  ): Promise<ImportPersonalWordsResponseDto> {
+    const rows = dto.words.map((word) => ({
+      ...word,
+      word: this.nonEmpty(word.word, 'Word'),
+      translation: this.nonEmpty(word.translation, 'Translation'),
+    }));
+    const normalized = (word: string) =>
+      word.normalize('NFKC').toLocaleLowerCase();
+    const seen = new Set<string>();
+    const uniqueRows = rows.filter((row) => {
+      const key = normalized(row.word);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    const duplicateCount = rows.length - uniqueRows.length;
+
+    const result = await this.prisma.$transaction(
+      async (tx) => {
+        // PostgreSQL case-insensitive matching does not equate canonically
+        // equivalent Unicode spellings (for example NFC and NFD accents).
+        // Normalize the user's existing vocabulary in the same way as input.
+        const existing = await tx.word.findMany({
+          where: { createdById: userId },
+          select: { word: true },
+        });
+        const existingWords = new Set(
+          existing.map((row) => normalized(row.word)),
+        );
+        const existingMatchCount = uniqueRows.filter((row) =>
+          existingWords.has(normalized(row.word)),
+        ).length;
+        const toCreate = uniqueRows.filter(
+          (row) => !existingWords.has(normalized(row.word)),
+        );
+        const created = toCreate.length
+          ? await tx.word.createManyAndReturn({
+              data: toCreate.map((row) => ({ ...row, createdById: userId })),
+              select: { id: true },
+            })
+          : [];
+        if (created.length) {
+          await tx.userWord.createMany({
+            data: created.map(({ id }) => ({ userId, wordId: id })),
+            skipDuplicates: true,
+          });
+        }
+        return {
+          importedCount: created.length,
+          duplicateCount: duplicateCount + existingMatchCount,
+        };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+
+    return plainToInstance(ImportPersonalWordsResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async findAllByUser(
@@ -85,8 +161,12 @@ export class WordsService {
     const updated = await this.prisma.word.update({
       where: { id },
       data: {
-        ...(dto.word !== undefined && { word: dto.word }),
-        ...(dto.translation !== undefined && { translation: dto.translation }),
+        ...(dto.word !== undefined && {
+          word: this.nonEmpty(dto.word, 'Word'),
+        }),
+        ...(dto.translation !== undefined && {
+          translation: this.nonEmpty(dto.translation, 'Translation'),
+        }),
         ...(dto.pronunciation !== undefined && {
           pronunciation: dto.pronunciation,
         }),

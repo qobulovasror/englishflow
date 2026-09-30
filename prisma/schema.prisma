@@ -176,20 +176,23 @@ enum CefrLevel {
 }
 
 model Deck {
-  id          String     @id @default(uuid())
-  title       String
-  description String?
-  level       CefrLevel?
+  id           String     @id @default(uuid())
+  title        String
+  description  String?
+  level        CefrLevel?
+  topics       String[]   @default([])
+  learningGoal String?
+  qualityScore Int        @default(0)
   // Curated content shipped with the app (createdById is null). User-built
   // decks set createdById and default to private.
-  isSystem    Boolean    @default(false)
-  isPublic    Boolean    @default(false)
+  isSystem     Boolean    @default(false)
+  isPublic     Boolean    @default(false)
   // Soft delete: set instead of hard-deleting so a shared deck can be removed
   // without cascading away enrolled users' UserWord/Review progress. All read
   // paths filter `deletedAt: null`.
-  deletedAt   DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  deletedAt    DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   createdById String?
   createdBy   User?   @relation("UserDecks", fields: [createdById], references: [id], onDelete: Cascade)

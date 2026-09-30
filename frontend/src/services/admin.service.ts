@@ -103,7 +103,10 @@ export const adminService = {
       const { data } = await api.post<Deck>('/admin/decks', payload)
       return data
     },
-    async update(id: string, payload: UpdateDeckPayload): Promise<AdminDeckRow> {
+    async update(
+      id: string,
+      payload: UpdateDeckPayload & { qualityScore?: number },
+    ): Promise<AdminDeckRow> {
       const { data } = await api.patch<AdminDeckRow>(`/admin/decks/${id}`, payload)
       return data
     },

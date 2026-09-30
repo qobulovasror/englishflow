@@ -14,6 +14,9 @@ import type {
 export interface ListDecksParams {
   level?: CefrLevel
   search?: string
+  topic?: string
+  learningGoal?: string
+  sort?: 'popular' | 'newest' | 'title' | 'content' | 'quality'
   page?: number
   limit?: number
 }
@@ -42,6 +45,11 @@ export const decksService = {
 
   async enroll(id: string): Promise<EnrollResult> {
     const { data } = await api.post<EnrollResult>(`/decks/${id}/enroll`)
+    return data
+  },
+
+  async copy(id: string): Promise<Deck> {
+    const { data } = await api.post<Deck>(`/decks/${id}/copy`)
     return data
   },
 

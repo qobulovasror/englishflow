@@ -1,0 +1,4 @@
+ALTER TABLE "decks"
+  ADD COLUMN "topics" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "learningGoal" TEXT,
+  ADD COLUMN "qualityScore" INTEGER NOT NULL DEFAULT 0;

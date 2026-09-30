@@ -5,8 +5,12 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  IsArray,
+  ArrayMaxSize,
+  ArrayUnique,
 } from 'class-validator';
 import { CefrLevel } from '@prisma/client';
+import { Transform } from 'class-transformer';
 
 export class UpdateDeckDto {
   @ApiPropertyOptional({ example: 'My Travel Words' })
@@ -32,4 +36,24 @@ export class UpdateDeckDto {
   @IsBoolean()
   @IsOptional()
   isPublic?: boolean;
+
+  @ApiPropertyOptional({ example: ['travel', 'daily life'], maxItems: 10 })
+  @IsArray()
+  @ArrayMaxSize(10)
+  @ArrayUnique()
+  @IsString({ each: true })
+  @MaxLength(40, { each: true })
+  @Transform(({ value }) =>
+    Array.isArray(value)
+      ? value.map((item: unknown) => String(item).trim().toLocaleLowerCase())
+      : value,
+  )
+  @IsOptional()
+  topics?: string[];
+
+  @ApiPropertyOptional({ example: 'Prepare for travel conversations' })
+  @IsString()
+  @MaxLength(120)
+  @IsOptional()
+  learningGoal?: string;
 }

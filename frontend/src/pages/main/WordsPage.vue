@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useWordsStore } from '@/stores/words'
+import { wordsService } from '@/services/words.service'
+import { parseWordImport, toImportPayload, type ParsedWordRow } from '@/utils/word-import'
 import AppCard from '@/components/AppCard.vue'
 import AppInput from '@/components/AppInput.vue'
 import AppButton from '@/components/AppButton.vue'
@@ -15,6 +17,11 @@ const newExample = ref('')
 const newPronunciation = ref('')
 const newPartOfSpeech = ref('')
 const newCollocations = ref('')
+const importing = ref(false)
+const importRows = ref<ParsedWordRow[]>([])
+const importNotice = ref('')
+const importError = ref('')
+const importFile = ref<HTMLInputElement | null>(null)
 
 // Status filter options; null means "All".
 const STATUS_FILTERS: { label: string; value: WordStatus | null }[] = [
@@ -107,16 +114,169 @@ async function handleDelete(id: string) {
     // Error is shown via wordsStore.error; swallow the rethrow.
   }
 }
+
+async function previewImport(event: Event) {
+  importError.value = ''
+  importNotice.value = ''
+  importRows.value = []
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  if (file.size > 2_000_000) {
+    importError.value = 'Choose a file smaller than 2 MB.'
+    return
+  }
+  try {
+    importRows.value = parseWordImport(await file.text())
+    if (importRows.value.length > 500) {
+      importRows.value = []
+      importError.value = 'Import is limited to 500 rows per file.'
+    } else if (!importRows.value.length) {
+      importError.value = 'No vocabulary rows were found in this file.'
+    } else {
+      const known = new Set<string>()
+      let page = 1
+      let hasMore = true
+      while (hasMore && page <= 100) {
+        const result = await wordsService.list({ page, limit: 100 })
+        result.items.forEach((word) => known.add(word.word.normalize('NFKC').toLocaleLowerCase()))
+        hasMore = result.hasMore
+        page++
+      }
+      importRows.value = importRows.value.map((row) => ({
+        ...row,
+        duplicate: row.duplicate || known.has(row.word.normalize('NFKC').toLocaleLowerCase()),
+      }))
+    }
+  } catch {
+    importError.value = 'Could not read this file.'
+  }
+}
+
+async function commitImport() {
+  const valid = importRows.value.filter((row) => !row.error && !row.duplicate)
+  if (!valid.length) return
+  importing.value = true
+  importError.value = ''
+  try {
+    const result = await wordsService.importWords(valid.map(toImportPayload))
+    importNotice.value = `Imported ${result.importedCount}; skipped ${result.duplicateCount} duplicates.`
+    importRows.value = []
+    if (importFile.value) importFile.value.value = ''
+    await wordsStore.fetchWords({ reset: true })
+  } catch {
+    importError.value = 'Import failed. Check the rows and try again.'
+  } finally {
+    importing.value = false
+  }
+}
+
+async function exportWords(format: 'csv' | 'anki') {
+  importError.value = ''
+  try {
+    const all: Word[] = []
+    let page = 1
+    let hasMore = true
+    while (hasMore) {
+      const result = await wordsService.list({ page, limit: 100 })
+      all.push(...result.items)
+      hasMore = result.hasMore
+      page++
+      if (page > 1000) throw new Error('Export exceeds the supported page limit')
+    }
+    const quote = (value: string) => `"${value.replace(/"/g, '""')}"`
+    const quoteCsv = (value: string) => {
+      const safeValue = /^[\t\r\n ]*[=+\-@]/.test(value) ? `'${value}` : value
+      return quote(safeValue)
+    }
+    const lines =
+      format === 'csv'
+        ? [
+            ['word', 'translation', 'example', 'pronunciation', 'partOfSpeech', 'collocations'],
+            ...all.map((word) => [
+              word.word,
+              word.translation,
+              word.example ?? '',
+              word.pronunciation ?? '',
+              word.partOfSpeech ?? '',
+              word.collocations?.join('; ') ?? '',
+            ]),
+          ]
+        : all.map((word) => [
+            word.word,
+            word.translation,
+            word.example ?? '',
+            word.pronunciation ?? '',
+          ])
+    const content =
+      format === 'anki'
+        ? `#separator:tab\r\n#html:false\r\n#columns:Word\tTranslation\tExample\tPronunciation\r\n${lines.map((line) => line.map(quote).join('\t')).join('\r\n')}`
+        : lines.map((line) => line.map(quoteCsv).join(',')).join('\r\n')
+    const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = format === 'csv' ? 'englishflow-words.csv' : 'englishflow-anki.txt'
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    importError.value = 'Could not export all words. Please try again.'
+  }
+}
 </script>
 
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">My Words</h2>
-      <AppButton @click="showForm = !showForm">
-        {{ showForm ? 'Cancel' : '+ Add Word' }}
-      </AppButton>
+      <div class="flex flex-wrap gap-2">
+        <AppButton variant="secondary" @click="importFile?.click()">Import CSV / Anki</AppButton>
+        <AppButton variant="secondary" @click="exportWords('csv')">Export CSV</AppButton>
+        <AppButton variant="secondary" @click="exportWords('anki')">Export Anki TSV</AppButton>
+        <AppButton @click="showForm = !showForm">
+          {{ showForm ? 'Cancel' : '+ Add Word' }}
+        </AppButton>
+      </div>
     </div>
+
+    <input
+      ref="importFile"
+      class="hidden"
+      type="file"
+      accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values"
+      @change="previewImport"
+    />
+
+    <AppCard v-if="importRows.length" class="mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="font-semibold text-gray-800 dark:text-gray-100">Import preview</h3>
+          <p class="text-sm text-gray-500">
+            {{ importRows.length }} rows · only valid, unique rows will be added
+          </p>
+        </div>
+        <AppButton
+          :loading="importing"
+          :disabled="!importRows.some((row) => !row.error && !row.duplicate)"
+          @click="commitImport"
+          >Import valid words</AppButton
+        >
+      </div>
+      <div class="max-h-64 overflow-auto text-sm">
+        <div
+          v-for="row in importRows"
+          :key="row.line"
+          class="grid grid-cols-[3rem_1fr_1fr_10rem] gap-2 border-t py-2"
+        >
+          <span class="text-gray-400">{{ row.line }}</span
+          ><span>{{ row.word || '—' }}</span
+          ><span>{{ row.translation || '—' }}</span>
+          <span :class="row.error || row.duplicate ? 'text-amber-600' : 'text-green-600'">{{
+            row.error || (row.duplicate ? 'Duplicate' : 'Ready')
+          }}</span>
+        </div>
+      </div>
+    </AppCard>
+    <p v-if="importNotice" class="mb-4 text-sm text-green-600">{{ importNotice }}</p>
+    <p v-if="importError" class="mb-4 text-sm text-red-500">{{ importError }}</p>
 
     <AppCard v-if="showForm" class="mb-6">
       <form @submit.prevent="handleAdd" class="space-y-4">

@@ -25,6 +25,8 @@ class _DeckFormScreenState extends ConsumerState<DeckFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
+  late final TextEditingController _topicsController;
+  late final TextEditingController _goalController;
   String? _level;
   bool _isPublic = false;
 
@@ -36,6 +38,10 @@ class _DeckFormScreenState extends ConsumerState<DeckFormScreen> {
     _titleController = TextEditingController(text: widget.deck?.title ?? '');
     _descriptionController =
         TextEditingController(text: widget.deck?.description ?? '');
+    _topicsController =
+        TextEditingController(text: widget.deck?.topics.join(', ') ?? '');
+    _goalController =
+        TextEditingController(text: widget.deck?.learningGoal ?? '');
     _level = widget.deck?.level;
     _isPublic = widget.deck?.isPublic ?? false;
   }
@@ -44,6 +50,8 @@ class _DeckFormScreenState extends ConsumerState<DeckFormScreen> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _topicsController.dispose();
+    _goalController.dispose();
     super.dispose();
   }
 
@@ -53,6 +61,12 @@ class _DeckFormScreenState extends ConsumerState<DeckFormScreen> {
     final notifier = ref.read(myDecksProvider.notifier);
     final title = _titleController.text.trim();
     final description = _descriptionController.text.trim();
+    final topics = _topicsController.text
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+    final learningGoal = _goalController.text.trim();
 
     final success = _isEdit
         ? await notifier.updateDeck(
@@ -63,12 +77,16 @@ class _DeckFormScreenState extends ConsumerState<DeckFormScreen> {
             // Only send isPublic when it actually changed, so editing other
             // fields never silently flips visibility.
             isPublic: _isPublic != widget.deck!.isPublic ? _isPublic : null,
+            topics: topics,
+            learningGoal: learningGoal,
           )
         : await notifier.createDeck(
             title: title,
             description: description,
             level: _level,
             isPublic: _isPublic,
+            topics: topics,
+            learningGoal: learningGoal,
           );
 
     if (!mounted) return;
@@ -121,6 +139,22 @@ class _DeckFormScreenState extends ConsumerState<DeckFormScreen> {
                 hint: 'What is this deck about?',
                 prefixIcon: Icons.notes,
                 maxLines: 2,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _goalController,
+                label: 'Learning goal (optional)',
+                hint: 'Practice travel conversations',
+                prefixIcon: Icons.flag_outlined,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _topicsController,
+                label: 'Topics (comma separated)',
+                hint: 'travel, daily life',
+                prefixIcon: Icons.sell_outlined,
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 16),

@@ -25,6 +25,8 @@ const deck = ref<AdminDeckDetail | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const busy = ref(false)
+const qualityScore = ref(0)
+const savingQuality = ref(false)
 
 const addOpen = ref(false)
 const addError = ref<string | null>(null)
@@ -37,10 +39,23 @@ async function load() {
   error.value = null
   try {
     deck.value = await adminService.decks.get(id)
+    qualityScore.value = deck.value.qualityScore
   } catch (e) {
     error.value = extractErrorMessage(e, 'Failed to load deck')
   } finally {
     loading.value = false
+  }
+}
+
+async function saveQualityScore() {
+  savingQuality.value = true
+  try {
+    await adminService.decks.update(id, { qualityScore: qualityScore.value })
+    await load()
+  } catch (e) {
+    error.value = extractErrorMessage(e, 'Could not save quality score')
+  } finally {
+    savingQuality.value = false
   }
 }
 
@@ -126,6 +141,22 @@ onMounted(load)
             {{ deck.level ?? 'No level' }} · {{ deck.wordCount }} words
             <span v-if="deck.ownerEmail"> · owner {{ deck.ownerEmail }}</span>
           </p>
+          <div class="mt-3 flex items-center gap-2">
+            <label for="quality-score" class="text-sm text-gray-500"
+              >Curator quality score (0–100)</label
+            >
+            <input
+              id="quality-score"
+              v-model.number="qualityScore"
+              type="number"
+              min="0"
+              max="100"
+              class="w-20 rounded border border-gray-300 px-2 py-1 dark:border-gray-600 dark:bg-gray-800"
+            />
+            <AppButton size="sm" :loading="savingQuality" @click="saveQualityScore"
+              >Save score</AppButton
+            >
+          </div>
         </div>
         <AppButton size="sm" @click="openAdd">+ Add word</AppButton>
       </div>

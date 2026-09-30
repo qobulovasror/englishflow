@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useDecksStore } from '@/stores/decks'
+import { decksService } from '@/services/decks.service'
 import AppCard from '@/components/AppCard.vue'
 import AppButton from '@/components/AppButton.vue'
 import type { CefrLevel } from '@/types'
@@ -10,13 +11,20 @@ const decksStore = useDecksStore()
 const LEVELS: CefrLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const activeLevel = ref<CefrLevel | null>(null)
 const search = ref('')
+const topic = ref('')
+const learningGoal = ref('')
+const sort = ref<'popular' | 'newest' | 'title' | 'content' | 'quality'>('popular')
 const enrollingId = ref<string | null>(null)
 const notice = ref<string | null>(null)
+const copyingId = ref<string | null>(null)
 
 async function load() {
   await decksStore.fetchDecks({
     level: activeLevel.value ?? undefined,
     search: search.value || undefined,
+    topic: topic.value.trim().toLowerCase() || undefined,
+    learningGoal: learningGoal.value.trim() || undefined,
+    sort: sort.value,
   })
 }
 
@@ -33,6 +41,11 @@ watch(search, () => {
   searchTimer = setTimeout(load, 300)
 })
 
+watch([topic, learningGoal, sort], () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(load, 250)
+})
+
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer)
 })
@@ -47,6 +60,20 @@ async function enroll(id: string, title: string) {
     notice.value = decksStore.error ?? `Could not join "${title}".`
   } finally {
     enrollingId.value = null
+  }
+}
+
+async function copyDeck(id: string, title: string) {
+  copyingId.value = id
+  notice.value = null
+  try {
+    await decksService.copy(id)
+    notice.value = `Copied "${title}" to My Decks.`
+    await decksStore.fetchMyDecks()
+  } catch {
+    notice.value = `Could not copy "${title}".`
+  } finally {
+    copyingId.value = null
   }
 }
 
@@ -92,6 +119,30 @@ onMounted(load)
         class="ml-auto px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-100"
       />
     </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
+      <input
+        v-model="topic"
+        type="text"
+        placeholder="Topic tag (e.g. travel)"
+        class="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+      />
+      <input
+        v-model="learningGoal"
+        type="text"
+        placeholder="Learning goal"
+        class="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+      />
+      <select
+        v-model="sort"
+        class="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+      >
+        <option value="popular">Popular</option>
+        <option value="newest">Recently added</option>
+        <option value="title">Title A–Z</option>
+        <option value="content">Most words</option>
+        <option value="quality">Highest curator score</option>
+      </select>
+    </div>
 
     <p v-if="notice" class="mb-4 text-sm text-primary-600 dark:text-primary-400">{{ notice }}</p>
 
@@ -111,6 +162,17 @@ onMounted(load)
           </span>
         </div>
         <p class="text-sm text-gray-500 mb-3 min-h-[2.5rem]">{{ deck.description }}</p>
+        <div v-if="deck.learningGoal" class="text-xs text-gray-500 mb-2">
+          Goal: {{ deck.learningGoal }}
+        </div>
+        <div v-if="deck.topics?.length" class="flex flex-wrap gap-1 mb-3">
+          <span
+            v-for="tag in deck.topics"
+            :key="tag"
+            class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+            >{{ tag }}</span
+          >
+        </div>
         <div class="flex items-center justify-between">
           <span class="text-sm text-gray-400">{{ deck.wordCount }} words</span>
           <AppButton
@@ -122,6 +184,14 @@ onMounted(load)
             Join
           </AppButton>
           <span v-else class="text-sm font-medium text-green-600">✓ Joined</span>
+          <AppButton
+            v-if="!deck.isOwner"
+            size="sm"
+            variant="secondary"
+            :loading="copyingId === deck.id"
+            @click="copyDeck(deck.id, deck.title)"
+            >Copy</AppButton
+          >
         </div>
       </AppCard>
     </div>

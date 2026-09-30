@@ -25,6 +25,18 @@ export class AdminDeckRowDto {
   @Expose()
   level?: CefrLevel | null;
 
+  @ApiProperty({ type: [String] })
+  @Expose()
+  topics: string[];
+
+  @ApiPropertyOptional({ nullable: true })
+  @Expose()
+  learningGoal?: string | null;
+
+  @ApiProperty({ minimum: 0, maximum: 100 })
+  @Expose()
+  qualityScore: number;
+
   @ApiProperty({ description: 'True for curated decks shipped with the app' })
   @Expose()
   isSystem: boolean;

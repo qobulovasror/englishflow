@@ -4,7 +4,10 @@ import { WordsService } from './words.service';
 describe('WordsController', () => {
   let controller: WordsController;
   let service: jest.Mocked<
-    Pick<WordsService, 'create' | 'findAllByUser' | 'update' | 'remove'>
+    Pick<
+      WordsService,
+      'create' | 'findAllByUser' | 'update' | 'remove' | 'importPersonal'
+    >
   >;
   const user = { id: 'u1' };
 
@@ -14,6 +17,7 @@ describe('WordsController', () => {
       findAllByUser: jest.fn(),
       update: jest.fn(),
       remove: jest.fn(),
+      importPersonal: jest.fn(),
     };
     controller = new WordsController(service as unknown as WordsService);
   });
@@ -31,6 +35,12 @@ describe('WordsController', () => {
     const query = { page: 1 } as never;
     controller.findAll(user, query);
     expect(service.findAllByUser).toHaveBeenCalledWith('u1', query);
+  });
+
+  it('imports personal words for the current user', async () => {
+    const dto = { words: [{ word: 'hello', translation: 'salom' }] } as never;
+    controller.importPersonal(dto, user);
+    expect(service.importPersonal).toHaveBeenCalledWith(dto, 'u1');
   });
 
   it('update forwards id, dto and user id', async () => {

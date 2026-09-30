@@ -857,6 +857,40 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "topic",
+            "required": false,
+            "in": "query",
+            "description": "Exact topic tag",
+            "schema": {
+              "example": "travel",
+              "type": "string"
+            }
+          },
+          {
+            "name": "learningGoal",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Prepare for travel conversations",
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "popular",
+                "newest",
+                "title",
+                "content",
+                "quality"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1010,6 +1044,61 @@
                       "items": {
                         "$ref": "#/components/schemas/DeckResponseDto"
                       }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Decks"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/decks/{id}/copy": {
+      "post": {
+        "operationId": "DecksController_copy",
+        "summary": "Copy a visible deck into your private decks",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/DeckResponseDto"
                     },
                     "timestamp": {
                       "type": "string",
@@ -1472,6 +1561,61 @@
         },
         "tags": [
           "Decks"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "/words/import": {
+      "post": {
+        "operationId": "WordsController_importPersonal",
+        "summary": "Import up to 500 words into personal vocabulary",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportPersonalWordsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Imported words, skipping existing duplicates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ImportPersonalWordsResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Words"
         ],
         "security": [
           {
@@ -2419,6 +2563,51 @@
         ]
       }
     },
+    "/admin/stats/engagement": {
+      "get": {
+        "operationId": "AdminDashboardController_engagement",
+        "summary": "Aggregate onboarding and return-use metrics (admin)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Aggregated product signals without user-level rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminEngagementResponseDto"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT": []
+          }
+        ]
+      }
+    },
     "/admin/users": {
       "get": {
         "operationId": "AdminUsersController_list",
@@ -3231,6 +3420,40 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "topic",
+            "required": false,
+            "in": "query",
+            "description": "Exact topic tag",
+            "schema": {
+              "example": "travel",
+              "type": "string"
+            }
+          },
+          {
+            "name": "learningGoal",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Prepare for travel conversations",
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "popular",
+                "newest",
+                "title",
+                "content",
+                "quality"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -3450,7 +3673,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateDeckDto"
+                "$ref": "#/components/schemas/AdminUpdateDeckDto"
               }
             }
           }
@@ -3771,6 +3994,39 @@
             "example": 10,
             "description": "Maximum new words introduced per local day"
           },
+          "reminderEnabled": {
+            "type": "boolean",
+            "example": false
+          },
+          "reminderHour": {
+            "type": "number",
+            "example": 19,
+            "minimum": 0,
+            "maximum": 23
+          },
+          "reminderMinute": {
+            "type": "number",
+            "example": 0,
+            "minimum": 0,
+            "maximum": 59
+          },
+          "reminderDays": {
+            "example": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "reminderTimezone": {
+            "type": "string",
+            "example": "Asia/Tashkent"
+          },
           "role": {
             "type": "string",
             "enum": [
@@ -3801,6 +4057,11 @@
           "email",
           "dailyGoal",
           "dailyNewLimit",
+          "reminderEnabled",
+          "reminderHour",
+          "reminderMinute",
+          "reminderDays",
+          "reminderTimezone",
           "role",
           "createdAt",
           "updatedAt"
@@ -3995,6 +4256,40 @@
             "maximum": 50,
             "description": "Maximum new words introduced per local day (1–50)."
           },
+          "reminderEnabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "reminderHour": {
+            "type": "number",
+            "example": 19,
+            "minimum": 0,
+            "maximum": 23
+          },
+          "reminderMinute": {
+            "type": "number",
+            "example": 30,
+            "minimum": 0,
+            "maximum": 59
+          },
+          "reminderDays": {
+            "example": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reminderTimezone": {
+            "type": "string",
+            "example": "Asia/Tashkent"
+          },
           "currentPassword": {
             "type": "string",
             "example": "CurrentPass123!",
@@ -4106,6 +4401,26 @@
             ],
             "example": "A2"
           },
+          "topics": {
+            "example": [
+              "travel",
+              "daily life"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "learningGoal": {
+            "type": "object",
+            "example": "Prepare for travel conversations"
+          },
+          "qualityScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Curator-assigned content quality score"
+          },
           "isSystem": {
             "type": "boolean",
             "description": "True for curated decks shipped with the app"
@@ -4135,6 +4450,8 @@
         "required": [
           "id",
           "title",
+          "topics",
+          "qualityScore",
           "isSystem",
           "isPublic",
           "isOwner",
@@ -4165,6 +4482,21 @@
               "C2"
             ],
             "example": "A2"
+          },
+          "topics": {
+            "example": [
+              "travel",
+              "daily life"
+            ],
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "learningGoal": {
+            "type": "string",
+            "example": "Prepare for travel conversations"
           },
           "isPublic": {
             "type": "boolean",
@@ -4258,6 +4590,26 @@
             ],
             "example": "A2"
           },
+          "topics": {
+            "example": [
+              "travel",
+              "daily life"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "learningGoal": {
+            "type": "object",
+            "example": "Prepare for travel conversations"
+          },
+          "qualityScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Curator-assigned content quality score"
+          },
           "isSystem": {
             "type": "boolean",
             "description": "True for curated decks shipped with the app"
@@ -4293,6 +4645,8 @@
         "required": [
           "id",
           "title",
+          "topics",
+          "qualityScore",
           "isSystem",
           "isPublic",
           "isOwner",
@@ -4346,6 +4700,21 @@
           "isPublic": {
             "type": "boolean",
             "description": "Make the deck visible to other users"
+          },
+          "topics": {
+            "example": [
+              "travel",
+              "daily life"
+            ],
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "learningGoal": {
+            "type": "string",
+            "example": "Prepare for travel conversations"
           }
         }
       },
@@ -4426,6 +4795,23 @@
           "words"
         ]
       },
+      "ImportPersonalWordsResponseDto": {
+        "type": "object",
+        "properties": {
+          "importedCount": {
+            "type": "number",
+            "example": 18
+          },
+          "duplicateCount": {
+            "type": "number",
+            "example": 2
+          }
+        },
+        "required": [
+          "importedCount",
+          "duplicateCount"
+        ]
+      },
       "CreateWordDto": {
         "type": "object",
         "properties": {
@@ -4466,6 +4852,21 @@
         "required": [
           "word",
           "translation"
+        ]
+      },
+      "ImportPersonalWordsDto": {
+        "type": "object",
+        "properties": {
+          "words": {
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateWordDto"
+            }
+          }
+        },
+        "required": [
+          "words"
         ]
       },
       "UpdateWordDto": {
@@ -4964,6 +5365,43 @@
           "goalMet"
         ]
       },
+      "AchievementDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "reviews-25"
+          },
+          "title": {
+            "type": "string",
+            "example": "25 ta takrorlash"
+          },
+          "description": {
+            "type": "string",
+            "example": "So‘zlarni 25 marta takrorladingiz."
+          },
+          "target": {
+            "type": "number",
+            "example": 25
+          },
+          "progress": {
+            "type": "number",
+            "example": 12
+          },
+          "unlocked": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "target",
+          "progress",
+          "unlocked"
+        ]
+      },
       "ProgressResponseDto": {
         "type": "object",
         "properties": {
@@ -4975,12 +5413,19 @@
           },
           "streak": {
             "$ref": "#/components/schemas/StreakStatsDto"
+          },
+          "achievements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AchievementDto"
+            }
           }
         },
         "required": [
           "vocabulary",
           "tests",
-          "streak"
+          "streak",
+          "achievements"
         ]
       },
       "TrendPointDto": {
@@ -5250,6 +5695,68 @@
         "required": [
           "date",
           "count"
+        ]
+      },
+      "AdminEngagementResponseDto": {
+        "type": "object",
+        "properties": {
+          "totalUsers": {
+            "type": "number",
+            "example": 1200
+          },
+          "onboardedUsers": {
+            "type": "number",
+            "example": 980
+          },
+          "firstLessonUsers": {
+            "type": "number",
+            "example": 740
+          },
+          "eligible7DayUsers": {
+            "type": "number",
+            "example": 620
+          },
+          "returnedIn7Days": {
+            "type": "number",
+            "example": 180
+          },
+          "eligible30DayUsers": {
+            "type": "number",
+            "example": 450
+          },
+          "returnedIn30Days": {
+            "type": "number",
+            "example": 240
+          },
+          "abandonedTests": {
+            "type": "number",
+            "example": 16
+          },
+          "remindersEnabled": {
+            "type": "number",
+            "example": 210
+          },
+          "remindersDisabled": {
+            "type": "number",
+            "example": 990
+          },
+          "reminderOptOuts30Days": {
+            "type": "number",
+            "example": 24
+          }
+        },
+        "required": [
+          "totalUsers",
+          "onboardedUsers",
+          "firstLessonUsers",
+          "eligible7DayUsers",
+          "returnedIn7Days",
+          "eligible30DayUsers",
+          "returnedIn30Days",
+          "abandonedTests",
+          "remindersEnabled",
+          "remindersDisabled",
+          "reminderOptOuts30Days"
         ]
       },
       "AdminUserCountsDto": {
@@ -5579,6 +6086,21 @@
             ],
             "nullable": true
           },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "learningGoal": {
+            "type": "object",
+            "nullable": true
+          },
+          "qualityScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
           "isSystem": {
             "type": "boolean",
             "description": "True for curated decks shipped with the app"
@@ -5614,6 +6136,8 @@
         "required": [
           "id",
           "title",
+          "topics",
+          "qualityScore",
           "isSystem",
           "isPublic",
           "wordCount",
@@ -5647,6 +6171,21 @@
               "C2"
             ],
             "nullable": true
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "learningGoal": {
+            "type": "object",
+            "nullable": true
+          },
+          "qualityScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
           },
           "isSystem": {
             "type": "boolean",
@@ -5689,6 +6228,8 @@
         "required": [
           "id",
           "title",
+          "topics",
+          "qualityScore",
           "isSystem",
           "isPublic",
           "wordCount",
@@ -5696,6 +6237,56 @@
           "updatedAt",
           "words"
         ]
+      },
+      "AdminUpdateDeckDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "My Travel Words"
+          },
+          "description": {
+            "type": "string",
+            "example": "Words I picked up on my trips abroad."
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1",
+              "C2"
+            ],
+            "example": "A2"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Make the deck visible to other users"
+          },
+          "topics": {
+            "example": [
+              "travel",
+              "daily life"
+            ],
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "learningGoal": {
+            "type": "string",
+            "example": "Prepare for travel conversations"
+          },
+          "qualityScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Curator-assigned content quality score"
+          }
+        }
       }
     }
   }

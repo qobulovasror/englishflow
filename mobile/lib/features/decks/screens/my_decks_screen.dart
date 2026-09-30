@@ -135,8 +135,7 @@ class _DeckCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         title: Row(
           children: [
             Flexible(child: Text(deck.title, style: AppTextStyles.bodyBold)),

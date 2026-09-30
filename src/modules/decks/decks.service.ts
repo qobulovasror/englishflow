@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { WordResponseDto } from '../words/dto/word-response.dto';
 import { CreateDeckDto } from './dto/create-deck.dto';
 import { UpdateDeckDto } from './dto/update-deck.dto';
+import { AdminUpdateDeckDto } from './dto/admin-update-deck.dto';
 import { AddDeckWordsDto } from './dto/add-deck-words.dto';
 import { DeckQueryDto } from './dto/deck-query.dto';
 import {
@@ -57,6 +58,15 @@ export class DecksService {
         query.search
           ? { title: { contains: query.search, mode: 'insensitive' } }
           : {},
+        query.topic ? { topics: { has: query.topic.toLocaleLowerCase() } } : {},
+        query.learningGoal
+          ? {
+              learningGoal: {
+                contains: query.learningGoal,
+                mode: 'insensitive',
+              },
+            }
+          : {},
       ],
     };
 
@@ -65,7 +75,22 @@ export class DecksService {
         where,
         skip: query.skip,
         take: query.take,
-        orderBy: [{ isSystem: 'desc' }, { level: 'asc' }, { title: 'asc' }],
+        orderBy:
+          query.sort === 'popular'
+            ? [{ enrollments: { _count: 'desc' } }, { title: 'asc' }]
+            : query.sort === 'newest'
+              ? [{ createdAt: 'desc' }]
+              : query.sort === 'quality'
+                ? [{ qualityScore: 'desc' }, { title: 'asc' }]
+                : query.sort === 'title'
+                  ? [{ title: 'asc' }]
+                  : query.sort === 'content'
+                    ? [{ words: { _count: 'desc' } }, { title: 'asc' }]
+                    : [
+                        { isSystem: 'desc' },
+                        { level: 'asc' },
+                        { title: 'asc' },
+                      ],
         include: { _count: { select: { words: true } } },
       }),
       this.prisma.deck.count({ where }),
@@ -168,6 +193,57 @@ export class DecksService {
     );
   }
 
+  async copy(id: string, userId: string): Promise<DeckResponseDto> {
+    const source = await this.prisma.deck.findFirst({
+      where: { AND: [{ id }, this.visibleWhere(userId)] },
+      include: { words: true },
+    });
+    if (!source) throw new NotFoundException('Deck not found');
+    if (source.createdById === userId) {
+      throw new ForbiddenException('This deck is already yours');
+    }
+
+    const copied = await this.prisma.$transaction(async (tx) => {
+      const deck = await tx.deck.create({
+        data: {
+          title: `Copy of ${source.title}`.slice(0, 120),
+          description: source.description,
+          level: source.level,
+          topics: source.topics,
+          learningGoal: source.learningGoal,
+          qualityScore: 0,
+          isPublic: false,
+          isSystem: false,
+          createdById: userId,
+        },
+      });
+      const words = source.words.length
+        ? await tx.word.createManyAndReturn({
+            data: source.words.map((word) => ({
+              word: word.word,
+              translation: word.translation,
+              pronunciation: word.pronunciation,
+              partOfSpeech: word.partOfSpeech,
+              collocations: word.collocations,
+              example: word.example,
+              audioUrl: word.audioUrl,
+              deckId: deck.id,
+              createdById: userId,
+            })),
+            select: { id: true },
+          })
+        : [];
+      if (words.length) {
+        await tx.userWord.createMany({
+          data: words.map(({ id: wordId }) => ({ userId, wordId })),
+          skipDuplicates: true,
+        });
+      }
+      return { ...deck, _count: { words: words.length } };
+    });
+    return this.toDto(copied, false, userId);
+  }
+
   async create(dto: CreateDeckDto, userId: string): Promise<DeckResponseDto> {
     const deck = await this.prisma.deck.create({
       data: {
@@ -175,6 +251,8 @@ export class DecksService {
         description: dto.description,
         level: dto.level,
         isPublic: dto.isPublic ?? false,
+        topics: dto.topics ?? [],
+        learningGoal: dto.learningGoal,
         isSystem: false,
         createdById: userId,
       },
@@ -199,6 +277,10 @@ export class DecksService {
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.level !== undefined && { level: dto.level }),
         ...(dto.isPublic !== undefined && { isPublic: dto.isPublic }),
+        ...(dto.topics !== undefined && { topics: dto.topics }),
+        ...(dto.learningGoal !== undefined && {
+          learningGoal: dto.learningGoal,
+        }),
       },
       include: { _count: { select: { words: true } } },
     });
@@ -327,6 +409,8 @@ export class DecksService {
         description: dto.description,
         level: dto.level,
         isPublic: true,
+        topics: dto.topics ?? [],
+        learningGoal: dto.learningGoal,
         isSystem: true,
         createdById: null,
       },
@@ -412,6 +496,15 @@ export class DecksService {
         query.search
           ? { title: { contains: query.search, mode: 'insensitive' } }
           : {},
+        query.topic ? { topics: { has: query.topic.toLocaleLowerCase() } } : {},
+        query.learningGoal
+          ? {
+              learningGoal: {
+                contains: query.learningGoal,
+                mode: 'insensitive',
+              },
+            }
+          : {},
       ],
     };
 
@@ -465,7 +558,10 @@ export class DecksService {
   }
 
   /** Updates ANY deck's metadata, bypassing the owner check. */
-  async adminUpdate(id: string, dto: UpdateDeckDto): Promise<AdminDeckRowDto> {
+  async adminUpdate(
+    id: string,
+    dto: AdminUpdateDeckDto,
+  ): Promise<AdminDeckRowDto> {
     const deck = await this.prisma.deck.findFirst({
       where: { id, deletedAt: null },
     });
@@ -480,6 +576,13 @@ export class DecksService {
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.level !== undefined && { level: dto.level }),
         ...(dto.isPublic !== undefined && { isPublic: dto.isPublic }),
+        ...(dto.topics !== undefined && { topics: dto.topics }),
+        ...(dto.learningGoal !== undefined && {
+          learningGoal: dto.learningGoal,
+        }),
+        ...(dto.qualityScore !== undefined && {
+          qualityScore: dto.qualityScore,
+        }),
       },
       include: {
         _count: { select: { words: true } },
@@ -521,6 +624,9 @@ export class DecksService {
       title: deck.title,
       description: deck.description,
       level: deck.level,
+      topics: deck.topics,
+      learningGoal: deck.learningGoal,
+      qualityScore: deck.qualityScore,
       isSystem: deck.isSystem,
       // System decks are curated content with no owner-sharing semantics.
       isPublic: deck.isSystem ? false : Boolean(deck.isPublic),
@@ -587,6 +693,9 @@ export class DecksService {
       title: deck.title,
       description: deck.description,
       level: deck.level,
+      topics: deck.topics,
+      learningGoal: deck.learningGoal,
+      qualityScore: deck.qualityScore,
       isSystem: deck.isSystem,
       // System decks are curated content with no individual owner, so they're
       // never "public" in the user-sharing sense; keep isPublic real otherwise.

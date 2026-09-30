@@ -29,12 +29,27 @@ import {
   ApiSuccessResponse,
 } from '../../common/swagger/api-response.decorator';
 import { ApiErrorResponseDto } from '../../common/swagger/api-error-response.dto';
+import { ImportPersonalWordsDto } from './dto/import-personal-words.dto';
+import { ImportPersonalWordsResponseDto } from './dto/import-personal-words-response.dto';
 
 @ApiTags('Words')
 @ApiBearerAuth('JWT')
 @Controller('words')
 export class WordsController {
   constructor(private readonly wordsService: WordsService) {}
+
+  @Post('import')
+  @ApiOperation({ summary: 'Import up to 500 words into personal vocabulary' })
+  @ApiSuccessResponse(ImportPersonalWordsResponseDto, {
+    status: HttpStatus.CREATED,
+    description: 'Imported words, skipping existing duplicates',
+  })
+  importPersonal(
+    @Body() dto: ImportPersonalWordsDto,
+    @CurrentUser() user: { id: string },
+  ): Promise<ImportPersonalWordsResponseDto> {
+    return this.wordsService.importPersonal(dto, user.id);
+  }
 
   @Post()
   @ApiOperation({ summary: 'Create a new word in the user vocabulary' })

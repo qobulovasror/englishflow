@@ -21,6 +21,7 @@ class ApiEndpoints {
   static const String decksMine = '/decks/mine';
   static String deckById(String id) => '/decks/$id';
   static String deckEnroll(String id) => '/decks/$id/enroll';
+  static String deckCopy(String id) => '/decks/$id/copy';
   static String deckWords(String id) => '/decks/$id/words';
   static String deckWordById(String id, String wordId) =>
       '/decks/$id/words/$wordId';

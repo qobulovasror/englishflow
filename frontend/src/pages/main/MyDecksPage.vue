@@ -17,6 +17,8 @@ const createForm = reactive({
   title: '',
   description: '',
   level: '' as CefrLevel | '',
+  topics: '',
+  learningGoal: '',
   isPublic: false,
 })
 
@@ -24,6 +26,8 @@ function resetCreateForm() {
   createForm.title = ''
   createForm.description = ''
   createForm.level = ''
+  createForm.topics = ''
+  createForm.learningGoal = ''
   createForm.isPublic = false
 }
 
@@ -34,6 +38,11 @@ async function handleCreate() {
       title: createForm.title,
       description: createForm.description || undefined,
       level: createForm.level || undefined,
+      topics: createForm.topics
+        .split(',')
+        .map((topic) => topic.trim())
+        .filter(Boolean),
+      learningGoal: createForm.learningGoal || undefined,
       isPublic: createForm.isPublic,
     }
     await decksStore.createDeck(payload)
@@ -52,6 +61,9 @@ const editForm = reactive({
   title: '',
   description: '',
   level: '' as CefrLevel | '',
+  topics: '',
+  learningGoal: '',
+  isPublic: false,
 })
 const savingEdit = ref(false)
 
@@ -60,11 +72,17 @@ function startEdit(
   title: string,
   description?: string | null,
   level?: CefrLevel | null,
+  topics: string[] = [],
+  learningGoal?: string | null,
+  isPublic = false,
 ) {
   editingId.value = id
   editForm.title = title
   editForm.description = description ?? ''
   editForm.level = level ?? ''
+  editForm.topics = topics.join(', ')
+  editForm.learningGoal = learningGoal ?? ''
+  editForm.isPublic = isPublic
 }
 
 function cancelEdit() {
@@ -78,6 +96,12 @@ async function handleUpdate(id: string) {
       title: editForm.title,
       description: editForm.description || undefined,
       level: editForm.level || undefined,
+      topics: editForm.topics
+        .split(',')
+        .map((topic) => topic.trim())
+        .filter(Boolean),
+      learningGoal: editForm.learningGoal || undefined,
+      isPublic: editForm.isPublic,
     })
     editingId.value = null
   } catch {
@@ -143,6 +167,16 @@ onMounted(() => {
             <option v-for="lvl in LEVELS" :key="lvl" :value="lvl">{{ lvl }}</option>
           </select>
         </div>
+        <AppInput
+          v-model="createForm.learningGoal"
+          label="Learning goal (optional)"
+          placeholder="Practice travel conversations"
+        />
+        <AppInput
+          v-model="createForm.topics"
+          label="Topics (comma separated)"
+          placeholder="travel, daily life"
+        />
         <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
           <input
             v-model="createForm.isPublic"
@@ -195,6 +229,16 @@ onMounted(() => {
               <option v-for="lvl in LEVELS" :key="lvl" :value="lvl">{{ lvl }}</option>
             </select>
           </div>
+          <AppInput v-model="editForm.learningGoal" label="Learning goal" />
+          <AppInput v-model="editForm.topics" label="Topics (comma separated)" />
+          <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              v-model="editForm.isPublic"
+              type="checkbox"
+              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            Share this deck publicly
+          </label>
           <div class="flex items-center gap-2">
             <AppButton type="submit" size="sm" :loading="savingEdit">Save</AppButton>
             <AppButton type="button" size="sm" variant="secondary" @click="cancelEdit"
@@ -231,7 +275,17 @@ onMounted(() => {
             <AppButton
               size="sm"
               variant="secondary"
-              @click="startEdit(deck.id, deck.title, deck.description, deck.level)"
+              @click="
+                startEdit(
+                  deck.id,
+                  deck.title,
+                  deck.description,
+                  deck.level,
+                  deck.topics,
+                  deck.learningGoal,
+                  deck.isPublic,
+                )
+              "
             >
               Edit
             </AppButton>

@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { WordStatus } from '@prisma/client';
 import { WordsService } from './words.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -12,8 +16,9 @@ type MockedPrisma = {
     findMany: jest.Mock;
     count: jest.Mock;
     delete: jest.Mock;
+    createManyAndReturn: jest.Mock;
   };
-  userWord: { create: jest.Mock; count: jest.Mock };
+  userWord: { create: jest.Mock; createMany: jest.Mock; count: jest.Mock };
   review: { count: jest.Mock };
   testQuestion: { count: jest.Mock };
   $transaction: jest.Mock;
@@ -46,9 +51,11 @@ describe('WordsService', () => {
         findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn().mockResolvedValue(0),
         delete: jest.fn().mockResolvedValue({}),
+        createManyAndReturn: jest.fn().mockResolvedValue([]),
       },
       userWord: {
         create: jest.fn().mockResolvedValue({}),
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
         count: jest.fn().mockResolvedValue(0),
       },
       review: { count: jest.fn().mockResolvedValue(0) },
@@ -66,6 +73,13 @@ describe('WordsService', () => {
   });
 
   describe('create', () => {
+    it('rejects whitespace-only word and translation values', async () => {
+      await expect(
+        service.create({ word: '  ', translation: '  ' }, 'u1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.word.create).not.toHaveBeenCalled();
+    });
+
     it('persists audioUrl when provided and returns it in the dto', async () => {
       const audioUrl = 'https://cdn.example.com/audio/serendipity.mp3';
       prisma.word.create.mockResolvedValue(makeWord({ audioUrl }));
@@ -83,6 +97,62 @@ describe('WordsService', () => {
         data: expect.objectContaining({ audioUrl, createdById: 'u1' }),
       });
       expect(result.audioUrl).toBe(audioUrl);
+    });
+  });
+
+  describe('importPersonal', () => {
+    it('matches existing vocabulary after Unicode NFKC normalization', async () => {
+      prisma.word.findMany.mockResolvedValue([{ word: 'cafe\u0301' }]);
+
+      const result = await service.importPersonal(
+        { words: [{ word: 'café', translation: 'coffee shop' }] },
+        'u1',
+      );
+
+      expect(result).toEqual({ importedCount: 0, duplicateCount: 1 });
+      expect(prisma.word.findMany).toHaveBeenCalledWith({
+        where: { createdById: 'u1' },
+        select: { word: true },
+      });
+      expect(prisma.word.createManyAndReturn).not.toHaveBeenCalled();
+    });
+
+    it('rejects whitespace-only required fields after trimming', async () => {
+      await expect(
+        service.importPersonal(
+          { words: [{ word: '  ', translation: 'salom' }] },
+          'u1',
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('skips duplicates in the file and existing personal vocabulary', async () => {
+      prisma.word.findMany.mockResolvedValue([
+        { word: 'Hello' },
+        { word: 'An unrelated existing word' },
+      ]);
+      prisma.word.createManyAndReturn.mockResolvedValue([{ id: 'w-new' }]);
+
+      const result = await service.importPersonal(
+        {
+          words: [
+            { word: 'hello', translation: 'salom' },
+            { word: 'HELLO', translation: 'salom yana' },
+            { word: 'world', translation: 'dunyo' },
+          ],
+        },
+        'u1',
+      );
+
+      expect(result).toEqual({ importedCount: 1, duplicateCount: 2 });
+      expect(prisma.word.createManyAndReturn).toHaveBeenCalledWith({
+        data: [expect.objectContaining({ word: 'world', createdById: 'u1' })],
+        select: { id: true },
+      });
+      expect(prisma.userWord.createMany).toHaveBeenCalledWith({
+        data: [{ userId: 'u1', wordId: 'w-new' }],
+        skipDuplicates: true,
+      });
     });
   });
 

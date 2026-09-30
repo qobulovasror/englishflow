@@ -30,6 +30,9 @@ describe('Decks (e2e)', () => {
       title: 'Travel Essentials',
       description: 'Curated',
       level: CefrLevel.A2,
+      topics: ['travel'],
+      learningGoal: 'Prepare for travel',
+      qualityScore: 85,
       isSystem: true,
       isPublic: true,
       createdById: null,
@@ -62,7 +65,13 @@ describe('Decks (e2e)', () => {
       const created = await request(app.getHttpServer())
         .post('/decks')
         .set('Authorization', `Bearer ${token}`)
-        .send({ title: 'My Deck', description: 'mine', level: CefrLevel.B1 })
+        .send({
+          title: 'My Deck',
+          description: 'mine',
+          level: CefrLevel.B1,
+          topics: ['travel', 'daily life'],
+          learningGoal: 'Travel conversations',
+        })
         .expect(201);
 
       expect(created.body.data).toMatchObject({
@@ -72,6 +81,8 @@ describe('Decks (e2e)', () => {
         isEnrolled: false,
         isOwner: true,
         isPublic: false,
+        topics: ['travel', 'daily life'],
+        learningGoal: 'Travel conversations',
       });
       const deckId = created.body.data.id;
 
@@ -109,7 +120,12 @@ describe('Decks (e2e)', () => {
       const patched = await request(app.getHttpServer())
         .patch(`/decks/${deckId}`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ title: 'Renamed Deck', isPublic: true })
+        .send({
+          title: 'Renamed Deck',
+          isPublic: true,
+          topics: ['travel'],
+          learningGoal: 'At an airport',
+        })
         .expect(200);
 
       expect(patched.body.data).toMatchObject({
@@ -117,7 +133,30 @@ describe('Decks (e2e)', () => {
         wordCount: 1,
         isOwner: true,
         isPublic: true,
+        topics: ['travel'],
+        learningGoal: 'At an airport',
       });
+
+      const copiedUser = await registerUser(app);
+      const copied = await request(app.getHttpServer())
+        .post(`/decks/${deckId}/copy`)
+        .set('Authorization', `Bearer ${copiedUser.accessToken}`)
+        .expect(201);
+      expect(copied.body.data).toMatchObject({
+        title: 'Copy of Renamed Deck',
+        isPublic: false,
+        isOwner: true,
+        topics: ['travel'],
+        learningGoal: 'At an airport',
+        wordCount: 1,
+      });
+      expect(
+        [...prisma._stores.words.values()].some(
+          (word) =>
+            word.deckId === copied.body.data.id &&
+            word.createdById === copiedUser.userId,
+        ),
+      ).toBe(true);
 
       // Delete (soft): the row is archived, not removed — so enrolled learners
       // keep their progress. It must vanish from listings/detail afterwards.

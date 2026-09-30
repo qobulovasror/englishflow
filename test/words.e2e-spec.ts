@@ -69,6 +69,21 @@ describe('Words (e2e)', () => {
       expect(linkExists).toBe(true);
     });
 
+    it('POST /words/import imports new rows and skips existing and in-file duplicates', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/words/import')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          words: [
+            { word: 'serendipity', translation: 'duplicate' },
+            { word: 'serendipity', translation: 'duplicate row' },
+            { word: 'curiosity', translation: 'qiziquvchanlik' },
+          ],
+        })
+        .expect(201);
+      expect(res.body.data).toEqual({ importedCount: 1, duplicateCount: 2 });
+    });
+
     it('POST /words stores an optional audioUrl and returns it', async () => {
       const audioUrl = 'https://cdn.example.com/audio/pronounce.mp3';
       const res = await request(app.getHttpServer())

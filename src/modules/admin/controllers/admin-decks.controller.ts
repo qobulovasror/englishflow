@@ -21,7 +21,7 @@ import {
 import { Role } from '@prisma/client';
 import { DecksService } from '../../decks/decks.service';
 import { CreateDeckDto } from '../../decks/dto/create-deck.dto';
-import { UpdateDeckDto } from '../../decks/dto/update-deck.dto';
+import { AdminUpdateDeckDto } from '../../decks/dto/admin-update-deck.dto';
 import { AddDeckWordsDto } from '../../decks/dto/add-deck-words.dto';
 import { DeckQueryDto } from '../../decks/dto/deck-query.dto';
 import {
@@ -110,7 +110,7 @@ export class AdminDecksController {
   })
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() dto: UpdateDeckDto,
+    @Body() dto: AdminUpdateDeckDto,
   ): Promise<AdminDeckRowDto> {
     return this.decksService.adminUpdate(id, dto);
   }

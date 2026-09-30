@@ -58,6 +58,17 @@ export class DecksController {
     return this.decksService.findMine(user.id);
   }
 
+  @Post(':id/copy')
+  @ApiOperation({ summary: 'Copy a visible deck into your private decks' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiSuccessResponse(DeckResponseDto, { status: HttpStatus.CREATED })
+  copy(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: { id: string },
+  ): Promise<DeckResponseDto> {
+    return this.decksService.copy(id, user.id);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a personal deck' })
   @ApiSuccessResponse(DeckResponseDto, {

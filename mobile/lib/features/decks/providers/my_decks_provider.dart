@@ -28,6 +28,8 @@ class MyDecksNotifier extends StateNotifier<MyDecksState> {
     String? description,
     String? level,
     bool? isPublic,
+    List<String>? topics,
+    String? learningGoal,
   }) async {
     state = state.copyWith(isSaving: true, clearError: true);
     try {
@@ -36,6 +38,8 @@ class MyDecksNotifier extends StateNotifier<MyDecksState> {
         description: description,
         level: level,
         isPublic: isPublic,
+        topics: topics,
+        learningGoal: learningGoal,
       );
       state = state.copyWith(
         decks: [deck, ...state.decks],
@@ -54,6 +58,8 @@ class MyDecksNotifier extends StateNotifier<MyDecksState> {
     String? description,
     String? level,
     bool? isPublic,
+    List<String>? topics,
+    String? learningGoal,
   }) async {
     state = state.copyWith(isSaving: true, clearError: true);
     try {
@@ -63,6 +69,8 @@ class MyDecksNotifier extends StateNotifier<MyDecksState> {
         description: description,
         level: level,
         isPublic: isPublic,
+        topics: topics,
+        learningGoal: learningGoal,
       );
       state = state.copyWith(
         decks: [

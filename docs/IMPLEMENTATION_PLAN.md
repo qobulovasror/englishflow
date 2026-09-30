@@ -88,13 +88,15 @@ Ushbu hujjat tahlilda belgilangan ishlarni bosqichma-bosqich bajarish ro‘yxati
 
 ## 6-bosqich — Ma’lumot ko‘chirish va to‘plam ulashish
 
-**Holat: rejalashtirilgan**
+**Holat: bajarildi**
 
-- [ ] CSV fayllaridan olish/chiqarish, oldindan ko‘rish, takroriy va xato qatorlarni tuzatish imkonini qo‘shish.
-- [ ] Anki bilan mos ma’lumot olib kirish/chiqarishni baholab, qo‘llab-quvvatlanadigan maydonlarni hujjatlashtirish.
-- [ ] Egalik, ko‘rinish va nazorat qoidalari aniq bo‘lgan xavfsiz to‘plam ulashish va nusxalashni qo‘shish.
-- [ ] CEFR darajasi, mavzu, o‘rganish maqsadi va mazmun sifati bo‘yicha qidirish hamda saralashni qo‘shish.
-- [ ] O‘qituvchi va sinf boshqaruvi imkoniyatlarini talab tasdiqlangandan keyin alohida baholash.
+- [x] Web lug‘atiga CSV/TSV olish/chiqarish, 500 qatorgacha oldindan ko‘rish, maydon cheklovlari, bo‘sh qator va dublikatlarni ko‘rsatish qo‘shildi. Server importi foydalanuvchi lug‘atidagi mavjud so‘zlarni tranzaksiya ichida yana takroriyligini tekshiradi.
+- [x] Anki matn import/eksporti qo‘shildi. `Front`/`Back` yoki `Word`/`Translation` asosiy maydonlari; `Example` va `Pronunciation` ixtiyoriy maydonlari moslanadi. CSV qo‘shimcha ravishda `PartOfSpeech` va nuqta-vergul bilan ajratilgan `Collocations`ni qo‘llaydi. Media va `.apkg` to‘plamlari qo‘llanmaydi.
+- [x] To‘plamlarni ko‘rish huquqi serverda tekshiriladi; ruxsat berilgan ommaviy yoki tizim to‘plamini shaxsiy nusxaga ko‘chirish so‘zlar va yangi o‘rganuvchi holatini transaction bilan yaratadi. O‘z to‘plamini nusxalash rad etiladi.
+- [x] CEFR darajasi, mavzu, o‘rganish maqsadi va sarlavha/qidiruv bo‘yicha filtrlar; ommaboplik, yangilik, sarlavha, so‘zlar soni va curator sifat bahosi bo‘yicha saralash qo‘shildi. Curator sifat bahosini faqat administrator o‘zgartiradi.
+- [x] O‘qituvchi va sinf boshqaruvi tasdiqlangan talab yo‘qligi uchun alohida mahsulot qarorigacha qoldirildi.
+
+**Moslik:** OpenAPI shartnomasi backend DTO-lari bilan qayta yaratildi. Mobile’da to‘plam topish, filtrlash, ko‘rsatkichlarni ko‘rish, shaxsiy to‘plam yaratish/tahrirlash hamda nusxalash oqimlari yangilandi.
 
 ## 7-bosqich — Ishga tushirishga tayyorgarlik va tizim parvarishi
 

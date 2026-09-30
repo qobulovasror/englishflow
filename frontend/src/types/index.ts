@@ -23,6 +23,9 @@ export interface Deck {
   title: string
   description?: string | null
   level?: CefrLevel | null
+  topics: string[]
+  learningGoal?: string | null
+  qualityScore: number
   isSystem: boolean
   // Whether the deck is shared publicly. Always false for system decks.
   isPublic: boolean
@@ -46,6 +49,8 @@ export interface CreateDeckPayload {
   title: string
   description?: string
   level?: CefrLevel
+  topics?: string[]
+  learningGoal?: string
   isPublic?: boolean
 }
 
@@ -308,6 +313,9 @@ export interface AdminDeckRow {
   title: string
   description?: string | null
   level?: CefrLevel | null
+  topics: string[]
+  learningGoal?: string | null
+  qualityScore: number
   isSystem: boolean
   isPublic: boolean
   wordCount: number
@@ -346,8 +354,8 @@ export interface AdminEngagement {
   returnedIn30Days: number
   abandonedTests: number
   remindersEnabled: number
-    remindersDisabled: number
-    reminderOptOuts30Days: number
+  remindersDisabled: number
+  reminderOptOuts30Days: number
 }
 
 // One day of the signup trend (dense, oldest→newest).

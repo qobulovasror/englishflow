@@ -6,6 +6,9 @@ class DeckModel extends Equatable {
   final String title;
   final String? description;
   final String? level;
+  final List<String> topics;
+  final String? learningGoal;
+  final int qualityScore;
   final bool isSystem;
   final bool isPublic;
   final bool isOwner;
@@ -20,6 +23,9 @@ class DeckModel extends Equatable {
     required this.title,
     this.description,
     this.level,
+    this.topics = const [],
+    this.learningGoal,
+    this.qualityScore = 0,
     this.isSystem = false,
     this.isPublic = false,
     this.isOwner = false,
@@ -35,6 +41,11 @@ class DeckModel extends Equatable {
       title: json['title'] ?? '',
       description: json['description']?.toString(),
       level: json['level']?.toString(),
+      topics: (json['topics'] as List? ?? const [])
+          .map((value) => value.toString())
+          .toList(),
+      learningGoal: json['learningGoal']?.toString(),
+      qualityScore: (json['qualityScore'] as num?)?.toInt() ?? 0,
       isSystem: json['isSystem'] == true,
       isPublic: json['isPublic'] == true,
       isOwner: json['isOwner'] == true,
@@ -53,6 +64,9 @@ class DeckModel extends Equatable {
     String? title,
     String? description,
     String? level,
+    List<String>? topics,
+    String? learningGoal,
+    int? qualityScore,
     bool? isPublic,
     bool? isOwner,
     int? wordCount,
@@ -64,6 +78,9 @@ class DeckModel extends Equatable {
       title: title ?? this.title,
       description: description ?? this.description,
       level: level ?? this.level,
+      topics: topics ?? this.topics,
+      learningGoal: learningGoal ?? this.learningGoal,
+      qualityScore: qualityScore ?? this.qualityScore,
       isSystem: isSystem,
       isPublic: isPublic ?? this.isPublic,
       isOwner: isOwner ?? this.isOwner,
@@ -79,6 +96,9 @@ class DeckModel extends Equatable {
         title,
         description,
         level,
+        topics,
+        learningGoal,
+        qualityScore,
         isSystem,
         isPublic,
         isOwner,

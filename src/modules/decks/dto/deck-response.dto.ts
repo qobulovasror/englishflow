@@ -20,6 +20,22 @@ export class DeckResponseDto {
   @Expose()
   level?: CefrLevel | null;
 
+  @ApiProperty({ type: [String], example: ['travel', 'daily life'] })
+  @Expose()
+  topics: string[];
+
+  @ApiPropertyOptional({ example: 'Prepare for travel conversations' })
+  @Expose()
+  learningGoal?: string | null;
+
+  @ApiProperty({
+    minimum: 0,
+    maximum: 100,
+    description: 'Curator-assigned content quality score',
+  })
+  @Expose()
+  qualityScore: number;
+
   @ApiProperty({ description: 'True for curated decks shipped with the app' })
   @Expose()
   isSystem: boolean;
