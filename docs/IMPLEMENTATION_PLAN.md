@@ -55,7 +55,7 @@ Ushbu hujjat tahlilda belgilangan ishlarni bosqichma-bosqich bajarish ro‘yxati
 
 ## 3-bosqich — Kuchliroq mashqlar va so‘z mazmuni
 
-**Holat: taqriz yakunlandi; saqlanmoqda**
+**Holat: yakunlandi va commit qilindi (`35dbdfd`)**
 
 - [x] Inglizchadan ona tiliga, teskari yo‘nalishda eslash, yozib javob berish, gapni to‘ldirish va tinglab tanish mashqlarini web hamda mobil ilovada tanlash qo‘shildi.
 - [x] So‘zlar talaffuz yozuvi, so‘z turkumi, birikmalar, misol gap va audio bilan boyitildi; yangi maydonlar shaxsiy so‘z, to‘plam, CSV/JSON importi va administrator tahririda ishlaydi.
@@ -65,7 +65,7 @@ Ushbu hujjat tahlilda belgilangan ishlarni bosqichma-bosqich bajarish ro‘yxati
 
 ## 4-bosqich — Mobil ilovada internetsiz ishlash va brauzer kengaytmasi
 
-**Holat: taqrizdan o‘tdi; saqlanmoqda**
+**Holat: yakunlandi va commit qilindi (`8772dea`)**
 
 - [x] Hive’dagi mahalliy kesh va javoblar navbati server so‘rovlaridan ajratildi; kesh va navbatning kaliti foydalanuvchi identifikatoriga bog‘landi.
 - [x] Takrorlash natijalari UUID so‘rov identifikatori bilan saqlanadi. API bir xil identifikatorni qayta olganda SM-2 va jurnalni ikkinchi marta o‘zgartirmaydi; migratsiya hamda unit va E2E tekshiruvlari qo‘shildi.
