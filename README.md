@@ -11,6 +11,8 @@ A vocabulary-learning platform with spaced repetition (SM-2), quizzes, decks, an
 
 See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for request flow, response envelope, schema, and deployment notes.
 
+Uzbek tilidagi qo‘llanmalar: [foydalanuvchi interfeysidagi o‘zgarishlar](docs/UI_CHANGES.md) va [texnik asoslar hamda joriy etish](docs/TECHNICAL_FOUNDATIONS.md).
+
 ---
 
 ## Quick start
@@ -75,6 +77,7 @@ flutter run --dart-define=BASE_URL=http://10.0.2.2:3000
 | `npm run prisma:generate` | Regenerate Prisma client types |
 | `npm run openapi` | Export Swagger to `openapi.json` |
 | `psql "$DATABASE_URL" -v srs_cutover_at='YYYY-MM-DD HH:MM:SS+00' -f scripts/srs-baseline.sql` | Measure new SM-2 review outcomes after deploying the interval-metrics migration |
+| `npm run test:db -- --runInBand` | Run PostgreSQL integration tests against a disposable database |
 
 ### Frontend (`frontend/`)
 
@@ -190,12 +193,14 @@ All endpoints return one of these two envelopes:
 
 ## Testing
 
-- **Backend**: `npm test` (Jest unit) + `npm run test:e2e` (e2e vs in-memory Prisma stub); `npm run lint` + `npm run format:check` (ESLint + Prettier). CI additionally applies every migration to a real Postgres 16 (`migrations` job).
-- **Frontend**: `npm run type-check` (`vue-tsc`) + `npm run lint` + `npm run format:check` (ESLint `eslint-plugin-vue` + Prettier). No component test runner yet.
+- **Backend**: `npm test` (Jest unit) + `npm run test:e2e` (E2E with an in-memory Prisma stub) + `npm run test:db` (integration against PostgreSQL). Use a throwaway database for `test:db`; it creates temporary accounts, words, decks, progress and reviews. CI also applies every migration to fresh PostgreSQL 16.
+- **Frontend**: `npm run test:stores` checks theme preference storage and confirms the access token remains in memory. `npm run type-check` (`vue-tsc`), `npm run lint`, `npm run format:check`, and `npm run build` cover the web client. Vue component-level tests are not configured yet.
 - **Mobile**: `flutter analyze` + `flutter test` (unit/provider/widget tests under `mobile/test/`).
 - **Extension**: `npm run compile` (`vue-tsc --noEmit`) in `extension/`.
 
 See `docs/AUDIT.md` for the current quality/security backlog.
+
+The PostgreSQL integration fixtures share a small set of test rows. The account-deletion case clears only its own learner/word review history and uses the `(userId, wordId)` key to reuse progress safely; this prevents a duplicate-key failure when the earlier review case has already created that row.
 
 ---
 
